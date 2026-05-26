@@ -61,7 +61,7 @@ export default async function GroupDetailPage(props: Params) {
         .single();
 
     const userRole = memberData?.role || 'member';
-    const isLeader = userRole === 'admin';
+    const isLeader = userRole === 'leader';
 
     // Count members
     const { count: memberCount } = await supabase

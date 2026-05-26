@@ -23,7 +23,7 @@ interface Profile {
 interface Member {
     id: string;
     user_id: string;
-    role: 'admin' | 'member' | 'leader';
+    role: 'member' | 'leader';
     joined_at: string;
     profiles: Profile;
     score_breakdowns: ScoreBreakdown | null;

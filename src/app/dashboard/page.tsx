@@ -1,22 +1,45 @@
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        // Esto es un fallback, ya que el middleware debe proteger la ruta,
-        // pero satisface a TypeScript.
         return null;
     }
 
-    // Obtener perfil (username)
     const { data: profile } = await supabase
         .from("profiles")
         .select("username")
         .eq("id", user.id)
         .single();
+
+    const { data: groups } = await supabase
+        .from("group_members")
+        .select(`
+            group_id,
+            role,
+            groups (
+                id,
+                name,
+                invite_code,
+                prediction_deadline,
+                created_at
+            )
+        `)
+        .eq("user_id", user.id);
+
+    const { data: memberCounts } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .in("group_id", groups?.map(g => g.group_id) || []);
+
+    const countMap = new Map<string, number>();
+    memberCounts?.forEach(m => {
+        countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1);
+    });
 
     return (
         <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
@@ -41,29 +64,7 @@ export default async function DashboardPage() {
                 </header>
 
                 <main className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <section className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800">
-                        <h2 className="text-xl font-semibold mb-4">Mis Grupos</h2>
-                        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-                            Aún no perteneces a ningún grupo.
-                        </p>
-                        <button className="mt-4 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-sm transition-all active:scale-95">
-                            Crear Nuevo Grupo
-                        </button>
-                    </section>
-
-                    <section className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800">
-                        <h2 className="text-xl font-semibold mb-4">Unirme a un Grupo</h2>
-                        <div className="flex flex-col gap-2">
-                            <input
-                                type="text"
-                                placeholder="Código de invitación"
-                                className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-                            />
-                            <button className="px-4 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors">
-                                Unirme
-                            </button>
-                        </div>
-                    </section>
+                    <DashboardClient groups={groups || []} memberCounts={countMap} />
                 </main>
             </div>
         </div>

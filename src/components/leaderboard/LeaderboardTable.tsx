@@ -26,7 +26,7 @@ interface Profile {
 interface Member {
     id: string;
     user_id: string;
-    role: 'admin' | 'member' | 'leader';
+    role: 'member' | 'leader';
     joined_at: string;
     profiles: Profile;
     score_breakdowns: ScoreBreakdown | null;
@@ -134,7 +134,7 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                         <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
                             {processedMembers.map((member) => {
                                 const isCurrentUser = member.user_id === currentUserId;
-                                const roleLabel = member.role === 'admin' || member.role === 'leader' ? 'Líder' : 'Miembro';
+                                const roleLabel = member.role === 'leader' ? 'Líder' : 'Miembro';
                                 const hasDetails = member.score_breakdowns.details && 
                                     Object.keys(member.score_breakdowns.details).length > 0;
 
