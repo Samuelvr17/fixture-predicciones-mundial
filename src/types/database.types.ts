@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -517,6 +517,7 @@ export type Database = {
           champion_points: number
           correct_results_group_stage: number
           created_at: string
+          details: Json
           exact_scores_group_stage: number
           exact_scores_knockout: number
           group_id: string
@@ -533,6 +534,7 @@ export type Database = {
           champion_points?: number
           correct_results_group_stage?: number
           created_at?: string
+          details?: Json
           exact_scores_group_stage?: number
           exact_scores_knockout?: number
           group_id: string
@@ -549,6 +551,7 @@ export type Database = {
           champion_points?: number
           correct_results_group_stage?: number
           created_at?: string
+          details?: Json
           exact_scores_group_stage?: number
           exact_scores_knockout?: number
           group_id?: string
@@ -680,6 +683,7 @@ export type Database = {
       | "final"
       tiebreak_type: "group_tiebreak" | "best_thirds"
       tournament_round:
+      | "no_clasifica"
       | "round_of_32"
       | "round_of_16"
       | "quarter_final"
@@ -695,7 +699,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof DatabaseWithoutInternals, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -825,6 +829,7 @@ export const Constants = {
       ],
       tiebreak_type: ["group_tiebreak", "best_thirds"],
       tournament_round: [
+        "no_clasifica",
         "round_of_32",
         "round_of_16",
         "quarter_final",

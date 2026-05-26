@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "vitest",
+    "test:run": "vitest run",
     "gen-types": "npx supabase gen types typescript --linked --schema public | Out-File -FilePath src/types/database.types.ts -Encoding utf8",
     "seed:worldcup": "tsx --env-file=.env.local scripts/seed-worldcup.ts"
   },
@@ -26,6 +28,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^5",
+    "vitest": "^2.1.8",
     "ws": "^8.21.0"
   }
 }
