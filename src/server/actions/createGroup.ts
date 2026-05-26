@@ -4,6 +4,22 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+const WORLD_CUP_FIRST_MATCH_START = new Date("2026-06-11T14:00:00-05:00");
+
+/**
+ * Convierte un valor datetime-local (sin zona horaria) a una Date con offset Colombia.
+ * 
+ * El input HTML datetime-local envía valores sin zona horaria, ej: "2026-06-11T13:30".
+ * Esta función interpreta ese valor como hora Colombia (UTC-5), agregando el offset "-05:00".
+ * 
+ * @param value - String datetime-local sin zona horaria (ej: "2026-06-11T13:30")
+ * @returns Date con el offset Colombia aplicado
+ */
+function parseColombiaDateTimeLocal(value: string): Date {
+  // datetime-local no incluye zona horaria, así que asumimos Colombia (UTC-5)
+  return new Date(`${value}:00-05:00`);
+}
+
 interface CreateGroupState {
   error?: string;
   success?: boolean;
@@ -37,11 +53,21 @@ export async function createGroup(
     return { error: "La fecha límite es requerida" };
   }
 
-  const deadlineDate = new Date(predictionDeadline);
+  // El input datetime-local no incluye zona horaria, interpretamos como hora Colombia
+  const deadlineDate = parseColombiaDateTimeLocal(predictionDeadline);
+
+  if (Number.isNaN(deadlineDate.getTime())) {
+    return { error: "La fecha límite no es válida." };
+  }
+
   const now = new Date();
 
   if (deadlineDate <= now) {
     return { error: "La fecha límite debe ser en el futuro" };
+  }
+
+  if (deadlineDate >= WORLD_CUP_FIRST_MATCH_START) {
+    return { error: "La fecha límite debe ser antes del primer partido del Mundial: 11 de junio de 2026, 2:00 p. m. hora Colombia." };
   }
 
   // Generate unique invite code

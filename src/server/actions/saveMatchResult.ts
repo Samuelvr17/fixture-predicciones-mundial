@@ -16,8 +16,6 @@ interface SaveMatchResultParams {
   team1Score: number;
   team2Score: number;
   winnerTeamId: string | null;
-  team1Id: string | null;
-  team2Id: string | null;
 }
 
 interface SaveMatchResultResult {
@@ -82,12 +80,69 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
       };
     }
 
+    // Fetch match to determine round type
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .select('round, team1_id, team2_id')
+      .eq('id', params.matchId)
+      .single();
+
+    if (matchError || !match) {
+      return {
+        success: false,
+        error: 'No se pudo encontrar el partido',
+      };
+    }
+
+    const isGroupStage = match.round === 'group';
+    const isKnockoutStage = !isGroupStage;
+
     // If winner is provided, it must be one of the teams
     if (params.winnerTeamId) {
-      if (params.winnerTeamId !== params.team1Id && params.winnerTeamId !== params.team2Id) {
+      if (params.winnerTeamId !== match.team1_id && params.winnerTeamId !== match.team2_id) {
         return {
           success: false,
           error: 'El equipo ganador debe ser uno de los dos equipos del partido',
+        };
+      }
+    }
+
+    // Knockout stage validations
+    if (isKnockoutStage) {
+      const isDraw = params.team1Score === params.team2Score;
+
+      if (isDraw) {
+        // In knockout stage, if it's a draw, winnerTeamId is REQUIRED
+        if (!params.winnerTeamId) {
+          return {
+            success: false,
+            error: 'En eliminatorias con empate, debe seleccionar manualmente el equipo clasificado',
+          };
+        }
+      } else {
+        // If not a draw, winnerTeamId should match the team with higher score
+        const expectedWinnerId = params.team1Score > params.team2Score ? match.team1_id : match.team2_id;
+        
+        if (params.winnerTeamId && params.winnerTeamId !== expectedWinnerId) {
+          return {
+            success: false,
+            error: 'El equipo ganador no coincide con el marcador del partido',
+          };
+        }
+      }
+    } else {
+      // Group stage: winnerTeamId can only be null if it's a draw
+      const isDraw = params.team1Score === params.team2Score;
+      
+      if (!isDraw && !params.winnerTeamId) {
+        // In group stage without draw, winnerTeamId should be inferred
+        // But we allow it to be null for flexibility, the scoring system will handle it
+      }
+      
+      if (isDraw && params.winnerTeamId) {
+        return {
+          success: false,
+          error: 'En fase de grupos con empate, no debe haber un equipo ganador',
         };
       }
     }

@@ -47,6 +47,12 @@ export interface GroupStandings {
   tiedTeams: string[]; // team_ids that are tied and require manual resolution
 }
 
+export interface ManualTiebreak {
+  type: 'group';
+  reference: string; // e.g., 'group_A', 'group_B', etc.
+  ordered_team_ids: string[];
+}
+
 export interface GroupStandingsOutput {
   standings: Record<string, GroupStandings>; // group_code -> GroupStandings
   thirdPlaceTeams: TeamStats[]; // All third-place teams (not yet ranked)
@@ -64,7 +70,8 @@ export interface GroupStandingsOutput {
 export function calculateGroupStandings(
   teams: Team[],
   matches: Match[],
-  results: MatchResult[]
+  results: MatchResult[],
+  manualTiebreaks?: ManualTiebreak[]
 ): GroupStandingsOutput {
   // Create a map of match_id -> result for quick lookup
   const resultMap = new Map<string, MatchResult>();
@@ -97,9 +104,25 @@ export function calculateGroupStandings(
   for (const [groupCode, groupTeams] of teamsByGroup) {
     const groupMatches = matchesByGroup.get(groupCode) || [];
     const groupResult = calculateSingleGroupStandings(groupTeams, groupMatches, resultMap);
-    standings[groupCode] = groupResult;
+    
+    // Check if there's a manual tiebreak for this group
+    const groupReference = `group_${groupCode}`;
+    const manualTiebreak = manualTiebreaks?.find(tb => tb.reference === groupReference);
+    
+    if (manualTiebreak) {
+      // Apply manual tiebreak
+      const adjustedStandings = applyManualTiebreakToStandings(groupResult.standings, manualTiebreak);
+      standings[groupCode] = {
+        ...groupResult,
+        standings: adjustedStandings,
+        requiresManualTiebreak: false, // Manual tiebreak resolves the tie
+        tiedTeams: [], // No ties after manual resolution
+      };
+    } else {
+      standings[groupCode] = groupResult;
+    }
 
-    if (groupResult.requiresManualTiebreak) {
+    if (standings[groupCode].requiresManualTiebreak) {
       globalRequiresManualTiebreak = true;
     }
   }
@@ -296,6 +319,17 @@ function findTiedGroups(standings: TeamStats[]): TeamStats[][] {
 /**
  * Resolve tiebreak for a group of tied teams
  * Handles 2+ team ties with proper multi-team head-to-head logic
+ *
+ * Tiebreak criteria (in order):
+ * 1. Points in matches between tied teams (head-to-head)
+ * 2. Goal difference in matches between tied teams (head-to-head)
+ * 3. Goals scored in matches between tied teams (head-to-head)
+ * 4. Total goal difference (all matches)
+ * 5. Total goals scored (all matches)
+ * 6. If still tied: requires manual tiebreak by global_admin
+ *
+ * NOTE: Fair play and FIFA ranking criteria have been removed.
+ * They are replaced by manual resolution from global_admin when automatic criteria fail.
  */
 interface TiebreakResolution {
   resolved: TeamStats[];
@@ -526,6 +560,39 @@ function calculateHeadToHeadStats(
   }
 
   return stats;
+}
+
+/**
+ * Apply manual tiebreak order to group standings
+ * Teams in ordered_team_ids appear first in that order
+ * Remaining teams maintain their automatic order after
+ */
+function applyManualTiebreakToStandings(
+  standings: TeamStats[],
+  manualTiebreak: ManualTiebreak
+): TeamStats[] {
+  const teamMap = new Map<string, TeamStats>();
+  for (const team of standings) {
+    teamMap.set(team.team_id, team);
+  }
+
+  const ordered: TeamStats[] = [];
+  for (const teamId of manualTiebreak.ordered_team_ids) {
+    const team = teamMap.get(teamId);
+    if (team) {
+      ordered.push(team);
+      teamMap.delete(teamId);
+    }
+  }
+
+  // Add any remaining teams not in the manual order (maintain automatic order)
+  for (const team of standings) {
+    if (teamMap.has(team.team_id)) {
+      ordered.push(team);
+    }
+  }
+
+  return ordered;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { calculateGroupStandings, type Team as EngineTeam, type Match as EngineMatch, type MatchResult as EngineMatchResult } from '@/lib/tournament/groupStandings';
-import { calculateBestThirds } from '@/lib/tournament/bestThirds';
+import { calculateGroupStandings, type Team as EngineTeam, type Match as EngineMatch, type MatchResult as EngineMatchResult, type ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
+import { calculateBestThirds, type ManualTiebreak as BestThirdsManualTiebreak } from '@/lib/tournament/bestThirds';
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
 
@@ -68,24 +68,38 @@ export default async function StandingsPage() {
   }
 
   // Fetch global data (not group-specific)
-  const [teamsData, matchesData, matchResultsData] = await Promise.all([
+  const [teamsData, matchesData, matchResultsData, manualTiebreaksData] = await Promise.all([
     supabase.from('teams').select('*'),
     supabase.from('matches').select('*').eq('round', 'group'),
     supabase.from('match_results').select('*'),
+    supabase.from('manual_tiebreaks').select('*'),
   ]);
 
   const teams = (teamsData.data || []) as DbTeam[];
   const matches = (matchesData.data || []) as DbMatch[];
   const matchResults = (matchResultsData.data || []) as DbMatchResult[];
+  const manualTiebreaks = (manualTiebreaksData.data || []) as any[];
 
   // Adapt data to engine types
   const engineTeams = teams.map(adaptTeamToEngine);
   const engineMatches = matches.map(adaptMatchToEngine).filter((m): m is EngineMatch => m !== null);
   const engineMatchResults = matchResults.map(adaptMatchResultToEngine);
 
+  // Convert manual tiebreaks to engine types
+  const groupManualTiebreaks: GroupManualTiebreak[] = manualTiebreaks
+    .filter((tb: any) => tb.type === 'group_tiebreak')
+    .map((tb: any) => ({
+      type: 'group' as const,
+      reference: tb.reference,
+      ordered_team_ids: tb.ordered_team_ids,
+    }));
+
+  const bestThirdsManualTiebreak: BestThirdsManualTiebreak | undefined = manualTiebreaks
+    .find((tb: any) => tb.type === 'best_thirds');
+
   // Calculate standings using engines
-  const groupStandingsOutput = calculateGroupStandings(engineTeams, engineMatches, engineMatchResults);
-  const bestThirdsOutput = calculateBestThirds(groupStandingsOutput.thirdPlaceTeams);
+  const groupStandingsOutput = calculateGroupStandings(engineTeams, engineMatches, engineMatchResults, groupManualTiebreaks);
+  const bestThirdsOutput = calculateBestThirds(groupStandingsOutput.thirdPlaceTeams, bestThirdsManualTiebreak);
 
   // Check if standings are provisional (not all group matches have results)
   const totalGroupMatches = engineMatches.length;

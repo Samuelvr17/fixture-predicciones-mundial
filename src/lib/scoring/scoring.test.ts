@@ -436,17 +436,17 @@ describe('calculateScore', () => {
 
     // Group exact: 5
     // Knockout exact: 10
-    // Advancement: 20+35+55+80+110+150 = 450
+    // Advancement: 20+35+55+80+110 = 300 (champion points handled separately)
     // Champion: 150
     // Third place: 80
     // Top scorer: 60
-    // Total: 5+10+450+150+80+60 = 755
+    // Total: 5+10+300+150+80+60 = 605
     expect(result.groupStageExactPoints).toBe(5);
     expect(result.knockoutExactPoints).toBe(10);
-    expect(result.advancementPoints).toBe(450);
+    expect(result.advancementPoints).toBe(300);
     expect(result.championPoints).toBe(150);
     expect(result.thirdPlacePoints).toBe(80);
     expect(result.topScorerPoints).toBe(60);
-    expect(result.total).toBe(755);
+    expect(result.total).toBe(605);
   });
 });

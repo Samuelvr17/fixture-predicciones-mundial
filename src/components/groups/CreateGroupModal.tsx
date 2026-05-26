@@ -68,7 +68,7 @@ export default function CreateGroupModal({ isOpen, onClose }: CreateGroupModalPr
               className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Debe ser antes del primer partido del Mundial 2026
+              Debe ser antes del primer partido: 11 de junio de 2026, 2:00 p. m. hora Colombia.
             </p>
           </div>
 

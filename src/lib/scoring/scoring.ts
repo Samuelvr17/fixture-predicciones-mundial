@@ -223,6 +223,7 @@ function calculateKnockoutMatchScore(
 /**
  * Calculate advancement points for a team
  * Points are cumulative: if a team reaches round_of_16, they get points for round_of_32 AND round_of_16
+ * Note: Champion points are handled separately by calculateChampionPoints, so advancement stops at final
  */
 function calculateAdvancementPoints(
   teamId: string,
@@ -244,8 +245,12 @@ function calculateAdvancementPoints(
 
   // Calculate cumulative points for all rounds the team actually reached
   // that were within or equal to the user's prediction
+  // Stop at final (index 5) - champion points are handled separately
+  const finalIndex = getRoundIndex('final');
+  const maxIndex = Math.min(actualIndex, finalIndex);
+  
   let totalPoints = 0;
-  for (let i = 1; i <= actualIndex; i++) {
+  for (let i = 1; i <= maxIndex; i++) {
     const round = ROUND_ORDER[i];
     if (i <= predictedIndex) {
       totalPoints += ROUND_POINTS[round];

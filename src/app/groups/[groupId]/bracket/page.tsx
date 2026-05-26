@@ -152,10 +152,20 @@ export default async function GroupBracketPage(props: Params) {
             team2_score: r.team2_score,
         }));
 
+    // Filter and convert manual tiebreaks for groups only
+    const groupManualTiebreaks = bracketManualTiebreaks
+        .filter(t => t.type === 'group')
+        .map(t => ({
+            type: 'group' as const,
+            reference: t.reference,
+            ordered_team_ids: t.ordered_team_ids,
+        }));
+
     const groupStandings = calculateGroupStandings(
         groupTeams,
         groupMatchesEngine,
-        groupMatchResults
+        groupMatchResults,
+        groupManualTiebreaks
     );
 
     // Calculate best thirds

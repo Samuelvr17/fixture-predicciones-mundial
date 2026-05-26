@@ -11,9 +11,10 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { calculateScore, type MatchPrediction, type PredictionAdvance, type PredictionSpecial, type Match, type MatchResult, type ResolvedBracket, type TournamentRound } from '@/lib/scoring/scoring';
-import { calculateGroupStandings, type Team as TournamentTeam, type Match as TournamentMatch, type MatchResult as TournamentMatchResult } from '@/lib/tournament/groupStandings';
-import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak } from '@/lib/tournament/bestThirds';
+import { calculateGroupStandings, type Team as TournamentTeam, type Match as TournamentMatch, type MatchResult as TournamentMatchResult, type ManualTiebreak as GroupTiebreak } from '@/lib/tournament/groupStandings';
+import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak, type BestThirdsOutput } from '@/lib/tournament/bestThirds';
 import { resolveBracket, type Match as BracketMatch, type MatchResult as BracketMatchResult, type ManualTiebreak as BracketTiebreak } from '@/lib/tournament/bracket';
+import { buildTeamAdvancesFromBracket } from '@/lib/tournament/teamAdvances';
 import type { Database } from '@/types/database.types';
 
 // ============================================================================
@@ -153,74 +154,6 @@ function dbMatchResultToBracketMatchResult(dbResult: Database['public']['Tables'
   };
 }
 
-/**
- * Build team advances map from bracket output
- * This maps each team to the furthest round they reached
- */
-function buildTeamAdvancesFromBracket(
-  bracketOutput: ReturnType<typeof resolveBracket>,
-  groupStandings: ReturnType<typeof calculateGroupStandings>
-): Record<string, TournamentRound> {
-  const teamAdvances: Record<string, TournamentRound> = {};
-
-  // Start with all teams at 'no_clasifica'
-  for (const groupCode in groupStandings.standings) {
-    const group = groupStandings.standings[groupCode];
-    for (const team of group.standings) {
-      teamAdvances[team.team_id] = 'no_clasifica';
-    }
-  }
-
-  // Update based on bracket matches
-  // Teams that won in round_of_32 reached round_of_16
-  // Teams that won in round_of_16 reached quarter_final
-  // etc.
-  for (const resolvedMatch of bracketOutput.matches) {
-    if (resolvedMatch.winner_team_id) {
-      const currentRound = resolvedMatch.match.round;
-      const winnerId = resolvedMatch.winner_team_id;
-
-      // Map round to tournament round
-      const roundMap: Record<string, TournamentRound> = {
-        'round_of_32': 'round_of_16',
-        'round_of_16': 'quarter_final',
-        'quarter_final': 'semi_final',
-        'semi_final': 'final',
-        'final': 'champion',
-        'third_place': 'champion', // Third place match winner is considered champion for advancement purposes
-      };
-
-      const nextRound = roundMap[currentRound];
-      if (nextRound) {
-        // Only update if this is a further round than what they already have
-        const roundOrder = ['no_clasifica', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'final', 'champion'];
-        const currentIndex = roundOrder.indexOf(teamAdvances[winnerId] || 'no_clasifica');
-        const newIndex = roundOrder.indexOf(nextRound);
-        if (newIndex > currentIndex) {
-          teamAdvances[winnerId] = nextRound;
-        }
-      }
-    }
-  }
-
-  // Teams in round_of_32 (qualified from group stage)
-  for (const groupCode in groupStandings.standings) {
-    const group = groupStandings.standings[groupCode];
-    // First and second place teams qualify for round_of_32
-    if (group.standings.length >= 2) {
-      teamAdvances[group.standings[0].team_id] = 'round_of_32';
-      teamAdvances[group.standings[1].team_id] = 'round_of_32';
-    }
-  }
-
-  // Best thirds also qualify for round_of_32
-  for (const team of groupStandings.thirdPlaceTeams) {
-    teamAdvances[team.team_id] = 'round_of_32';
-  }
-
-  return teamAdvances;
-}
-
 // ============================================================================
 // Main Recalculation Functions
 // ============================================================================
@@ -265,8 +198,17 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       .map(dbMatchToTournamentMatch);
     const tournamentMatchResults = matchResultsData.data.map(dbMatchResultToTournamentMatchResult);
 
+    // Load manual tiebreaks for groups
+    const groupTiebreaks: GroupTiebreak[] = manualTiebreaksData.data
+      .filter(tb => tb.type === 'group_tiebreak')
+      .map(tb => ({
+        type: 'group' as const,
+        reference: tb.reference,
+        ordered_team_ids: tb.ordered_team_ids,
+      }));
+
     // Calculate group standings
-    const groupStandings = calculateGroupStandings(tournamentTeams, tournamentMatches, tournamentMatchResults);
+    const groupStandings = calculateGroupStandings(tournamentTeams, tournamentMatches, tournamentMatchResults, groupTiebreaks);
 
     // Load manual tiebreaks for best thirds
     const bestThirdsTiebreak = manualTiebreaksData.data
@@ -281,8 +223,8 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       .map(dbMatchToBracketMatch);
     const bracketMatchResults = matchResultsData.data.map(dbMatchResultToBracketMatchResult);
 
-    // Load manual tiebreaks for groups
-    const groupTiebreaks = manualTiebreaksData.data
+    // Load manual tiebreaks for bracket
+    const bracketGroupTiebreaks = manualTiebreaksData.data
       .filter(tb => tb.type === 'group_tiebreak') as BracketTiebreak[];
 
     // Resolve bracket
@@ -291,11 +233,11 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       bracketMatchResults,
       groupStandings,
       bestThirds,
-      groupTiebreaks
+      bracketGroupTiebreaks
     );
 
     // Build team advances map
-    const teamAdvances = buildTeamAdvancesFromBracket(bracketOutput, groupStandings);
+    const teamAdvances = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds);
 
     // Build resolved bracket for scoring engine
     const resolvedBracket: ResolvedBracket = {

@@ -215,6 +215,11 @@ export default function MemberPredictionsClient({
                                         <h2 className="text-2xl font-bold tracking-tight">
                                             {ROUND_LABELS[round]}
                                         </h2>
+                                        {round !== 'group' && (
+                                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
+                                                En eliminatorias, el marcador corresponde a los 90 minutos. Si hay empate, el clasificado se define por el resultado oficial cargado por el administrador.
+                                            </div>
+                                        )}
                                         {Object.entries(dates).map(([date, matchesByDate]) => {
                                             // Check if this date has any predictions
                                             const hasPredictionsInDate = matchesByDate.some(match => predictionsMap.has(match.id));

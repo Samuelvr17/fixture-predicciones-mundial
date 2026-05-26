@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quiniela Mundial 2026
 
-## Getting Started
+App web para crear grupos privados y predecir el Mundial de Fútbol 2026 completo: marcadores, clasificados, avances por ronda, campeón, tercer puesto y goleador.
 
-First, run the development server:
+## Stack Técnico
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- Supabase (Auth, Postgres, Row Level Security)
+- Vitest
+
+## Funcionalidades
+
+- **Autenticación**: Registro y login con Supabase Auth
+- **Grupos privados**: Creación de quinielas con código de invitación
+- **Invitaciones**: Código único para unirse a grupos
+- **Predicciones**: Marcadores de todos los partidos, campeón, tercer puesto, goleador y avances por ronda
+- **Calendario**: Vista de todos los partidos del Mundial 2026
+- **Standings**: Tablas de posiciones de grupos con cálculo automático
+- **Bracket**: Visualización dinámica del torneo eliminatorio
+- **Leaderboard**: Ranking de puntajes por grupo con desglose por categoría
+- **Scoring**: Sistema de puntos automático que compara predicciones contra resultados reales
+
+## Variables de Entorno
+
+Crear archivo `.env.local` con:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=tu_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`SUPABASE_SERVICE_ROLE_KEY` es necesario para ejecutar el seed de datos.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Comandos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev          # Iniciar servidor de desarrollo
+npm run build        # Build para producción
+npm run test         # Ejecutar tests en modo watch
+npm run test:run     # Ejecutar tests una vez
+npm run seed:worldcup # Importar datos del Mundial desde data/worldcup-2026.json
+npm run gen-types    # Generar tipos TypeScript desde Supabase
+```
 
-## Learn More
+## Seed del Mundial
 
-To learn more about Next.js, take a look at the following resources:
+El script `npm run seed:worldcup` lee `data/worldcup-2026.json` e importa a la base de datos:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Partidos con fases, fechas, horarios y sedes
+- Equipos y grupos
+- Estructura del bracket con slots dinámicos (1A, 2B, W74, L101, etc.)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Este script requiere `SUPABASE_SERVICE_ROLE_KEY` para tener permisos de escritura.
 
-## Deploy on Vercel
+## Roles
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### member
+Usuario regular de un grupo. Puede crear y editar sus propias predicciones antes del deadline, y ver predicciones de otros miembros del mismo grupo.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### leader
+Creador del grupo. Puede cambiar configuración básica del grupo (nombre, fecha límite si no ha empezado el torneo), ver miembros y gestionar el código de invitación. No puede ingresar resultados reales ni resolver desempates oficiales.
+
+### global_admin
+Rol global definido en la tabla `global_admins`. Puede ingresar resultados reales de partidos, indicar ganadores en eliminatorias, resolver desempates manuales oficiales, confirmar campeón, tercer puesto y goleador oficial, y ejecutar recálculos globales.
+
+## Reglas de Puntos
+
+### Fase de Grupos
+- **Marcador exacto**: 5 puntos
+- **Ganador o empate correcto sin marcador exacto**: 2 puntos
+
+### Fase Eliminatoria
+- **Marcador exacto a 90 minutos**: 10 puntos
+
+### Avances de Selecciones (acumulativos)
+- Clasifica a dieciseisavos: 20 puntos
+- Avanza a octavos: 35 puntos
+- Avanza a cuartos: 55 puntos
+- Avanza a semifinales: 80 puntos
+- Llega a la final: 110 puntos
+- Es campeón: 150 puntos
+
+### Predicciones Especiales
+- **Tercer puesto correcto**: 80 puntos
+- **Campeón correcto**: 150 puntos
+- **Goleador oficial correcto**: 60 puntos
+
+## Estado del Proyecto
+
+⚠️ **Nota**: El mapeo oficial de mejores terceros del Mundial 2026 todavía está pendiente de completar. Este mapeo define qué terceros de cada grupo se enfrentan en dieciseisavos según la combinación oficial de FIFA.

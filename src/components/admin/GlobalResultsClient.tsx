@@ -67,46 +67,19 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
     matchId: string,
     team1Score: number,
     team2Score: number,
-    winnerTeamId: string | null,
-    isElimination: boolean,
-    team1Id: string | null,
-    team2Id: string | null
+    winnerTeamId: string | null
   ) => {
     setSaving(matchId);
     setError(null);
     setSuccess(null);
 
     try {
-      // Validaciones
-      if (team1Score < 0 || team2Score < 0) {
-        throw new Error('Los goles deben ser números enteros mayores o iguales a 0');
-      }
-
-      if (!Number.isInteger(team1Score) || !Number.isInteger(team2Score)) {
-        throw new Error('Los goles deben ser números enteros');
-      }
-
-      // Para eliminatorias, debe haber un ganador
-      if (isElimination && !winnerTeamId) {
-        throw new Error('En partidos de eliminatoria debe seleccionar el equipo que avanza');
-      }
-
-      // Para fase de grupos, winner_team_id puede ser null (empate)
-      // Pero si se proporciona, debe ser uno de los equipos del partido
-      if (winnerTeamId) {
-        if (winnerTeamId !== team1Id && winnerTeamId !== team2Id) {
-          throw new Error('El equipo ganador debe ser uno de los dos equipos del partido');
-        }
-      }
-
       // Call server action to save result and trigger recalculation
       const result = await saveMatchResult({
         matchId,
         team1Score,
         team2Score,
         winnerTeamId,
-        team1Id,
-        team2Id,
       });
 
       if (!result.success) {

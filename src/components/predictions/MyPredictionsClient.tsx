@@ -574,6 +574,11 @@ export default function MyPredictionsClient({
                     <h2 className="text-2xl font-bold tracking-tight">
                         {ROUND_LABELS[round]}
                     </h2>
+                    {round !== 'group' && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
+                            En eliminatorias, el marcador corresponde a los 90 minutos. Si hay empate, el clasificado se define por el resultado oficial cargado por el administrador.
+                        </div>
+                    )}
                     {Object.entries(dates).map(([date, matchesByDate]) => (
                         <div key={date} className="space-y-3">
                             <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">

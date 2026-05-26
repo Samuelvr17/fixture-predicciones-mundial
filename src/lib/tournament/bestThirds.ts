@@ -36,6 +36,15 @@ export interface BestThirdsOutput {
 /**
  * Calculate the best 8 third-place teams from 12 groups
  * This is a pure function with no side effects
+ *
+ * Tiebreak criteria (in order):
+ * 1. Points (all matches)
+ * 2. Goal difference (all matches)
+ * 3. Goals scored (all matches)
+ * 4. If still tied at the 8/9 qualification cut: requires manual tiebreak by global_admin
+ *
+ * NOTE: Fair play and FIFA ranking criteria have been removed.
+ * They are replaced by manual resolution from global_admin when automatic criteria fail.
  */
 export function calculateBestThirds(
   thirdPlaceTeams: TeamStats[],

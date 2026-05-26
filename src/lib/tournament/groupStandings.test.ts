@@ -9,6 +9,7 @@ import {
   Team,
   Match,
   MatchResult,
+  ManualTiebreak,
 } from './groupStandings';
 
 describe('groupStandings', () => {
@@ -231,5 +232,176 @@ describe('groupStandings', () => {
     expect(output.standings['G'].tiedTeams).toContain('t2');
     expect(output.standings['G'].tiedTeams).toContain('t3');
     expect(output.standings['G'].tiedTeams).toContain('t4');
+  });
+
+  it('group tied without manual_tiebreak => requiresManualTiebreak true', () => {
+    const teams: Team[] = [
+      { id: 't1', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 't2', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 't3', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 't4', name: 'Team D', code: 'D', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 't1', team2_id: 't2', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 't3', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 't1', team2_id: 't3', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 't2', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 't1', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 't2', team2_id: 't3', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 2, team2_score: 2 },
+      { match_id: 'm2', team1_score: 1, team2_score: 0 },
+      { match_id: 'm3', team1_score: 0, team2_score: 1 },
+      { match_id: 'm4', team1_score: 2, team2_score: 0 },
+      { match_id: 'm5', team1_score: 2, team2_score: 0 },
+      { match_id: 'm6', team1_score: 0, team2_score: 1 },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results);
+
+    expect(output.requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].tiedTeams).toContain('t1');
+    expect(output.standings['G'].tiedTeams).toContain('t2');
+  });
+
+  it('group tied with manual_tiebreak => manual order applied and requiresManualTiebreak false', () => {
+    const teams: Team[] = [
+      { id: 't1', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 't2', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 't3', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 't4', name: 'Team D', code: 'D', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 't1', team2_id: 't2', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 't3', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 't1', team2_id: 't3', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 't2', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 't1', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 't2', team2_id: 't3', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 2, team2_score: 2 },
+      { match_id: 'm2', team1_score: 1, team2_score: 0 },
+      { match_id: 'm3', team1_score: 0, team2_score: 1 },
+      { match_id: 'm4', team1_score: 2, team2_score: 0 },
+      { match_id: 'm5', team1_score: 2, team2_score: 0 },
+      { match_id: 'm6', team1_score: 0, team2_score: 1 },
+    ];
+
+    const manualTiebreaks: ManualTiebreak[] = [
+      {
+        type: 'group',
+        reference: 'group_G',
+        ordered_team_ids: ['t2', 't1'],
+      },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results, manualTiebreaks);
+    const standings = output.standings['G'].standings;
+
+    expect(output.requiresManualTiebreak).toBe(false);
+    expect(output.standings['G'].requiresManualTiebreak).toBe(false);
+    expect(output.standings['G'].tiedTeams).toEqual([]);
+    // Manual order should be applied: t2 first, then t1, then others in automatic order
+    expect(standings[0].team_id).toBe('t2');
+    expect(standings[1].team_id).toBe('t1');
+    expect(standings[2].team_id).toBe('t3');
+    expect(standings[3].team_id).toBe('t4');
+  });
+
+  it('manual_tiebreak partial maintains teams remaining in automatic order', () => {
+    const teams: Team[] = [
+      { id: 't1', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 't2', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 't3', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 't4', name: 'Team D', code: 'D', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 't1', team2_id: 't2', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 't3', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 't1', team2_id: 't3', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 't2', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 't1', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 't2', team2_id: 't3', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 2, team2_score: 2 },
+      { match_id: 'm2', team1_score: 1, team2_score: 0 },
+      { match_id: 'm3', team1_score: 0, team2_score: 1 },
+      { match_id: 'm4', team1_score: 2, team2_score: 0 },
+      { match_id: 'm5', team1_score: 2, team2_score: 0 },
+      { match_id: 'm6', team1_score: 0, team2_score: 1 },
+    ];
+
+    const manualTiebreaks: ManualTiebreak[] = [
+      {
+        type: 'group',
+        reference: 'group_G',
+        ordered_team_ids: ['t2'], // Only specify order for t2
+      },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results, manualTiebreaks);
+    const standings = output.standings['G'].standings;
+
+    expect(output.requiresManualTiebreak).toBe(false);
+    expect(output.standings['G'].requiresManualTiebreak).toBe(false);
+    expect(output.standings['G'].tiedTeams).toEqual([]);
+    // t2 should be first (manual order), then remaining teams in automatic order (t3, t1, t4)
+    expect(standings[0].team_id).toBe('t2');
+    expect(standings[1].team_id).toBe('t3');
+    expect(standings[2].team_id).toBe('t1');
+    expect(standings[3].team_id).toBe('t4');
+  });
+
+  it('manual_tiebreak for different group does not affect this group', () => {
+    const teams: Team[] = [
+      { id: 't1', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 't2', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 't3', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 't4', name: 'Team D', code: 'D', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 't1', team2_id: 't2', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 't3', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 't1', team2_id: 't3', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 't2', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 't1', team2_id: 't4', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 't2', team2_id: 't3', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 2, team2_score: 2 },
+      { match_id: 'm2', team1_score: 1, team2_score: 0 },
+      { match_id: 'm3', team1_score: 0, team2_score: 1 },
+      { match_id: 'm4', team1_score: 2, team2_score: 0 },
+      { match_id: 'm5', team1_score: 2, team2_score: 0 },
+      { match_id: 'm6', team1_score: 0, team2_score: 1 },
+    ];
+
+    const manualTiebreaks: ManualTiebreak[] = [
+      {
+        type: 'group',
+        reference: 'group_H', // Different group
+        ordered_team_ids: ['t2', 't1'],
+      },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results, manualTiebreaks);
+
+    // Group G should still require manual tiebreak since the tiebreak is for group H
+    expect(output.requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].tiedTeams).toContain('t1');
+    expect(output.standings['G'].tiedTeams).toContain('t2');
   });
 });

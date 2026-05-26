@@ -44,7 +44,7 @@ interface ResultMatchCardProps {
   match: Match;
   teams: Team[];
   isElimination: boolean;
-  onSave: (matchId: string, team1Score: number, team2Score: number, winnerTeamId: string | null, isElimination: boolean, team1Id: string | null, team2Id: string | null) => void;
+  onSave: (matchId: string, team1Score: number, team2Score: number, winnerTeamId: string | null) => void;
   saving: boolean;
 }
 
@@ -60,7 +60,7 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
   const bothTeamsResolved = team1Resolved && team2Resolved;
 
   const handleSave = () => {
-    onSave(match.id, team1Score, team2Score, winnerTeamId, isElimination, match.team1_id, match.team2_id);
+    onSave(match.id, team1Score, team2Score, winnerTeamId);
     setEditing(false);
   };
 
@@ -169,6 +169,9 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
 
       {isElimination && editing && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
+          <p className="text-sm text-amber-700 mb-2">
+            Ingresa el marcador de los 90 minutos. Si hay empate, selecciona manualmente el equipo clasificado.
+          </p>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Equipo que avanza:
           </label>
@@ -186,9 +189,6 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
               <option value={match.team2.id}>{match.team2.name}</option>
             )}
           </select>
-          <p className="text-xs text-gray-500 mt-1">
-            El equipo que avanza puede diferir del ganador de los 90 minutos (tiempo extra o penales)
-          </p>
         </div>
       )}
 
