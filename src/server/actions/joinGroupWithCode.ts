@@ -36,7 +36,14 @@ export async function joinGroupWithCode(
 
   if (rpcError || !result || result.length === 0) {
     console.error("Error joining group via RPC:", rpcError);
-    return { error: "Código de invitación inválido" };
+    // Show specific error message based on the actual error
+    if (rpcError?.message?.includes('not_authenticated')) {
+      return { error: "Debes estar autenticado para unirte a un grupo" };
+    }
+    if (rpcError?.message?.includes('invalid_invite_code')) {
+      return { error: "Código de invitación inválido" };
+    }
+    return { error: rpcError?.message || "Error al unirse al grupo" };
   }
 
   const groupId = result[0].group_id;
