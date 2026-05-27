@@ -30,45 +30,17 @@ export async function joinGroupWithCode(
   // Normalize code: trim + uppercase
   const normalizedCode = inviteCode.trim().toUpperCase();
 
-  // Find group by invite code
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .select("id, name, prediction_deadline")
-    .eq("invite_code", normalizedCode)
-    .single();
+  // Call RPC function to join group by code
+  const { data: result, error: rpcError } = await supabase
+    .rpc("join_group_by_code", { p_invite_code: normalizedCode });
 
-  if (groupError || !group) {
+  if (rpcError || !result || result.length === 0) {
+    console.error("Error joining group via RPC:", rpcError);
     return { error: "Código de invitación inválido" };
   }
 
-  // Check if user is already a member
-  const { data: existingMember } = await supabase
-    .from("group_members")
-    .select("id")
-    .eq("group_id", group.id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (existingMember) {
-    // Already a member, redirect to group
-    revalidatePath("/dashboard");
-    redirect(`/groups/${group.id}`);
-  }
-
-  // Add user as member
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({
-      group_id: group.id,
-      user_id: user.id,
-      role: "member",
-    });
-
-  if (memberError) {
-    console.error("Error joining group:", memberError);
-    return { error: "Error al unirte al grupo. Intenta nuevamente." };
-  }
+  const groupId = result[0].group_id;
 
   revalidatePath("/dashboard");
-  redirect(`/groups/${group.id}`);
+  redirect(`/groups/${groupId}`);
 }

@@ -36,6 +36,14 @@ export default async function DashboardPage() {
         .select("group_id")
         .in("group_id", groups?.map(g => g.group_id) || []);
 
+
+    // Check if user is global admin
+    const { data: globalAdmin } = await supabase
+        .from("global_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .single();
+
     const countMap = new Map<string, number>();
     memberCounts?.forEach(m => {
         countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1);
@@ -62,6 +70,26 @@ export default async function DashboardPage() {
                         </button>
                     </form>
                 </header>
+
+                {globalAdmin && (
+                    <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-6 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900">
+                        <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-4">Panel Global Admin</h2>
+                        <div className="flex flex-wrap gap-3">
+                            <a
+                                href="/global-admin/results"
+                                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                            >
+                                Registrar resultados oficiales
+                            </a>
+                            <a
+                                href="/global-admin/tiebreaks"
+                                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                            >
+                                Resolver desempates
+                            </a>
+                        </div>
+                    </section>
+                )}
 
                 <main className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DashboardClient groups={groups || []} memberCounts={countMap} />
