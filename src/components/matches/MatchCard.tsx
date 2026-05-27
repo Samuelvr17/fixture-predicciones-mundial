@@ -1,4 +1,5 @@
 import type { MatchWithNormalizedResult } from '@/app/groups/[groupId]/matches/page';
+import { formatMatchDateShort } from '@/lib/utils/matchDate';
 
 interface MatchCardProps {
     match: MatchWithNormalizedResult;
@@ -12,10 +13,7 @@ export default function MatchCard({ match }: MatchCardProps) {
     };
 
     const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit'
-        });
+        return formatMatchDateShort(date);
     };
 
     return (

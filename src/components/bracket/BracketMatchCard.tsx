@@ -1,4 +1,5 @@
 import { ResolvedMatch, PendingSlot } from '@/lib/tournament/bracket';
+import { formatMatchDateShort } from '@/lib/utils/matchDate';
 
 interface BracketMatchCardProps {
   match: ResolvedMatch;
@@ -35,8 +36,7 @@ export default function BracketMatchCard({
   const { match: m, team1_id, team2_id, team1_slot, team2_slot, winner_team_id, pendingSlots } = match;
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    return formatMatchDateShort(dateStr);
   };
 
   const formatTime = (timeStr: string) => {

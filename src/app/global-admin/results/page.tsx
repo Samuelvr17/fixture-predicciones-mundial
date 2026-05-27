@@ -44,6 +44,8 @@ export default async function GlobalAdminResultsPage() {
         winner:teams!match_results_winner_team_id_fkey (id, name, code)
       )
     `)
+    .order('match_date', { ascending: true })
+    .order('match_time', { ascending: true })
     .order('sort_order', { ascending: true });
 
   if (matchesError) {

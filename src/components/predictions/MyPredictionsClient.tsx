@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database.types';
+import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 
 type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
     team1: Database['public']['Tables']['teams']['Row'] | null;
@@ -114,10 +115,7 @@ export default function MyPredictionsClient({
             const roundOrderB = ROUND_ORDER.indexOf(b.round);
             if (roundOrderA !== roundOrderB) return roundOrderA - roundOrderB;
 
-            const dateCompare = new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
-            if (dateCompare !== 0) return dateCompare;
-
-            return a.match_time.localeCompare(b.match_time);
+            return compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time);
         });
     }, [matches]);
 
@@ -582,12 +580,7 @@ export default function MyPredictionsClient({
                     {Object.entries(dates).map(([date, matchesByDate]) => (
                         <div key={date} className="space-y-3">
                             <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
-                                {new Date(date).toLocaleDateString('es-ES', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
+                                {formatMatchDateLong(date)}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {matchesByDate.map(match => {
