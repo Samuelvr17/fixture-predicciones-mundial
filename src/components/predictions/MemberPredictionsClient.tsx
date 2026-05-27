@@ -298,6 +298,7 @@ export default function MemberPredictionsClient({
                                                                     <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
                                                                         <div className="flex items-center space-x-2">
                                                                             <span>🕐 {match.match_time}</span>
+                                                                            <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span>
                                                                         </div>
                                                                         <div>📍 {match.venue}</div>
                                                                         {match.group_code && (

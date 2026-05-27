@@ -94,7 +94,7 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
             <span className="text-sm font-semibold text-gray-700 mr-2">Grupo {match.group_code}</span>
           )}
           <span className="text-sm text-gray-500">
-            {match.match_date} - {match.match_time}
+            {match.match_date} - {match.match_time} <span className="text-gray-400">(Hora Colombia)</span>
           </span>
         </div>
         <div className="flex items-center gap-2">

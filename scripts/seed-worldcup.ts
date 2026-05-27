@@ -72,12 +72,97 @@ function isSlot(team: string): boolean {
 
 /**
  * Normaliza el tiempo. "13:00 UTC-6" → "13:00:00" (guardamos solo la hora local del venue)
+ * @deprecated Usar parseMatchKickoffForColombia para conversión completa con timezone
  */
 function parseTime(timeStr: string): string {
     const match = timeStr.match(/^(\d{1,2}:\d{2})/);
     if (!match) return "00:00:00";
     const [h, m] = match[1].split(":");
     return `${h.padStart(2, "0")}:${m}:00`;
+}
+
+/**
+ * Parsea la fecha y hora de un partido y calcula los valores para Colombia (UTC-5).
+ * 
+ * @param date - Fecha en formato "YYYY-MM-DD"
+ * @param time - Hora en formato "HH:MM UTC-X" (ej: "13:00 UTC-6")
+ * @returns Objeto con kickoff_at_utc, match_date Colombia, match_time Colombia, venue_timezone, venue_local_time
+ * 
+ * @example
+ * parseMatchKickoffForColombia("2026-06-11", "13:00 UTC-6")
+ * // Returns:
+ * // {
+ * //   kickoff_at_utc: "2026-06-11T19:00:00.000Z",
+ * //   match_date: "2026-06-11",
+ * //   match_time: "14:00:00",
+ * //   venue_timezone: "UTC-6",
+ * //   venue_local_time: "13:00:00"
+ * // }
+ */
+export function parseMatchKickoffForColombia(date: string, time: string): {
+    kickoff_at_utc: string;
+    match_date: string;
+    match_time: string;
+    venue_timezone: string;
+    venue_local_time: string;
+} {
+    // Parsear hora y offset
+    const timeMatch = time.match(/^(\d{1,2}):(\d{2})\s+(UTC([+-]\d+))?/);
+    if (!timeMatch) {
+        // Fallback si no tiene formato esperado
+        return {
+            kickoff_at_utc: `${date}T00:00:00.000Z`,
+            match_date: date,
+            match_time: "00:00:00",
+            venue_timezone: "UTC",
+            venue_local_time: "00:00:00"
+        };
+    }
+
+    const [, hours, minutes, , offsetStr] = timeMatch;
+    const venueHour = parseInt(hours, 10);
+    const venueMinute = parseInt(minutes, 10);
+    
+    // Parsear offset UTC (ej: "-6", "+5", "-4")
+    const venueOffset = offsetStr ? parseInt(offsetStr, 10) : 0;
+    const venueTimezone = offsetStr ? `UTC${offsetStr}` : "UTC";
+    
+    // Calcular hora UTC del venue
+    // Si venue es UTC-6 y hora es 13:00, entonces UTC es 19:00
+    // Si venue es UTC-7 y hora es 18:00, entonces UTC es 01:00 del día siguiente
+    const utcHour = venueHour - venueOffset;
+    const utcMinute = venueMinute;
+    
+    // Crear fecha UTC manejando cruce de día
+    const baseDate = new Date(`${date}T00:00:00Z`);
+    const utcDate = new Date(baseDate.getTime());
+    utcDate.setUTCHours(utcHour, utcMinute, 0, 0);
+    
+    // Convertir a Colombia (UTC-5)
+    // UTC-5 significa que Colombia está 5 horas atrás de UTC
+    // Para convertir de UTC a Colombia, restamos 5 horas
+    const colombiaOffsetHours = -5;
+    const colombiaDate = new Date(utcDate.getTime() + (colombiaOffsetHours * 60 * 60 * 1000));
+    
+    // Formatear kickoff_at_utc (ISO string)
+    const kickoff_at_utc = utcDate.toISOString();
+    
+    // Formatear match_date Colombia (YYYY-MM-DD)
+    const match_date = colombiaDate.toISOString().split('T')[0];
+    
+    // Formatear match_time Colombia (HH:MM:SS)
+    const match_time = `${String(colombiaDate.getUTCHours()).padStart(2, '0')}:${String(colombiaDate.getUTCMinutes()).padStart(2, '0')}:00`;
+    
+    // Formatear venue_local_time (HH:MM:00)
+    const venue_local_time = `${String(venueHour).padStart(2, '0')}:${String(venueMinute).padStart(2, '0')}:00`;
+    
+    return {
+        kickoff_at_utc,
+        match_date,
+        match_time,
+        venue_timezone: venueTimezone,
+        venue_local_time
+    };
 }
 
 /**
@@ -210,7 +295,30 @@ async function main() {
         teamIdByName.set(t.name, t.id);
     }
 
-    // ── 3. Construir e insertar partidos ──────────────────────────────────────
+    /**
+ * Genera source_key único para un partido.
+ * Para partidos con match_number: 'match-{match_number}'
+ * Para partidos de grupo: 'group-{group_code}-{team1_slot}-{team2_slot}'
+ */
+function generateSourceKey(match: {
+    match_number: number | null;
+    group_code: string | null;
+    team1_slot: string;
+    team2_slot: string;
+}): string {
+    if (match.match_number !== null) {
+        return `match-${match.match_number}`;
+    }
+    
+    // Para partidos de grupo, sanitizar slots reemplazando caracteres no alfanuméricos con guiones
+    const sanitizeSlot = (slot: string) => {
+        return slot.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    };
+    
+    return `group-${match.group_code}-${sanitizeSlot(match.team1_slot)}-${sanitizeSlot(match.team2_slot)}`;
+}
+
+// ── 3. Construir e insertar partidos ──────────────────────────────────────
     console.log("\n⚽ Procesando partidos...");
 
     const matchesPayload = data.matches.map((m, idx) => {
@@ -220,58 +328,58 @@ async function main() {
         const team1IsSlot = isSlot(m.team1);
         const team2IsSlot = isSlot(m.team2);
 
+        // Convertir hora del venue a Colombia UTC-5
+        const timeInfo = parseMatchKickoffForColombia(m.date, m.time);
+
+        const match_number = m.num ?? null;
+        const team1_slot = m.team1;
+        const team2_slot = m.team2;
+
+        // Generar source_key único
+        const source_key = generateSourceKey({
+            match_number,
+            group_code: groupCode,
+            team1_slot,
+            team2_slot,
+        });
+
         return {
-            match_number: m.num ?? null,
+            source_key,
+            match_number,
             round,
             group_code: groupCode,
             team1_id: team1IsSlot ? null : (teamIdByName.get(m.team1) ?? null),
             team2_id: team2IsSlot ? null : (teamIdByName.get(m.team2) ?? null),
-            team1_slot: m.team1,  // siempre guardamos el slot original (sea nombre o referencia)
-            team2_slot: m.team2,
-            match_date: m.date,
-            match_time: parseTime(m.time),
+            team1_slot,  // siempre guardamos el slot original (sea nombre o referencia)
+            team2_slot,
+            match_date: timeInfo.match_date,  // Fecha en Colombia
+            match_time: timeInfo.match_time,  // Hora en Colombia
+            kickoff_at_utc: timeInfo.kickoff_at_utc,  // UTC timestamp
+            venue_timezone: timeInfo.venue_timezone,  // Timezone original del venue
+            venue_local_time: timeInfo.venue_local_time,  // Hora local del venue
             venue: m.ground,
             sort_order: idx + 1,
         };
     });
 
-    // Los partidos de grupos no tienen `num`, así que upsert por (match_date + team1_slot + team2_slot)
-    // Los partidos de eliminatoria tienen `num` único, hacemos upsert por match_number.
-    // Separamos en dos lotes:
-    const knockoutMatches = matchesPayload.filter((m) => m.match_number !== null);
+    // Upsert todos los partidos usando source_key
+    if (matchesPayload.length > 0) {
+        const { error } = await supabase
+            .from("matches")
+            .upsert(matchesPayload, {
+                onConflict: "source_key",
+                ignoreDuplicates: false,
+            });
+        if (error) {
+            console.error("❌ Error insertando partidos:", error.message);
+            console.error("   Detalle:", error.details);
+            process.exit(1);
+        }
+        console.log(`✅ Partidos insertados/actualizados: ${matchesPayload.length}`);
+    }
+
     const groupMatches = matchesPayload.filter((m) => m.match_number === null);
-
-    // Upsert partidos de grupos por team1_slot + team2_slot + match_date
-    if (groupMatches.length > 0) {
-        const { error } = await supabase
-            .from("matches")
-            .upsert(groupMatches, {
-                onConflict: "team1_slot,team2_slot,match_date",
-                ignoreDuplicates: false,
-            });
-        if (error) {
-            console.error("❌ Error insertando partidos de grupos:", error.message);
-            console.error("   Detalle:", error.details);
-            process.exit(1);
-        }
-        console.log(`✅ Partidos de grupos insertados/actualizados: ${groupMatches.length}`);
-    }
-
-    // Upsert partidos de eliminatoria por match_number
-    if (knockoutMatches.length > 0) {
-        const { error } = await supabase
-            .from("matches")
-            .upsert(knockoutMatches, {
-                onConflict: "match_number",
-                ignoreDuplicates: false,
-            });
-        if (error) {
-            console.error("❌ Error insertando partidos eliminatorias:", error.message);
-            console.error("   Detalle:", error.details);
-            process.exit(1);
-        }
-        console.log(`✅ Partidos de eliminatoria insertados/actualizados: ${knockoutMatches.length}`);
-    }
+    const knockoutMatches = matchesPayload.filter((m) => m.match_number !== null);
 
     console.log("\n🎉 Seed completado correctamente");
     console.log(`   Total partidos: ${matchesPayload.length}`);
@@ -279,7 +387,10 @@ async function main() {
     console.log(`     - Eliminatorias:  ${knockoutMatches.length}`);
 }
 
-main().catch((err) => {
-    console.error("❌ Error inesperado:", err);
-    process.exit(1);
-});
+// Solo ejecutar main() si este archivo se ejecuta directamente (no cuando se importa)
+if (require.main === module || import.meta.url === `file://${process.argv[1]}`) {
+    main().catch((err) => {
+        console.error("❌ Error inesperado:", err);
+        process.exit(1);
+    });
+}

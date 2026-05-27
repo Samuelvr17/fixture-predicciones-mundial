@@ -100,6 +100,7 @@ export default function MatchCard({ match }: MatchCardProps) {
                 <div className="flex items-center space-x-2">
                     <span>📅 {formatDate(match.match_date)}</span>
                     <span>🕐 {formatTime(match.match_time)}</span>
+                    <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span>
                 </div>
                 <div>📍 {match.venue}</div>
                 {match.group_code && (
