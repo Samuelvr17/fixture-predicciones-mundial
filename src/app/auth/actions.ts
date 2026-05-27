@@ -45,9 +45,9 @@ export async function signup(formData: FormData) {
         return { error: error.message };
     }
 
-    // After successful signup, redirect to dashboard (or login depending on email confirmation settings)
+    // After successful signup, revalidate and return success
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    return { success: true };
 }
 
 export async function logout() {

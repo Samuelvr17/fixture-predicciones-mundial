@@ -2,22 +2,29 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signup } from "@/app/auth/actions";
 import { useEffect, useState } from "react";
 
-type AuthState = { error: string | null };
+type AuthState = { error: string | null; success?: boolean };
 
 async function signupAction(prevState: AuthState, formData: FormData): Promise<AuthState> {
     const result = await signup(formData);
-    // Al usar redirect dentro de action, normalmente lanza error y no llega acá,
-    // pero tipamos por si falla
-    return (result as AuthState) || { error: null };
+    return result as AuthState;
 }
 
 export default function RegisterPage() {
+    const router = useRouter();
     const [state, formAction, isPending] = useActionState(signupAction, { error: null });
     const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+
+    useEffect(() => {
+        setMounted(true);
+        // Redirect on successful signup
+        if (state?.success) {
+            router.push("/dashboard");
+        }
+    }, [state, router]);
 
     if (!mounted) return null;
 
