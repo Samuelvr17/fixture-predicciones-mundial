@@ -30,14 +30,30 @@ export async function createGroup(
   formData: FormData
 ): Promise<CreateGroupState> {
   const supabase = await createClient();
+  
+  console.log('=== CREATE GROUP DEBUG ===');
+  console.log('Supabase client created');
+  
   const { data: { user } } = await supabase.auth.getUser();
 
+  console.log('User:', user);
+  console.log('User ID:', user?.id);
+  console.log('User Email:', user?.email);
+  
+  // Check session
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Session:', session);
+  console.log('Session access token exists:', !!session?.access_token);
+
   if (!user) {
+    console.error('ERROR: User not authenticated');
     return { error: "Debes estar autenticado para crear un grupo" };
   }
 
   const name = formData.get("name") as string;
   const predictionDeadline = formData.get("prediction_deadline") as string;
+
+  console.log('Form data:', { name, predictionDeadline });
 
   // Validate name
   if (!name || name.trim().length === 0) {
@@ -105,6 +121,13 @@ export async function createGroup(
   }
 
   // Create group
+  console.log('Attempting to insert group with:', {
+    name: name.trim(),
+    invite_code: inviteCode,
+    creator_id: user.id,
+    prediction_deadline: deadlineDate.toISOString(),
+  });
+
   const { data: group, error: groupError } = await supabase
     .from("groups")
     .insert({
@@ -116,8 +139,14 @@ export async function createGroup(
     .select()
     .single();
 
+  console.log('Group insert result:', { group, groupError });
+
   if (groupError) {
     console.error("Error creating group:", groupError);
+    console.error("Error code:", groupError.code);
+    console.error("Error message:", groupError.message);
+    console.error("Error details:", groupError.details);
+    console.error("Error hint:", groupError.hint);
     return { error: "Error al crear el grupo. Intenta nuevamente." };
   }
 
