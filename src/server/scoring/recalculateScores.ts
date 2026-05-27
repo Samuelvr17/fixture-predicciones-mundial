@@ -9,7 +9,7 @@
  * client-side manipulation of scores.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { calculateScore, type MatchPrediction, type PredictionAdvance, type PredictionSpecial, type Match, type MatchResult, type ResolvedBracket, type TournamentRound } from '@/lib/scoring/scoring';
 import { calculateGroupStandings, type Team as TournamentTeam, type Match as TournamentMatch, type MatchResult as TournamentMatchResult, type ManualTiebreak as GroupTiebreak } from '@/lib/tournament/groupStandings';
 import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak, type BestThirdsOutput } from '@/lib/tournament/bestThirds';
@@ -172,7 +172,7 @@ function dbMatchResultToBracketMatchResult(dbResult: Database['public']['Tables'
  * @returns Result with success status and number of users processed
  */
 export async function recalculateGroupScores(groupId: string): Promise<RecalculationResult> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Load global data
@@ -371,7 +371,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
  * @returns Array of results for each group
  */
 export async function recalculateAllGroupScores(): Promise<RecalculationResult[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Load all active groups

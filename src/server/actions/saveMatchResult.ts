@@ -197,6 +197,8 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
     
     if (!recalcResult.success) {
       console.error('Score recalculation failed after saving match result:', recalcResult.error);
+      console.error('Match result was saved successfully, but scores could not be recalculated.');
+      console.error('This may be due to missing SUPABASE_SERVICE_ROLE_KEY or RLS blocking the write to score_breakdowns.');
       // Return success but with a warning about recalculation
       return {
         success: true,
