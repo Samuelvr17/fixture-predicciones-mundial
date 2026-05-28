@@ -11,7 +11,8 @@
     "gen-types": "npx supabase gen types typescript --linked --schema public > src/types/database.types.ts",
     "seed:worldcup": "tsx --env-file=.env.local scripts/seed-worldcup.ts",
     "create-global-admin": "tsx --env-file=.env.local scripts/create-global-admin.ts",
-    "create-test-users": "tsx --env-file=.env.local scripts/create-test-users.ts"
+    "create-test-users": "tsx --env-file=.env.local scripts/create-test-users.ts",
+    "validate:annex-c": "tsx scripts/validate-annex-c.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

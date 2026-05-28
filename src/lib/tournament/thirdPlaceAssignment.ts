@@ -9,11 +9,29 @@
  * a specific mapping based on which groups' third-place teams qualified.
  */
 
+import annexCData from '../../data/annex-c-2026.json';
+
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type GroupCode = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
+
+export type FifaAnnexCColumn = '1A' | '1B' | '1D' | '1E' | '1G' | '1I' | '1K' | '1L';
+
+export interface FifaAnnexCRow {
+  option: number;
+  '1A': GroupCode;
+  '1B': GroupCode;
+  '1D': GroupCode;
+  '1E': GroupCode;
+  '1G': GroupCode;
+  '1I': GroupCode;
+  '1K': GroupCode;
+  '1L': GroupCode;
+}
+
+type AnnexCData = Record<string, FifaAnnexCRow>;
 
 export type SlotPattern = 
   | '3A/B/C/D/F'
@@ -47,14 +65,78 @@ export interface ThirdPlaceAssignmentOutput {
  * The key is a sorted string of group codes (e.g., "ABCDEFGH").
  * The value is an array of assignments in the order of the slot patterns above.
  * 
- * TODO: Complete this table with all valid combinations from official FIFA documentation.
- * Currently contains placeholder structure. Do not use fake/invented data.
+ * Data is sourced from the official FIFA Annex C 2026 document.
  */
-const OFFICIAL_ASSIGNMENT_TABLE: Record<string, GroupCode[]> = {
-  // TODO: Add official combinations here
-  // Example structure (NOT REAL DATA):
-  // "ABCDEFGH": ['A', 'C', 'C', 'E', 'B', 'A', 'E', 'D'],
-};
+const OFFICIAL_ASSIGNMENT_TABLE: Record<string, GroupCode[]> = buildOfficialAssignmentTable();
+
+/**
+ * Converts a FIFA Annex C row to the internal SLOT_PATTERNS array order.
+ * 
+ * FIFA format columns map to internal slot patterns as follows:
+ * - SLOT_PATTERNS[0] (3A/B/C/D/F) uses column "1E"
+ * - SLOT_PATTERNS[1] (3C/D/F/G/H) uses column "1I"
+ * - SLOT_PATTERNS[2] (3C/E/F/H/I) uses column "1A"
+ * - SLOT_PATTERNS[3] (3E/H/I/J/K) uses column "1L"
+ * - SLOT_PATTERNS[4] (3B/E/F/I/J) uses column "1D"
+ * - SLOT_PATTERNS[5] (3A/E/H/I/J) uses column "1G"
+ * - SLOT_PATTERNS[6] (3E/F/G/I/J) uses column "1B"
+ * - SLOT_PATTERNS[7] (3D/E/I/J/L) uses column "1K"
+ */
+function convertFifaRowToSlotPatternArray(row: FifaAnnexCRow): GroupCode[] {
+  return [
+    row['1E'],
+    row['1I'],
+    row['1A'],
+    row['1L'],
+    row['1D'],
+    row['1G'],
+    row['1B'],
+    row['1K'],
+  ];
+}
+
+/**
+ * Builds the official assignment table from FIFA Annex C data.
+ * Performs defensive validation to ensure data integrity.
+ */
+function buildOfficialAssignmentTable(): Record<string, GroupCode[]> {
+  const table: Record<string, GroupCode[]> = {};
+  const data = annexCData as AnnexCData;
+  const fifaColumns: FifaAnnexCColumn[] = ['1A', '1B', '1D', '1E', '1G', '1I', '1K', '1L'];
+
+  for (const [key, row] of Object.entries(data)) {
+    // Validate row structure
+    for (const col of fifaColumns) {
+      if (!(col in row)) {
+        throw new Error(`Invalid Annex C data: row "${key}" missing column "${col}"`);
+      }
+    }
+
+    // Convert to internal order
+    const slotPatternArray = convertFifaRowToSlotPatternArray(row);
+
+    // Validate conversion produced 8 groups
+    if (slotPatternArray.length !== 8) {
+      throw new Error(`Invalid Annex C data: row "${key}" conversion produced ${slotPatternArray.length} groups, expected 8`);
+    }
+
+    // Validate no duplicates in converted array
+    const uniqueGroups = new Set(slotPatternArray);
+    if (uniqueGroups.size !== 8) {
+      throw new Error(`Invalid Annex C data: row "${key}" has duplicate groups after conversion`);
+    }
+
+    // Validate converted groups match the key
+    const sortedConverted = [...slotPatternArray].sort().join('');
+    if (sortedConverted !== key) {
+      throw new Error(`Invalid Annex C data: row "${key}" converted groups [${slotPatternArray.join(',')}] do not match key "${key}"`);
+    }
+
+    table[key] = slotPatternArray;
+  }
+
+  return table;
+}
 
 /**
  * Slot patterns in the order they appear in the assignment arrays
@@ -144,8 +226,7 @@ export function assignThirdPlaceSlots(
   if (!assignment) {
     throw new Error(
       `Combination of qualified third-place groups not found in official table: ${canonicalKey}. ` +
-      `This combination may not be possible or the table is incomplete. ` +
-      `TODO: Complete the official assignment table with all valid combinations.`
+      `This combination is not possible according to FIFA rules.`
     );
   }
 

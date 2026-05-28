@@ -118,8 +118,142 @@ describe('bracket.ts', () => {
     });
   });
 
-  describe('leaves 3A/B/C/D/F pending if missing official table', () => {
-    it('should return pending with reason missing_third_place_assignment', () => {
+  describe('resolves third place slot with real Annex C combination', () => {
+    it('should resolve 3A/B/C/D/F to third place of Group F for EFGHIJKL combination', () => {
+      // Create group standings with third place teams in E, F, G, H, I, J, K, L
+      const groupStandings: GroupStandingsOutput = {
+        standings: {
+          'E': {
+            group_code: 'E',
+            standings: [
+              { team_id: 'team_e1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_e2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_e3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'F': {
+            group_code: 'F',
+            standings: [
+              { team_id: 'team_f1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_f2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_f3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'G': {
+            group_code: 'G',
+            standings: [
+              { team_id: 'team_g1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_g2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_g3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'H': {
+            group_code: 'H',
+            standings: [
+              { team_id: 'team_h1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_h2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_h3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'I': {
+            group_code: 'I',
+            standings: [
+              { team_id: 'team_i1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_i2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_i3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'J': {
+            group_code: 'J',
+            standings: [
+              { team_id: 'team_j1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_j2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_j3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'K': {
+            group_code: 'K',
+            standings: [
+              { team_id: 'team_k1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_k2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_k3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+          'L': {
+            group_code: 'L',
+            standings: [
+              { team_id: 'team_l1', played: 3, wins: 2, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 7 },
+              { team_id: 'team_l2', played: 3, wins: 1, draws: 2, losses: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5 },
+              { team_id: 'team_l3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 }, // Third place
+            ],
+            requiresManualTiebreak: false,
+            tiedTeams: [],
+          },
+        },
+        thirdPlaceTeams: [],
+        requiresManualTiebreak: false,
+      };
+
+      // Create bestThirds with qualified thirds from E, F, G, H, I, J, K, L
+      const bestThirds: BestThirdsOutput = {
+        qualifiedThirds: [
+          { team_id: 'team_e3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_f3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_g3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_h3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_i3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_j3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_k3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_l3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+        ],
+        eliminatedThirds: [],
+        orderedThirds: [],
+        requiresManualTiebreak: false,
+        pending: false,
+        tiedInsideQualified: [],
+        tiedInsideEliminated: [],
+        tiedAtCut: [],
+      };
+
+      const matches: Match[] = [
+        {
+          id: 'match-74',
+          num: 74,
+          round: 'round_of_32',
+          date: '2026-06-29',
+          time: '16:30 UTC-4',
+          ground: 'Boston',
+          team1_id: 'germany',
+          team2_slot: '3A/B/C/D/F',
+        },
+      ];
+
+      const matchResults: MatchResult[] = [];
+
+      const result = resolveBracket(matches, matchResults, groupStandings, bestThirds);
+
+      // Option 1 assigns F to slot 3A/B/C/D/F (rival of 1E)
+      expect(result.matches[0].team2_id).toBe('team_f3');
+      expect(result.matches[0].pendingSlots).toHaveLength(0);
+    });
+  });
+
+  describe('leaves 3A/B/C/D/F pending if team_ids dont match standings', () => {
+    it('should return pending with reason missing_third_place_assignment when qualified teams not found in standings', () => {
       const matches: Match[] = [
         {
           id: 'match-74',
@@ -136,11 +270,18 @@ describe('bracket.ts', () => {
       const matchResults: MatchResult[] = [];
       const groupStandings = createMockGroupStandings();
       
-      // Create bestThirds with qualified teams but no official assignment
+      // Create bestThirds with qualified teams that don't exist in standings
+      // This will cause bracket.ts to not be able to determine which groups they're from
       const bestThirds: BestThirdsOutput = {
         qualifiedThirds: [
-          { team_id: 'team1', played: 3, wins: 1, draws: 1, losses: 1, goalsFor: 3, goalsAgainst: 3, goalDifference: 0, points: 4 },
-          { team_id: 'team2', played: 3, wins: 1, draws: 1, losses: 1, goalsFor: 3, goalsAgainst: 3, goalDifference: 0, points: 4 },
+          { team_id: 'team_e3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_f3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_g3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_h3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_i3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_j3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_k3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
+          { team_id: 'team_l3', played: 3, wins: 0, draws: 1, losses: 2, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 1 },
         ],
         eliminatedThirds: [],
         orderedThirds: [],
@@ -153,34 +294,11 @@ describe('bracket.ts', () => {
 
       const result = resolveBracket(matches, matchResults, groupStandings, bestThirds);
 
+      // Team_ids don't match any teams in standings, so bracket can't determine groups
       expect(result.matches[0].team2_id).toBeUndefined();
       expect(result.matches[0].pendingSlots).toHaveLength(1);
       expect(result.matches[0].pendingSlots[0].reason).toBe('missing_third_place_assignment');
       expect(result.matches[0].pendingSlots[0].slot).toBe('3A/B/C/D/F');
-    });
-
-    it('should not throw fatal error when thirdPlaceAssignment.ts is incomplete', () => {
-      const matches: Match[] = [
-        {
-          id: 'match-74',
-          num: 74,
-          round: 'round_of_32',
-          date: '2026-06-29',
-          time: '16:30 UTC-4',
-          ground: 'Boston',
-          team1_slot: '1E',
-          team2_slot: '3A/B/C/D/F',
-        },
-      ];
-
-      const matchResults: MatchResult[] = [];
-      const groupStandings = createMockGroupStandings();
-      const bestThirds = createMockBestThirds();
-
-      // This should not throw an error
-      expect(() => {
-        resolveBracket(matches, matchResults, groupStandings, bestThirds);
-      }).not.toThrow();
     });
   });
 
