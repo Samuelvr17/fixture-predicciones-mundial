@@ -297,11 +297,15 @@ async function main() {
 
     /**
  * Genera source_key único para un partido.
- * Para partidos con match_number: 'match-{match_number}'
- * Para partidos de grupo: 'group-{group_code}-{team1_slot}-{team2_slot}'
+ * 
+ * Reglas:
+ * 1. Si match_number existe: 'match-{match_number}'
+ * 2. Si round === 'group': 'group-{group_code}-{slug(team1_slot)}-{slug(team2_slot)}'
+ * 3. Si round !== 'group' y match_number no existe: 'knockout-{round}-{slug(team1_slot)}-{slug(team2_slot)}'
  */
 function generateSourceKey(match: {
     match_number: number | null;
+    round: string;
     group_code: string | null;
     team1_slot: string;
     team2_slot: string;
@@ -310,12 +314,17 @@ function generateSourceKey(match: {
         return `match-${match.match_number}`;
     }
     
-    // Para partidos de grupo, sanitizar slots reemplazando caracteres no alfanuméricos con guiones
+    // Sanitizar slots reemplazando caracteres no alfanuméricos con guiones
     const sanitizeSlot = (slot: string) => {
         return slot.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     };
     
-    return `group-${match.group_code}-${sanitizeSlot(match.team1_slot)}-${sanitizeSlot(match.team2_slot)}`;
+    if (match.round === 'group') {
+        return `group-${match.group_code}-${sanitizeSlot(match.team1_slot)}-${sanitizeSlot(match.team2_slot)}`;
+    }
+    
+    // Para partidos de knockout sin match_number
+    return `knockout-${match.round}-${sanitizeSlot(match.team1_slot)}-${sanitizeSlot(match.team2_slot)}`;
 }
 
 // ── 3. Construir e insertar partidos ──────────────────────────────────────
@@ -338,6 +347,7 @@ function generateSourceKey(match: {
         // Generar source_key único
         const source_key = generateSourceKey({
             match_number,
+            round,
             group_code: groupCode,
             team1_slot,
             team2_slot,
@@ -380,6 +390,155 @@ function generateSourceKey(match: {
 
     const groupMatches = matchesPayload.filter((m) => m.match_number === null);
     const knockoutMatches = matchesPayload.filter((m) => m.match_number !== null);
+
+    // ── 4. Validaciones post-seed ────────────────────────────────────────────────
+    console.log("\n🔍 Ejecutando validaciones post-seed...");
+
+    // Validar total de partidos
+    const { count: totalMatches, error: countError } = await supabase
+        .from("matches")
+        .select("*", { count: "exact", head: true });
+    
+    if (countError) {
+        console.error("❌ Error contando partidos:", countError.message);
+        process.exit(1);
+    }
+
+    if (totalMatches !== 104) {
+        console.error(`❌ Validación fallida: Total de partidos debe ser 104, pero es ${totalMatches}`);
+        process.exit(1);
+    }
+    console.log(`✅ Total de partidos: ${totalMatches}`);
+
+    // Validar source_key null
+    const { count: nullSourceKeys, error: nullSourceKeysError } = await supabase
+        .from("matches")
+        .select("*", { count: "exact", head: true })
+        .is("source_key", null);
+    
+    if (nullSourceKeysError) {
+        console.error("❌ Error contando source_key null:", nullSourceKeysError.message);
+        process.exit(1);
+    }
+
+    if (nullSourceKeys !== 0) {
+        console.error(`❌ Validación fallida: Hay ${nullSourceKeys} partidos con source_key null`);
+        const { data: nullSourceKeyRows } = await supabase
+            .from("matches")
+            .select("id, source_key, match_number, round, team1_slot, team2_slot")
+            .is("source_key", null);
+        console.error("   Filas problemáticas:", nullSourceKeyRows);
+        process.exit(1);
+    }
+    console.log(`✅ source_key null: ${nullSourceKeys}`);
+
+    // Validar kickoff_at_utc null
+    const { count: nullKickoff, error: nullKickoffError } = await supabase
+        .from("matches")
+        .select("*", { count: "exact", head: true })
+        .is("kickoff_at_utc", null);
+    
+    if (nullKickoffError) {
+        console.error("❌ Error contando kickoff_at_utc null:", nullKickoffError.message);
+        process.exit(1);
+    }
+
+    if (nullKickoff !== 0) {
+        console.error(`❌ Validación fallida: Hay ${nullKickoff} partidos con kickoff_at_utc null`);
+        const { data: nullKickoffRows } = await supabase
+            .from("matches")
+            .select("id, source_key, match_number, round, kickoff_at_utc")
+            .is("kickoff_at_utc", null);
+        console.error("   Filas problemáticas:", nullKickoffRows);
+        process.exit(1);
+    }
+    console.log(`✅ kickoff_at_utc null: ${nullKickoff}`);
+
+    // Validar venue_timezone null
+    const { count: nullTimezone, error: nullTimezoneError } = await supabase
+        .from("matches")
+        .select("*", { count: "exact", head: true })
+        .is("venue_timezone", null);
+    
+    if (nullTimezoneError) {
+        console.error("❌ Error contando venue_timezone null:", nullTimezoneError.message);
+        process.exit(1);
+    }
+
+    if (nullTimezone !== 0) {
+        console.error(`❌ Validación fallida: Hay ${nullTimezone} partidos con venue_timezone null`);
+        const { data: nullTimezoneRows } = await supabase
+            .from("matches")
+            .select("id, source_key, match_number, round, venue_timezone")
+            .is("venue_timezone", null);
+        console.error("   Filas problemáticas:", nullTimezoneRows);
+        process.exit(1);
+    }
+    console.log(`✅ venue_timezone null: ${nullTimezone}`);
+
+    // Validar venue_local_time null
+    const { count: nullLocalTime, error: nullLocalTimeError } = await supabase
+        .from("matches")
+        .select("*", { count: "exact", head: true })
+        .is("venue_local_time", null);
+    
+    if (nullLocalTimeError) {
+        console.error("❌ Error contando venue_local_time null:", nullLocalTimeError.message);
+        process.exit(1);
+    }
+
+    if (nullLocalTime !== 0) {
+        console.error(`❌ Validación fallida: Hay ${nullLocalTime} partidos con venue_local_time null`);
+        const { data: nullLocalTimeRows } = await supabase
+            .from("matches")
+            .select("id, source_key, match_number, round, venue_local_time")
+            .is("venue_local_time", null);
+        console.error("   Filas problemáticas:", nullLocalTimeRows);
+        process.exit(1);
+    }
+    console.log(`✅ venue_local_time null: ${nullLocalTime}`);
+
+    // Validar no source_key like 'group--%'
+    const { data: invalidGroupKeys, error: invalidGroupKeysError } = await supabase
+        .from("matches")
+        .select("id, source_key, match_number, round, team1_slot, team2_slot")
+        .like("source_key", "group--%");
+    
+    if (invalidGroupKeysError) {
+        console.error("❌ Error buscando source_key inválidos:", invalidGroupKeysError.message);
+        process.exit(1);
+    }
+
+    if (invalidGroupKeys && invalidGroupKeys.length > 0) {
+        console.error(`❌ Validación fallida: Hay ${invalidGroupKeys.length} partidos con source_key inválido (group--%)`);
+        console.error("   Filas problemáticas:", invalidGroupKeys);
+        process.exit(1);
+    }
+    console.log(`✅ Sin source_key inválidos (group--%)`);
+
+    // Validar duplicados por source_key
+    const { data: duplicateSourceKeys, error: duplicateError } = await supabase
+        .from("matches")
+        .select("source_key")
+        .not("source_key", "is", null);
+    
+    if (duplicateError) {
+        console.error("❌ Error buscando duplicados:", duplicateError.message);
+        process.exit(1);
+    }
+
+    const sourceKeyCounts = new Map<string, number>();
+    for (const row of duplicateSourceKeys ?? []) {
+        sourceKeyCounts.set(row.source_key, (sourceKeyCounts.get(row.source_key) ?? 0) + 1);
+    }
+
+    const duplicates = [...sourceKeyCounts.entries()].filter(([_, count]) => count > 1);
+    if (duplicates.length > 0) {
+        console.error(`❌ Validación fallida: Hay ${duplicates.length} source_key duplicados`);
+        console.error("   Duplicados:", duplicates);
+        process.exit(1);
+    }
+    console.log(`✅ Sin duplicados por source_key`);
 
     console.log("\n🎉 Seed completado correctamente");
     console.log(`   Total partidos: ${matchesPayload.length}`);
