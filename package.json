@@ -12,7 +12,8 @@
     "seed:worldcup": "tsx --env-file=.env.local scripts/seed-worldcup.ts",
     "create-global-admin": "tsx --env-file=.env.local scripts/create-global-admin.ts",
     "create-test-users": "tsx --env-file=.env.local scripts/create-test-users.ts",
-    "validate:annex-c": "tsx scripts/validate-annex-c.ts"
+    "validate:annex-c": "tsx scripts/validate-annex-c.ts",
+    "dev:annex-c-scenario": "tsx --env-file=.env.local scripts/dev-seed-annex-c-scenario.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
