@@ -4,6 +4,7 @@ import { Database } from '@/types/database.types';
 import { resolveBracket, Match, MatchResult, ManualTiebreak } from '@/lib/tournament/bracket';
 import { calculateGroupStandings, Team, Match as GroupMatch, MatchResult as GroupMatchResult } from '@/lib/tournament/groupStandings';
 import { calculateBestThirds } from '@/lib/tournament/bestThirds';
+import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/tournament/manualTiebreaks';
 import BracketView from '@/components/bracket/BracketView';
 
 type Params = {
@@ -118,11 +119,10 @@ export default async function GroupBracketPage(props: Params) {
         winner_team_id: r.winner_team_id || undefined,
     }));
 
-    const bracketManualTiebreaks: ManualTiebreak[] = (manualTiebreaks || []).map(t => ({
-        type: t.type === 'group_tiebreak' ? 'group' : 'best_thirds' as const,
-        reference: t.reference,
-        ordered_team_ids: t.ordered_team_ids,
-    }));
+    // Normalize manual tiebreaks from DB format to engine format
+    const normalizedTiebreaks = normalizeManualTiebreaksFromDb(manualTiebreaks || []);
+    const { groupTiebreaks, bestThirdsTiebreak } = separateTiebreaksByType(normalizedTiebreaks);
+    const bracketManualTiebreaks: ManualTiebreak[] = normalizedTiebreaks;
 
     // Calculate group standings for bracket resolution
     const groupTeams: Team[] = teams.map(t => ({
@@ -152,31 +152,17 @@ export default async function GroupBracketPage(props: Params) {
             team2_score: r.team2_score,
         }));
 
-    // Filter and convert manual tiebreaks for groups only
-    const groupManualTiebreaks = bracketManualTiebreaks
-        .filter(t => t.type === 'group')
-        .map(t => ({
-            type: 'group' as const,
-            reference: t.reference,
-            ordered_team_ids: t.ordered_team_ids,
-        }));
-
     const groupStandings = calculateGroupStandings(
         groupTeams,
         groupMatchesEngine,
         groupMatchResults,
-        groupManualTiebreaks
+        groupTiebreaks
     );
 
     // Calculate best thirds
-    const bestThirdsManualTiebreak = bracketManualTiebreaks.find(t => t.type === 'best_thirds');
     const bestThirds = calculateBestThirds(
         groupStandings.thirdPlaceTeams,
-        bestThirdsManualTiebreak ? {
-            type: 'best_thirds',
-            reference: bestThirdsManualTiebreak.reference,
-            ordered_team_ids: bestThirdsManualTiebreak.ordered_team_ids,
-        } : undefined
+        bestThirdsTiebreak
     );
 
     // Resolve the bracket

@@ -110,13 +110,25 @@ export function calculateGroupStandings(
     const manualTiebreak = manualTiebreaks?.find(tb => tb.reference === groupReference);
     
     if (manualTiebreak) {
-      // Apply manual tiebreak
-      const adjustedStandings = applyManualTiebreakToStandings(groupResult.standings, manualTiebreak);
+      // Apply manual tiebreak only within the tied block
+      const adjustedStandings = applyManualTiebreakToStandings(
+        groupResult.standings,
+        manualTiebreak,
+        groupResult.tiedTeams
+      );
+
+      // Check if there are still tied teams that were NOT in the manual tiebreak
+      // (there might be other tied blocks that weren't resolved)
+      const manualTiebreakTeamIds = new Set(manualTiebreak.ordered_team_ids);
+      const stillTiedTeams = groupResult.tiedTeams.filter(
+        teamId => !manualTiebreakTeamIds.has(teamId)
+      );
+
       standings[groupCode] = {
         ...groupResult,
         standings: adjustedStandings,
-        requiresManualTiebreak: false, // Manual tiebreak resolves the tie
-        tiedTeams: [], // No ties after manual resolution
+        requiresManualTiebreak: stillTiedTeams.length > 0,
+        tiedTeams: stillTiedTeams,
       };
     } else {
       standings[groupCode] = groupResult;
@@ -564,35 +576,69 @@ function calculateHeadToHeadStats(
 
 /**
  * Apply manual tiebreak order to group standings
- * Teams in ordered_team_ids appear first in that order
- * Remaining teams maintain their automatic order after
+ * Only reorders teams within the tied block, never globally
+ * Teams with more points cannot be overtaken by teams with fewer points
  */
 function applyManualTiebreakToStandings(
   standings: TeamStats[],
-  manualTiebreak: ManualTiebreak
+  manualTiebreak: ManualTiebreak,
+  tiedTeams: string[]
 ): TeamStats[] {
-  const teamMap = new Map<string, TeamStats>();
-  for (const team of standings) {
-    teamMap.set(team.team_id, team);
+  // If no tied teams, return standings unchanged
+  if (!tiedTeams || tiedTeams.length === 0) {
+    return standings;
   }
 
-  const ordered: TeamStats[] = [];
-  for (const teamId of manualTiebreak.ordered_team_ids) {
-    const team = teamMap.get(teamId);
-    if (team) {
-      ordered.push(team);
-      teamMap.delete(teamId);
+  // Find the positions of tied teams in the standings
+  const tiedTeamIndices = tiedTeams
+    .map(teamId => standings.findIndex(s => s.team_id === teamId))
+    .filter(index => index !== -1);
+
+  if (tiedTeamIndices.length === 0) {
+    // No tied teams found in standings, return unchanged
+    return standings;
+  }
+
+  // Find the range of the tied block
+  const startIndex = Math.min(...tiedTeamIndices);
+  const endIndex = Math.max(...tiedTeamIndices);
+
+  // Extract the tied block
+  const tiedBlock = standings.slice(startIndex, endIndex + 1);
+
+  // Create a map of team_id to index in the manual order
+  const manualOrderMap = new Map<string, number>();
+  manualTiebreak.ordered_team_ids.forEach((teamId, index) => {
+    manualOrderMap.set(teamId, index);
+  });
+
+  // Sort the tied block: teams in manual order first, then others in automatic order
+  const sortedBlock = [...tiedBlock].sort((a, b) => {
+    const aInManual = manualOrderMap.has(a.team_id);
+    const bInManual = manualOrderMap.has(b.team_id);
+
+    if (aInManual && bInManual) {
+      // Both in manual order, sort by manual order
+      return manualOrderMap.get(a.team_id)! - manualOrderMap.get(b.team_id)!;
+    } else if (aInManual) {
+      // Only a is in manual order, a comes first
+      return -1;
+    } else if (bInManual) {
+      // Only b is in manual order, b comes first
+      return 1;
+    } else {
+      // Neither in manual order, maintain automatic order (by original index)
+      const aOriginalIndex = standings.findIndex(s => s.team_id === a.team_id);
+      const bOriginalIndex = standings.findIndex(s => s.team_id === b.team_id);
+      return aOriginalIndex - bOriginalIndex;
     }
-  }
+  });
 
-  // Add any remaining teams not in the manual order (maintain automatic order)
-  for (const team of standings) {
-    if (teamMap.has(team.team_id)) {
-      ordered.push(team);
-    }
-  }
+  // Reconstruct the full standings with the sorted block
+  const result = [...standings];
+  result.splice(startIndex, endIndex - startIndex + 1, ...sortedBlock);
 
-  return ordered;
+  return result;
 }
 
 /**

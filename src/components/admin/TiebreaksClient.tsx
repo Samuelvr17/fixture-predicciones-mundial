@@ -8,10 +8,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/database.types';
-import { calculateGroupStandings, type Team, type Match, type MatchResult } from '@/lib/tournament/groupStandings';
-import { calculateBestThirds, type ManualTiebreak as BestThirdsManualTiebreak } from '@/lib/tournament/bestThirds';
+import { calculateTiebreakData } from '@/lib/tournament/tiebreaksHelper';
+
+// Group order constant for consistent A-L display
+const GROUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
 interface TeamData {
   id: string;
@@ -58,6 +61,7 @@ export default function TiebreaksClient({
   manualTiebreaks,
   currentUserId,
 }: Props) {
+  const router = useRouter();
   const [supabase] = useState(() =>
     createBrowserClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,134 +81,10 @@ export default function TiebreaksClient({
   function calculateTiebreaks() {
     setLoading(true);
 
-    // Convert data to engine format
-    const teamMap = new Map<string, Team>();
-    for (const team of teams) {
-      if (team.group_code) {
-        teamMap.set(team.id, {
-          id: team.id,
-          name: team.name,
-          code: team.code,
-          group_code: team.group_code,
-        });
-      }
-    }
+    const result = calculateTiebreakData(teams, groupMatches, matchResults, manualTiebreaks);
 
-    const matchMap = new Map<string, Match>();
-    for (const match of groupMatches) {
-      if (match.team1_id && match.team2_id && match.group_code) {
-        matchMap.set(match.id, {
-          id: match.id,
-          team1_id: match.team1_id,
-          team2_id: match.team2_id,
-          group_code: match.group_code,
-          round: 'group',
-        });
-      }
-    }
-
-    const resultMap = new Map<string, MatchResult>();
-    for (const result of matchResults) {
-      resultMap.set(result.match_id, {
-        match_id: result.match_id,
-        team1_score: result.team1_score,
-        team2_score: result.team2_score,
-      });
-    }
-
-    // Calculate group standings
-    const allTeams = Array.from(teamMap.values());
-    const allMatches = Array.from(matchMap.values());
-    const allResults = Array.from(resultMap.values());
-
-    const groupStandingsOutput = calculateGroupStandings(allTeams, allMatches, allResults);
-
-    // Find groups requiring manual tiebreak
-    const groupTiebreakData: Record<string, any> = {};
-    for (const [groupCode, standings] of Object.entries(groupStandingsOutput.standings)) {
-      if (standings.requiresManualTiebreak && standings.tiedTeams.length > 0) {
-        // Check if already resolved
-        const existing = manualTiebreaks.find(
-          (t) => t.type === 'group_tiebreak' && t.reference === groupCode
-        );
-
-        const tiedTeamsData = standings.tiedTeams
-          .map((teamId) => {
-            const stats = standings.standings.find((s) => s.team_id === teamId);
-            const team = teams.find((t) => t.id === teamId);
-            if (!stats || !team) return null;
-            return {
-              id: team.id,
-              name: team.name,
-              code: team.code,
-              points: stats.points,
-              goalDifference: stats.goalDifference,
-              goalsFor: stats.goalsFor,
-            };
-          })
-          .filter(Boolean);
-
-        groupTiebreakData[groupCode] = {
-          groupCode,
-          tiedTeams: tiedTeamsData,
-          existingResolution: existing ? existing.ordered_team_ids : null,
-          resolved: !!existing,
-        };
-      }
-    }
-
-    setGroupTiebreaks(groupTiebreakData);
-
-    // Calculate best thirds
-    if (groupStandingsOutput.thirdPlaceTeams.length === 12) {
-      const existingBestThirds = manualTiebreaks.find(
-        (t) => t.type === 'best_thirds' && t.reference === 'best_thirds'
-      );
-
-      const manualTiebreak: BestThirdsManualTiebreak | undefined = existingBestThirds
-        ? {
-            type: 'best_thirds',
-            reference: 'best_thirds',
-            ordered_team_ids: existingBestThirds.ordered_team_ids,
-          }
-        : undefined;
-
-      const bestThirdsOutput = calculateBestThirds(
-        groupStandingsOutput.thirdPlaceTeams,
-        manualTiebreak
-      );
-
-      if (bestThirdsOutput.requiresManualTiebreak) {
-        const tiedAtCutData = bestThirdsOutput.tiedAtCut
-          .map((teamId) => {
-            const stats = bestThirdsOutput.orderedThirds.find((s) => s.team_id === teamId);
-            const team = teams.find((t) => t.id === teamId);
-            if (!stats || !team) return null;
-            const position = bestThirdsOutput.orderedThirds.findIndex((s) => s.team_id === teamId) + 1;
-            return {
-              id: team.id,
-              name: team.name,
-              code: team.code,
-              points: stats.points,
-              goalDifference: stats.goalDifference,
-              goalsFor: stats.goalsFor,
-              position,
-              isCritical: position <= 8,
-            };
-          })
-          .filter(Boolean);
-
-        setBestThirdsTiebreak({
-          tiedTeams: tiedAtCutData,
-          existingResolution: existingBestThirds ? existingBestThirds.ordered_team_ids : null,
-          resolved: !!existingBestThirds,
-        });
-      } else {
-        setBestThirdsTiebreak(null);
-      }
-    } else {
-      setBestThirdsTiebreak(null);
-    }
+    setGroupTiebreaks(result.groupTiebreaks);
+    setBestThirdsTiebreak(result.bestThirdsTiebreak);
 
     setLoading(false);
   }
@@ -237,8 +117,8 @@ export default function TiebreaksClient({
         if (error) throw error;
       }
 
-      // Refresh data
-      window.location.reload();
+      // Refresh data using Next.js router
+      router.refresh();
     } catch (error) {
       console.error('Error saving group tiebreak:', error);
       alert('Error al guardar el desempate');
@@ -275,8 +155,8 @@ export default function TiebreaksClient({
         if (error) throw error;
       }
 
-      // Refresh data
-      window.location.reload();
+      // Refresh data using Next.js router
+      router.refresh();
     } catch (error) {
       console.error('Error saving best thirds tiebreak:', error);
       alert('Error al guardar el desempate');
@@ -314,17 +194,20 @@ export default function TiebreaksClient({
         <div>
           <h2 className="text-2xl font-bold mb-4">Desempates dentro de grupos</h2>
           <div className="space-y-6">
-            {Object.entries(groupTiebreaks).map(([groupCode, data]) => (
-              <GroupTiebreakCard
-                key={groupCode}
-                groupCode={groupCode}
-                tiedTeams={data.tiedTeams}
-                existingResolution={data.existingResolution}
-                resolved={data.resolved}
-                onSave={(order) => saveGroupTiebreak(groupCode, order)}
-                saving={saving === `group_${groupCode}`}
-              />
-            ))}
+            {GROUP_ORDER
+              .filter(groupCode => groupTiebreaks[groupCode])
+              .map(groupCode => (
+                <GroupTiebreakCard
+                  key={groupCode}
+                  groupCode={groupCode}
+                  tiedTeams={groupTiebreaks[groupCode].tiedTeams}
+                  fullStandings={groupTiebreaks[groupCode].fullStandings}
+                  existingResolution={groupTiebreaks[groupCode].existingResolution}
+                  resolved={groupTiebreaks[groupCode].resolved}
+                  onSave={(order) => saveGroupTiebreak(groupCode, order)}
+                  saving={saving === `group_${groupCode}`}
+                />
+              ))}
           </div>
         </div>
       )}
@@ -349,6 +232,7 @@ export default function TiebreaksClient({
 function GroupTiebreakCard({
   groupCode,
   tiedTeams,
+  fullStandings,
   existingResolution,
   resolved,
   onSave,
@@ -356,6 +240,7 @@ function GroupTiebreakCard({
 }: {
   groupCode: string;
   tiedTeams: any[];
+  fullStandings: any[];
   existingResolution: string[] | null;
   resolved: boolean;
   onSave: (order: string[]) => void;
@@ -375,6 +260,14 @@ function GroupTiebreakCard({
     setOrderedTeams(newOrder);
   };
 
+  // Calculate the position range for the tie header
+  const positions = orderedTeams.map((teamId) => {
+    const team = tiedTeams.find((t) => t.id === teamId);
+    return team?.realPosition || 0;
+  });
+  const minPosition = Math.min(...positions);
+  const maxPosition = Math.max(...positions);
+
   return (
     <div className={`border rounded-lg p-6 ${resolved ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
       <div className="flex items-center justify-between mb-4">
@@ -386,10 +279,17 @@ function GroupTiebreakCard({
         )}
       </div>
 
+      <div className="mb-4 text-sm text-gray-600">
+        Empate por posiciones {minPosition}–{maxPosition}
+      </div>
+
       <div className="space-y-3">
         {orderedTeams.map((teamId, index) => {
           const team = tiedTeams.find((t) => t.id === teamId);
           if (!team) return null;
+
+          // Display position within the tied block (startPosition + index)
+          const displayPosition = minPosition + index;
 
           return (
             <div
@@ -397,7 +297,7 @@ function GroupTiebreakCard({
               className="flex items-center justify-between bg-gray-50 rounded-lg p-4"
             >
               <div className="flex items-center gap-4">
-                <span className="text-2xl font-bold text-gray-400 w-8">{index + 1}</span>
+                <span className="text-2xl font-bold text-gray-400 w-8">{displayPosition}</span>
                 <div>
                   <div className="font-semibold">{team.name}</div>
                   <div className="text-sm text-gray-600">

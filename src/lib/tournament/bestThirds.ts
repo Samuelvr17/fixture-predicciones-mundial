@@ -66,26 +66,6 @@ export function calculateBestThirds(
 
   let sorted: TeamStats[];
 
-  // If manual tiebreak is provided, use it as the final order
-  if (manualTiebreak) {
-    sorted = applyManualTiebreak([...thirdPlaceTeams], manualTiebreak);
-    // When manual tiebreak is provided, no tie analysis needed
-    // The manual order is considered final
-    const qualifiedThirds = sorted.slice(0, 8);
-    const eliminatedThirds = sorted.slice(8);
-
-    return {
-      qualifiedThirds,
-      eliminatedThirds,
-      orderedThirds: sorted,
-      requiresManualTiebreak: false,
-      pending: false,
-      tiedInsideQualified: [],
-      tiedInsideEliminated: [],
-      tiedAtCut: [],
-    };
-  }
-
   // Sort by criteria: points (desc), goal difference (desc), goals for (desc)
   sorted = [...thirdPlaceTeams].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -96,6 +76,11 @@ export function calculateBestThirds(
   // Find ties
   const tieAnalysis = analyzeTies(sorted);
 
+  // If manual tiebreak is provided, apply it ONLY to the tied block
+  if (manualTiebreak && tieAnalysis.tiedAtCut.length > 0) {
+    sorted = applyManualTiebreakToTiedBlock(sorted, tieAnalysis.tiedAtCut, manualTiebreak);
+  }
+
   // Split into qualified (top 8) and eliminated (bottom 4)
   const qualifiedThirds = sorted.slice(0, 8);
   const eliminatedThirds = sorted.slice(8);
@@ -104,7 +89,7 @@ export function calculateBestThirds(
     qualifiedThirds,
     eliminatedThirds,
     orderedThirds: sorted,
-    requiresManualTiebreak: tieAnalysis.tiedAtCut.length > 0,
+    requiresManualTiebreak: tieAnalysis.tiedAtCut.length > 0 && !manualTiebreak,
     pending: false,
     tiedInsideQualified: tieAnalysis.tiedInsideQualified,
     tiedInsideEliminated: tieAnalysis.tiedInsideEliminated,
@@ -139,6 +124,61 @@ function applyManualTiebreak(
   }
 
   return ordered;
+}
+
+/**
+ * Apply manual tiebreak ONLY to the tied block at the 8/9 cut
+ * This ensures teams with better points/GD/GF cannot be displaced by manual tiebreak
+ */
+function applyManualTiebreakToTiedBlock(
+  sorted: TeamStats[],
+  tiedAtCut: string[],
+  manualTiebreak: ManualTiebreak
+): TeamStats[] {
+  // Find positions of teams in the tied block
+  const tiedPositions = tiedAtCut
+    .map(id => sorted.findIndex(t => t.team_id === id))
+    .filter(pos => pos !== -1);
+
+  if (tiedPositions.length === 0) {
+    // No tied teams found in sorted list, return as-is
+    return sorted;
+  }
+
+  const minPos = Math.min(...tiedPositions);
+  const maxPos = Math.max(...tiedPositions);
+
+  // Extract the three parts of the list
+  const beforeBlock = sorted.slice(0, minPos);
+  const tiedBlock = sorted.slice(minPos, maxPos + 1);
+  const afterBlock = sorted.slice(maxPos + 1);
+
+  // Create a map of the tied block for quick lookup
+  const teamMap = new Map<string, TeamStats>();
+  for (const team of tiedBlock) {
+    teamMap.set(team.team_id, team);
+  }
+
+  // Reorder the block according to manual tiebreak
+  const reorderedBlock: TeamStats[] = [];
+  for (const teamId of manualTiebreak.ordered_team_ids) {
+    const team = teamMap.get(teamId);
+    if (team) {
+      reorderedBlock.push(team);
+      teamMap.delete(teamId);
+    }
+  }
+
+  // Add any remaining teams from the block not in manual tiebreak (in their original order)
+  for (const team of tiedBlock) {
+    if (teamMap.has(team.team_id)) {
+      reorderedBlock.push(team);
+      teamMap.delete(team.team_id);
+    }
+  }
+
+  // Reconstruct the full list
+  return [...beforeBlock, ...reorderedBlock, ...afterBlock];
 }
 
 /**

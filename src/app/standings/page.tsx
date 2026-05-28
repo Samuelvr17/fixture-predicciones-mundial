@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { calculateGroupStandings, type Team as EngineTeam, type Match as EngineMatch, type MatchResult as EngineMatchResult, type ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
 import { calculateBestThirds, type ManualTiebreak as BestThirdsManualTiebreak } from '@/lib/tournament/bestThirds';
+import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/tournament/manualTiebreaks';
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
 
@@ -85,21 +86,13 @@ export default async function StandingsPage() {
   const engineMatches = matches.map(adaptMatchToEngine).filter((m): m is EngineMatch => m !== null);
   const engineMatchResults = matchResults.map(adaptMatchResultToEngine);
 
-  // Convert manual tiebreaks to engine types
-  const groupManualTiebreaks: GroupManualTiebreak[] = manualTiebreaks
-    .filter((tb: any) => tb.type === 'group_tiebreak')
-    .map((tb: any) => ({
-      type: 'group' as const,
-      reference: tb.reference,
-      ordered_team_ids: tb.ordered_team_ids,
-    }));
-
-  const bestThirdsManualTiebreak: BestThirdsManualTiebreak | undefined = manualTiebreaks
-    .find((tb: any) => tb.type === 'best_thirds');
+  // Normalize manual tiebreaks from DB format to engine format
+  const normalizedTiebreaks = normalizeManualTiebreaksFromDb(manualTiebreaks);
+  const { groupTiebreaks, bestThirdsTiebreak } = separateTiebreaksByType(normalizedTiebreaks);
 
   // Calculate standings using engines
-  const groupStandingsOutput = calculateGroupStandings(engineTeams, engineMatches, engineMatchResults, groupManualTiebreaks);
-  const bestThirdsOutput = calculateBestThirds(groupStandingsOutput.thirdPlaceTeams, bestThirdsManualTiebreak);
+  const groupStandingsOutput = calculateGroupStandings(engineTeams, engineMatches, engineMatchResults, groupTiebreaks);
+  const bestThirdsOutput = calculateBestThirds(groupStandingsOutput.thirdPlaceTeams, bestThirdsTiebreak);
 
   // Check if standings are provisional (not all group matches have results)
   const totalGroupMatches = engineMatches.length;
