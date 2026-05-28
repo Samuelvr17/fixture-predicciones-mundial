@@ -44,6 +44,8 @@ npm run test         # Ejecutar tests en modo watch
 npm run test:run     # Ejecutar tests una vez
 npm run seed:worldcup # Importar datos del Mundial desde data/worldcup-2026.json
 npm run gen-types    # Generar tipos TypeScript desde Supabase
+npm run create-global-admin # Crear usuario administrador global
+npm run create-test-users   # Crear usuarios de prueba para testing
 ```
 
 ## Seed del Mundial
@@ -55,6 +57,42 @@ El script `npm run seed:worldcup` lee `data/worldcup-2026.json` e importa a la b
 - Estructura del bracket con slots dinámicos (1A, 2B, W74, L101, etc.)
 
 Este script requiere `SUPABASE_SERVICE_ROLE_KEY` para tener permisos de escritura.
+
+## Scripts de Administración
+
+### Crear Administrador Global
+
+```bash
+npm run create-global-admin
+```
+
+Crea un usuario con rol `global_admin` que puede:
+- Ingresar resultados reales de partidos
+- Indicar ganadores en eliminatorias
+- Resolver desempates manuales oficiales
+- Confirmar campeón, tercer puesto y goleador oficial
+- Ejecutar recálculos globales
+
+Credenciales por defecto:
+- Email: `admin@fixture-mundial.com`
+- Password: `admin123`
+
+**Importante**: Cambiar la contraseña después del primer login.
+
+### Crear Usuarios de Prueba
+
+```bash
+npm run create-test-users
+```
+
+Crea 5 usuarios de prueba para testing:
+- usuario1@test.com / password123
+- usuario2@test.com / password123
+- usuario3@test.com / password123
+- usuario4@test.com / password123
+- usuario5@test.com / password123
+
+Ambos scripts requieren `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Roles
 
@@ -89,6 +127,16 @@ Rol global definido en la tabla `global_admins`. Puede ingresar resultados reale
 - **Campeón correcto**: 150 puntos
 - **Goleador oficial correcto**: 60 puntos
 
+## Documentación
+
+Para más detalles técnicos y reglas del juego, consultar:
+
+- `docs/APP_SPEC.md` - Especificación completa de la aplicación
+- `docs/RULES.md` - Reglas detalladas del juego y sistema de puntajes
+- `docs/TEST_PLAN.md` - Plan de pruebas
+
 ## Estado del Proyecto
 
-⚠️ **Nota**: El mapeo oficial de mejores terceros del Mundial 2026 todavía está pendiente de completar. Este mapeo define qué terceros de cada grupo se enfrentan en dieciseisavos según la combinación oficial de FIFA.
+✅ **Mapeo de mejores terceros**: Completado. El sistema ahora soporta la combinación oficial de FIFA para determinar qué terceros de cada grupo se enfrentan en dieciseisavos.
+
+✅ **Source key para partidos**: Implementado. La columna `source_key` en la tabla `matches` proporciona un identificador estable para operaciones de upsert.
