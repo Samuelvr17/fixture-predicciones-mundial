@@ -378,6 +378,7 @@ export type Database = {
           match_id: string
           predicted_team1_score: number
           predicted_team2_score: number
+          predicted_winner_team_id: string | null
           updated_at: string
           user_id: string
         }
@@ -388,6 +389,7 @@ export type Database = {
           match_id: string
           predicted_team1_score: number
           predicted_team2_score: number
+          predicted_winner_team_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -398,6 +400,7 @@ export type Database = {
           match_id?: string
           predicted_team1_score?: number
           predicted_team2_score?: number
+          predicted_winner_team_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -414,6 +417,13 @@ export type Database = {
             columns: ["match_id"]
             isOneToOne: false
             referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_scores_predicted_winner_team_id_fkey"
+            columns: ["predicted_winner_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
           {

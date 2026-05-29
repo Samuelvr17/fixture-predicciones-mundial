@@ -31,6 +31,7 @@ export interface MatchPrediction {
   match_id: string;
   predicted_team1_score: number;
   predicted_team2_score: number;
+  predicted_winner_team_id?: string | null;
 }
 
 export interface PredictionAdvance {
@@ -86,6 +87,9 @@ export interface CalculateScoreInput {
   group_id: string;
   user_id: string;
   match_predictions: MatchPrediction[];
+  predicted_team_advances?: Record<string, TournamentRound>;
+  predicted_champion_team_id?: string | null;
+  predicted_third_place_team_id?: string | null;
   predictions_advances: PredictionAdvance[];
   predictions_specials: PredictionSpecial;
   matches: Match[];
@@ -311,6 +315,9 @@ function calculateTopScorerPoints(
 export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
   const {
     match_predictions,
+    predicted_team_advances,
+    predicted_champion_team_id,
+    predicted_third_place_team_id,
     predictions_advances,
     predictions_specials,
     matches,
@@ -372,11 +379,14 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
 
   // Calculate advancement points
   for (const [teamId, actualRound] of Object.entries(resolvedBracket.team_advances)) {
+    const derivedPredictedRound = predicted_team_advances?.[teamId];
     const advancePrediction = advanceMap.get(teamId);
-    if (advancePrediction) {
+    const predictedRound = derivedPredictedRound ?? advancePrediction?.predicted_round;
+
+    if (predictedRound) {
       const points = calculateAdvancementPoints(
         teamId,
-        advancePrediction.predicted_round,
+        predictedRound,
         actualRound
       );
       breakdown.advancementPoints += points;
@@ -392,12 +402,12 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
 
   // Calculate special predictions
   breakdown.championPoints = calculateChampionPoints(
-    predictions_specials.champion_team_id,
+    predicted_champion_team_id ?? predictions_specials.champion_team_id,
     resolvedBracket.champion_team_id
   );
 
   breakdown.thirdPlacePoints = calculateThirdPlacePoints(
-    predictions_specials.third_place_team_id,
+    predicted_third_place_team_id ?? predictions_specials.third_place_team_id,
     resolvedBracket.third_place_team_id
   );
 

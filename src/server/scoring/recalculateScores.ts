@@ -15,6 +15,7 @@ import { calculateGroupStandings, type Team as TournamentTeam, type Match as Tou
 import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak, type BestThirdsOutput } from '@/lib/tournament/bestThirds';
 import { resolveBracket, type Match as BracketMatch, type MatchResult as BracketMatchResult, type ManualTiebreak as BracketTiebreak } from '@/lib/tournament/bracket';
 import { buildTeamAdvancesFromBracket } from '@/lib/tournament/teamAdvances';
+import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
 import type { Database } from '@/types/database.types';
 
 // ============================================================================
@@ -64,6 +65,7 @@ function dbPredictionToMatchPrediction(dbPrediction: Database['public']['Tables'
     match_id: dbPrediction.match_id,
     predicted_team1_score: dbPrediction.predicted_team1_score,
     predicted_team2_score: dbPrediction.predicted_team2_score,
+    predicted_winner_team_id: dbPrediction.predicted_winner_team_id,
   };
 }
 
@@ -307,12 +309,37 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       const matchPredictions = predictionsScoresData.data.map(dbPredictionToMatchPrediction);
       const predictionAdvances = predictionsAdvancesData.data.map(dbPredictionToPredictionAdvance);
       const predictionSpecials = dbPredictionToPredictionSpecial(predictionsSpecials);
+      const predictedTournament = buildPredictedTournamentFromScores(
+        teamsData.data.map((team) => ({
+          id: team.id,
+          name: team.name,
+          code: team.code,
+          group_code: team.group_code,
+        })),
+        matchesData.data.map((match) => ({
+          id: match.id,
+          match_number: match.match_number,
+          round: match.round,
+          group_code: match.group_code,
+          match_date: match.match_date,
+          match_time: match.match_time,
+          venue: match.venue,
+          team1_id: match.team1_id,
+          team2_id: match.team2_id,
+          team1_slot: match.team1_slot,
+          team2_slot: match.team2_slot,
+        })),
+        matchPredictions
+      );
 
       // Calculate score
       const scoreBreakdown = calculateScore({
         group_id: groupId,
         user_id: userId,
         match_predictions: matchPredictions,
+        predicted_team_advances: predictedTournament.teamAdvances,
+        predicted_champion_team_id: predictedTournament.championTeamId,
+        predicted_third_place_team_id: predictedTournament.thirdPlaceTeamId,
         predictions_advances: predictionAdvances,
         predictions_specials: predictionSpecials,
         matches: scoringMatches,

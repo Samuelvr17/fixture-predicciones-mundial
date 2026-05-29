@@ -16,7 +16,6 @@ type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
 };
 
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
-type AdvancePrediction = Database['public']['Tables']['predictions_advances']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
 
@@ -147,18 +146,6 @@ export default async function MemberPredictionsPage(props: Params) {
         .select('*')
         .order('name');
 
-    // Fetch advance predictions for the target user in this group
-    const { data: advancePredictions } = await supabase
-        .from('predictions_advances')
-        .select('*')
-        .eq('group_id', params.groupId)
-        .eq('user_id', params.userId);
-
-    // Create a map of team_id -> advance prediction for easy lookup
-    const advancesMap = new Map(
-        (advancePredictions || []).map(p => [p.team_id, p])
-    );
-
     // Fetch special predictions for the target user in this group
     const { data: specialPredictions } = await supabase
         .from('predictions_specials')
@@ -177,7 +164,6 @@ export default async function MemberPredictionsPage(props: Params) {
                     predictionsMap={predictionsMap}
                     groupId={params.groupId}
                     teams={teams as Team[] || []}
-                    advancesMap={advancesMap}
                     specialPrediction={specialPredictions as SpecialPrediction | null}
                     memberName={memberName}
                     isOwnPredictions={isOwnPredictions}
