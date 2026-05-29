@@ -2,6 +2,10 @@
  * src/components/admin/ResultMatchCard.tsx
  *
  * Card reutilizable para mostrar y editar resultados de partidos.
+ *
+ * Para partidos de eliminatorias donde team1_id/team2_id son NULL en la BD,
+ * acepta resolvedTeam1/resolvedTeam2 para mostrar los equipos resueltos
+ * dinámicamente por el motor de bracket.
  */
 
 'use client';
@@ -29,8 +33,8 @@ interface Match {
   group_code: string | null;
   team1_id: string | null;
   team2_id: string | null;
-  team1_slot: string;
-  team2_slot: string;
+  team1_slot: string | null;
+  team2_slot: string | null;
   match_date: string;
   match_time: string;
   venue: string;
@@ -46,17 +50,34 @@ interface ResultMatchCardProps {
   isElimination: boolean;
   onSave: (matchId: string, team1Score: number, team2Score: number, winnerTeamId: string | null) => void;
   saving: boolean;
+  /** Para knockout: equipo resuelto dinámicamente por el motor de bracket */
+  resolvedTeam1?: Team | null;
+  /** Para knockout: equipo resuelto dinámicamente por el motor de bracket */
+  resolvedTeam2?: Team | null;
 }
 
-export default function ResultMatchCard({ match, teams, isElimination, onSave, saving }: ResultMatchCardProps) {
+export default function ResultMatchCard({
+  match,
+  teams,
+  isElimination,
+  onSave,
+  saving,
+  resolvedTeam1,
+  resolvedTeam2,
+}: ResultMatchCardProps) {
   const [editing, setEditing] = useState(false);
   const [team1Score, setTeam1Score] = useState(match.match_results?.team1_score ?? 0);
   const [team2Score, setTeam2Score] = useState(match.match_results?.team2_score ?? 0);
   const [winnerTeamId, setWinnerTeamId] = useState(match.match_results?.winner_team_id ?? null);
 
   const hasResult = !!match.match_results;
-  const team1Resolved = !!match.team1;
-  const team2Resolved = !!match.team2;
+
+  // Equipo efectivo: resolver primero desde resolvedTeam, luego desde match.team
+  const effectiveTeam1: Team | null = resolvedTeam1 ?? match.team1;
+  const effectiveTeam2: Team | null = resolvedTeam2 ?? match.team2;
+
+  const team1Resolved = !!effectiveTeam1;
+  const team2Resolved = !!effectiveTeam2;
   const bothTeamsResolved = team1Resolved && team2Resolved;
 
   const handleSave = () => {
@@ -71,15 +92,15 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
     setEditing(false);
   };
 
-  const getTeamDisplay = (team: Team | null, slot: string) => {
+  const getTeamDisplay = (team: Team | null, slot: string | null) => {
     if (team) {
       return `${team.name} (${team.code})`;
     }
-    return `Slot: ${slot} (pendiente)`;
+    return `Slot: ${slot ?? '?'} (pendiente)`;
   };
 
-  const isSlotReference = (slot: string): boolean => {
-    // Check if slot is a reference like "1A", "2B", "W74", "L101", etc.
+  const isSlotReference = (slot: string | null): boolean => {
+    if (!slot) return false;
     return /^[1-3][A-L]$|^W\d+$|^L\d+$|^[1-3][A-L]\/[A-L]+$/.test(slot);
   };
 
@@ -118,7 +139,7 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
           <p className="font-medium">
-            {getTeamDisplay(match.team1, match.team1_slot)}
+            {getTeamDisplay(effectiveTeam1, match.team1_slot)}
           </p>
           {!team1Resolved && isSlotReference(match.team1_slot) && (
             <p className="text-xs text-orange-600 mt-1">
@@ -157,7 +178,7 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
 
         <div className="flex-1 text-right">
           <p className="font-medium">
-            {getTeamDisplay(match.team2, match.team2_slot)}
+            {getTeamDisplay(effectiveTeam2, match.team2_slot)}
           </p>
           {!team2Resolved && isSlotReference(match.team2_slot) && (
             <p className="text-xs text-orange-600 mt-1">
@@ -167,13 +188,14 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
         </div>
       </div>
 
-      {isElimination && editing && (
+      {/* Selector de ganador para eliminatorias */}
+      {isElimination && editing && bothTeamsResolved && (
         <div className="mb-4 p-3 bg-gray-50 rounded">
           <p className="text-sm text-amber-700 mb-2">
             Ingresa el marcador de los 90 minutos. Si hay empate, selecciona manualmente el equipo clasificado.
           </p>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Equipo que avanza:
+            Equipo que avanza (obligatorio solo si hay empate):
           </label>
           <select
             value={winnerTeamId || ''}
@@ -181,12 +203,12 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
             className="w-full px-3 py-2 border rounded"
             disabled={saving}
           >
-            <option value="">Seleccionar equipo...</option>
-            {match.team1 && (
-              <option value={match.team1.id}>{match.team1.name}</option>
+            <option value="">Auto (inferido del marcador)</option>
+            {effectiveTeam1 && (
+              <option value={effectiveTeam1.id}>{effectiveTeam1.name}</option>
             )}
-            {match.team2 && (
-              <option value={match.team2.id}>{match.team2.name}</option>
+            {effectiveTeam2 && (
+              <option value={effectiveTeam2.id}>{effectiveTeam2.name}</option>
             )}
           </select>
         </div>
@@ -203,7 +225,7 @@ export default function ResultMatchCard({ match, teams, isElimination, onSave, s
       {!bothTeamsResolved && isElimination && (
         <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
           <p className="text-sm text-orange-800">
-            ⚠️ Este partido tiene slots pendientes de resolución. No se puede guardar el resultado hasta que ambos equipos estén definidos.
+            ⚠️ Este partido tiene slots pendientes de resolución. Los equipos aún no pueden determinarse.
           </p>
         </div>
       )}

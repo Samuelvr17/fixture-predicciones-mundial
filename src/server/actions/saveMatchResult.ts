@@ -3,11 +3,17 @@
  *
  * Server action for saving match results and triggering score recalculation.
  * This action is protected to ensure only global admins can save results.
+ *
+ * For knockout matches:
+ * - Teams are resolved dynamically via fetchOfficialBracketData (not from team1_id/team2_id in DB)
+ * - winner_team_id is inferred automatically when there is no draw
+ * - If it's a draw, winnerTeamId is REQUIRED
  */
 
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { fetchOfficialBracketData } from '@/lib/tournament/officialBracket';
 import { triggerRecalculateAllScores } from './recalculateScores';
 import { revalidatePath } from 'next/cache';
 
@@ -27,14 +33,15 @@ interface SaveMatchResultResult {
 /**
  * Server action to save a match result and trigger score recalculation.
  * Only accessible to global admins.
- * 
+ *
  * This action:
  * 1. Verifies the user is a global admin
  * 2. Saves or updates the match result
- * 3. Triggers score recalculation for all groups
- * 4. Revalidates relevant routes
- * 5. Returns success even if recalculation fails (result is still saved)
- * 
+ * 3. For knockout matches, resolves teams via the bracket engine and infers winner from score
+ * 4. Triggers score recalculation for all groups
+ * 5. Revalidates relevant routes
+ * 6. Returns success even if recalculation fails (result is still saved)
+ *
  * @param params - Match result parameters
  * @returns Success status and any errors
  */
@@ -65,7 +72,7 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
   }
 
   try {
-    // Validations
+    // Basic score validations
     if (params.team1Score < 0 || params.team2Score < 0) {
       return {
         success: false,
@@ -95,59 +102,98 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
     }
 
     const isGroupStage = match.round === 'group';
-    const isKnockoutStage = !isGroupStage;
+    const isDraw = params.team1Score === params.team2Score;
 
-    // If winner is provided, it must be one of the teams
-    if (params.winnerTeamId) {
-      if (params.winnerTeamId !== match.team1_id && params.winnerTeamId !== match.team2_id) {
-        return {
-          success: false,
-          error: 'El equipo ganador debe ser uno de los dos equipos del partido',
-        };
+    // -----------------------------------------------------------------------
+    // Determine effective team1/team2 IDs for validation
+    // -----------------------------------------------------------------------
+    let effectiveTeam1Id: string | null = match.team1_id;
+    let effectiveTeam2Id: string | null = match.team2_id;
+
+    if (!isGroupStage) {
+      // For knockout, resolve teams dynamically via the bracket engine
+      try {
+        const bracketData = await fetchOfficialBracketData(supabase);
+        const resolved = bracketData.resolvedMatchMap.get(params.matchId);
+        if (resolved) {
+          effectiveTeam1Id = resolved.team1_id ?? null;
+          effectiveTeam2Id = resolved.team2_id ?? null;
+        }
+      } catch (bracketErr) {
+        console.error('Could not resolve bracket teams for match', params.matchId, bracketErr);
+        // Non-fatal: fall back to DB values (may be null); validation below will catch issues
       }
     }
 
-    // Knockout stage validations
-    if (isKnockoutStage) {
-      const isDraw = params.team1Score === params.team2Score;
+    // -----------------------------------------------------------------------
+    // Winner validation and auto-inference
+    // -----------------------------------------------------------------------
+    let finalWinnerTeamId = params.winnerTeamId;
 
+    if (!isGroupStage) {
       if (isDraw) {
-        // In knockout stage, if it's a draw, winnerTeamId is REQUIRED
-        if (!params.winnerTeamId) {
+        // In knockout, draw requires an explicit winner (penalties/extra time)
+        if (!finalWinnerTeamId) {
           return {
             success: false,
             error: 'En eliminatorias con empate, debe seleccionar manualmente el equipo clasificado',
           };
         }
-      } else {
-        // If not a draw, winnerTeamId should match the team with higher score
-        const expectedWinnerId = params.team1Score > params.team2Score ? match.team1_id : match.team2_id;
-        
-        if (params.winnerTeamId && params.winnerTeamId !== expectedWinnerId) {
+        // Validate the supplied winner is one of the two effective teams
+        if (
+          effectiveTeam1Id && effectiveTeam2Id &&
+          finalWinnerTeamId !== effectiveTeam1Id &&
+          finalWinnerTeamId !== effectiveTeam2Id
+        ) {
           return {
             success: false,
-            error: 'El equipo ganador no coincide con el marcador del partido',
+            error: 'El equipo ganador debe ser uno de los dos equipos del partido',
           };
+        }
+      } else {
+        // No draw: auto-infer winner from score
+        const inferredWinnerId =
+          params.team1Score > params.team2Score ? effectiveTeam1Id : effectiveTeam2Id;
+
+        if (finalWinnerTeamId) {
+          // If the caller passed a winner, it must match the score
+          if (inferredWinnerId && finalWinnerTeamId !== inferredWinnerId) {
+            return {
+              success: false,
+              error: 'El equipo ganador no coincide con el marcador del partido',
+            };
+          }
+        } else {
+          // Auto-set winner from score
+          finalWinnerTeamId = inferredWinnerId;
         }
       }
     } else {
-      // Group stage: winnerTeamId can only be null if it's a draw
-      const isDraw = params.team1Score === params.team2Score;
-      
-      if (!isDraw && !params.winnerTeamId) {
-        // In group stage without draw, winnerTeamId should be inferred
-        // But we allow it to be null for flexibility, the scoring system will handle it
-      }
-      
-      if (isDraw && params.winnerTeamId) {
+      // Group stage validations
+      if (isDraw && finalWinnerTeamId) {
         return {
           success: false,
           error: 'En fase de grupos con empate, no debe haber un equipo ganador',
         };
       }
+
+      // If a winner was supplied for group stage, validate it against DB team IDs
+      if (finalWinnerTeamId) {
+        if (
+          finalWinnerTeamId !== match.team1_id &&
+          finalWinnerTeamId !== match.team2_id
+        ) {
+          return {
+            success: false,
+            error: 'El equipo ganador debe ser uno de los dos equipos del partido',
+          };
+        }
+      }
     }
 
-    // Check if result already exists
+    // -----------------------------------------------------------------------
+    // Upsert the result
+    // -----------------------------------------------------------------------
     const { data: existingResult } = await supabase
       .from('match_results')
       .select('id')
@@ -155,13 +201,12 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
       .single();
 
     if (existingResult) {
-      // Update existing result
       const { error: updateError } = await supabase
         .from('match_results')
         .update({
           team1_score: params.team1Score,
           team2_score: params.team2Score,
-          winner_team_id: params.winnerTeamId,
+          winner_team_id: finalWinnerTeamId,
         })
         .eq('id', existingResult.id);
 
@@ -172,14 +217,13 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
         };
       }
     } else {
-      // Insert new result
       const { error: insertError } = await supabase
         .from('match_results')
         .insert({
           match_id: params.matchId,
           team1_score: params.team1Score,
           team2_score: params.team2Score,
-          winner_team_id: params.winnerTeamId,
+          winner_team_id: finalWinnerTeamId,
           entered_by: user.id,
         });
 
@@ -192,14 +236,10 @@ export async function saveMatchResult(params: SaveMatchResultParams): Promise<Sa
     }
 
     // Trigger score recalculation
-    // Even if this fails, the result is already saved
     const recalcResult = await triggerRecalculateAllScores();
-    
+
     if (!recalcResult.success) {
       console.error('Score recalculation failed after saving match result:', recalcResult.error);
-      console.error('Match result was saved successfully, but scores could not be recalculated.');
-      console.error('This may be due to missing SUPABASE_SERVICE_ROLE_KEY or RLS blocking the write to score_breakdowns.');
-      // Return success but with a warning about recalculation
       return {
         success: true,
         recalculationError: recalcResult.error || 'Error al recalcular puntajes',

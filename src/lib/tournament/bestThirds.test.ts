@@ -377,7 +377,10 @@ describe('bestThirds', () => {
 
     const result = calculateBestThirds(thirdPlaceTeams, manualTiebreak);
 
-    // Teams outside the tied block should not move
+    // Partial manual tiebreak should not be applied since it doesn't cover all tied teams
+    expect(result.requiresManualTiebreak).toBe(true);
+
+    // Order should remain automatic (original sorted order)
     expect(result.orderedThirds[0].team_id).toBe('t1');
     expect(result.orderedThirds[1].team_id).toBe('t2');
     expect(result.orderedThirds[2].team_id).toBe('t3');
@@ -385,12 +388,10 @@ describe('bestThirds', () => {
     expect(result.orderedThirds[4].team_id).toBe('t5');
     expect(result.orderedThirds[5].team_id).toBe('t6');
 
-    // t9 and t8 should be first in the tied block (positions 6-7)
-    expect(result.orderedThirds[6].team_id).toBe('t9');
+    // Tied teams remain in their original order (t7, t8, t9, t10)
+    expect(result.orderedThirds[6].team_id).toBe('t7');
     expect(result.orderedThirds[7].team_id).toBe('t8');
-
-    // The other tied teams (t7, t10) should follow in their original order
-    expect(result.orderedThirds[8].team_id).toBe('t7');
+    expect(result.orderedThirds[8].team_id).toBe('t9');
     expect(result.orderedThirds[9].team_id).toBe('t10');
 
     // Teams after the tied block should not move

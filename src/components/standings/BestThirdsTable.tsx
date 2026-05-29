@@ -37,8 +37,9 @@ export function BestThirdsTable({ bestThirds, teams }: BestThirdsTableProps) {
 
   const getStatusBadge = (position: number, teamId: string) => {
     if (position <= 8) {
+      // Show 'Pendiente' only when the tie at the 8/9 cut is actually unresolved
       const isTiedAtCut = bestThirds.tiedAtCut.includes(teamId);
-      if (isTiedAtCut) {
+      if (isTiedAtCut && bestThirds.requiresManualTiebreak) {
         return (
           <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-2 py-1 rounded-full">
             Pendiente
@@ -98,11 +99,10 @@ export function BestThirdsTable({ bestThirds, teams }: BestThirdsTableProps) {
               return (
                 <tr
                   key={stats.team_id}
-                  className={`border-t border-zinc-100 dark:border-zinc-800 ${
-                    isQualified
+                  className={`border-t border-zinc-100 dark:border-zinc-800 ${isQualified
                       ? 'bg-green-50/50 dark:bg-green-950/20'
                       : 'bg-red-50/50 dark:bg-red-950/20'
-                  }`}
+                    }`}
                 >
                   <td className="px-4 py-3 text-center font-medium">{position}</td>
                   <td className="px-4 py-3">

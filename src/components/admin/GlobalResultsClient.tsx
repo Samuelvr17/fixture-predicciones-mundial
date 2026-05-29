@@ -3,6 +3,9 @@
  *
  * Client Component para el panel de admin global de resultados.
  * Maneja la interactividad de edición y guardado de resultados.
+ *
+ * Los partidos de eliminatorias reciben resolvedTeam1/resolvedTeam2 del servidor
+ * (resueltos via resolveBracket) en lugar de depender de team1_id/team2_id en la BD.
  */
 
 'use client';
@@ -32,8 +35,8 @@ interface Match {
   group_code: string | null;
   team1_id: string | null;
   team2_id: string | null;
-  team1_slot: string;
-  team2_slot: string;
+  team1_slot: string | null;
+  team2_slot: string | null;
   match_date: string;
   match_time: string;
   venue: string;
@@ -41,6 +44,10 @@ interface Match {
   team1: Team | null;
   team2: Team | null;
   match_results: MatchResult | null;
+  /** Para knockout: equipo resuelto dinámicamente por el motor de bracket */
+  resolvedTeam1: Team | null;
+  /** Para knockout: equipo resuelto dinámicamente por el motor de bracket */
+  resolvedTeam2: Team | null;
 }
 
 interface GlobalResultsClientProps {
@@ -74,7 +81,6 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
     setSuccess(null);
 
     try {
-      // Call server action to save result and trigger recalculation
       const result = await saveMatchResult({
         matchId,
         team1Score,
@@ -165,6 +171,8 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
                   isElimination={isEliminationRound(round)}
                   onSave={handleSaveResult}
                   saving={saving === match.id}
+                  resolvedTeam1={match.resolvedTeam1}
+                  resolvedTeam2={match.resolvedTeam2}
                 />
               ))}
             </div>

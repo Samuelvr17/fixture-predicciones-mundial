@@ -76,8 +76,13 @@ export function calculateBestThirds(
   // Find ties
   const tieAnalysis = analyzeTies(sorted);
 
-  // If manual tiebreak is provided, apply it ONLY to the tied block
-  if (manualTiebreak && tieAnalysis.tiedAtCut.length > 0) {
+  // Apply manual tiebreak only if it covers all teams currently tied at the cut
+  const coversAllTiedAtCut =
+    manualTiebreak != null &&
+    tieAnalysis.tiedAtCut.length > 0 &&
+    tieAnalysis.tiedAtCut.every((id) => manualTiebreak.ordered_team_ids.includes(id));
+
+  if (coversAllTiedAtCut && manualTiebreak) {
     sorted = applyManualTiebreakToTiedBlock(sorted, tieAnalysis.tiedAtCut, manualTiebreak);
   }
 
@@ -89,7 +94,8 @@ export function calculateBestThirds(
     qualifiedThirds,
     eliminatedThirds,
     orderedThirds: sorted,
-    requiresManualTiebreak: tieAnalysis.tiedAtCut.length > 0 && !manualTiebreak,
+    // Still requires manual tiebreak if the tie is not fully resolved
+    requiresManualTiebreak: tieAnalysis.tiedAtCut.length > 0 && !coversAllTiedAtCut,
     pending: false,
     tiedInsideQualified: tieAnalysis.tiedInsideQualified,
     tiedInsideEliminated: tieAnalysis.tiedInsideEliminated,
@@ -242,8 +248,8 @@ function findTiedGroups(standings: TeamStats[]): TeamStats[][] {
       const current = standings[i];
 
       if (current.points === last.points &&
-          current.goalDifference === last.goalDifference &&
-          current.goalsFor === last.goalsFor) {
+        current.goalDifference === last.goalDifference &&
+        current.goalsFor === last.goalsFor) {
         currentGroup.push(current);
       } else {
         if (currentGroup.length > 1) {
