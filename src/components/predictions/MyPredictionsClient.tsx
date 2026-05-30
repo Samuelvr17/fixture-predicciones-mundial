@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
+import type { GroupStandings, TeamStats } from '@/lib/tournament/groupStandings';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -402,6 +403,9 @@ export default function MyPredictionsClient({
     }
   };
 
+  const predictedGroupStandings = Object.values(predictedTournament.groupStandings.standings)
+    .sort((a, b) => a.group_code.localeCompare(b.group_code));
+
   const champion = predictedTournament.championTeamId
     ? teamsMap.get(predictedTournament.championTeamId)?.name
     : null;
@@ -435,6 +439,24 @@ export default function MyPredictionsClient({
           </div>
         </div>
       </div>
+
+      <section className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-5">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">Mis tablas predichas</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Estas posiciones se recalculan automaticamente con tus marcadores de fase de grupos. Los puestos 1 y 2 clasifican directo; el 3 queda en pelea.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {predictedGroupStandings.map((groupStanding) => (
+            <PredictedGroupTable
+              key={groupStanding.group_code}
+              groupStanding={groupStanding}
+              teamsMap={teamsMap}
+            />
+          ))}
+        </div>
+      </section>
 
       {unresolvedGroupTiebreaks.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 space-y-5">
@@ -695,5 +717,119 @@ function TeamScoreRow({
         <span className="font-bold text-lg">{score}</span>
       )}
     </div>
+  );
+}
+
+function PredictedGroupTable({
+  groupStanding,
+  teamsMap,
+}: {
+  groupStanding: GroupStandings;
+  teamsMap: Map<string, Team>;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-semibold">Grupo {groupStanding.group_code}</h3>
+          {groupStanding.requiresManualTiebreak && (
+            <span className="text-xs font-medium text-amber-700 bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 px-2 py-1 rounded-full">
+              Empate pendiente
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 px-2 py-1">
+            Clasificados directos: 1° y 2°
+          </span>
+          <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 px-2 py-1">
+            Terceros en pelea: 3°
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 dark:bg-zinc-950">
+            <tr>
+              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Posición</th>
+              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Selección</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">PJ</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">Puntos</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">GF</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">GC</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">DG</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupStanding.standings.map((stats, index) => (
+              <PredictedGroupRow
+                key={stats.team_id}
+                stats={stats}
+                position={index + 1}
+                team={teamsMap.get(stats.team_id) ?? null}
+                isTied={groupStanding.tiedTeams.includes(stats.team_id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {groupStanding.requiresManualTiebreak && (
+        <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-100 dark:border-amber-900/30">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Empate pendiente: los equipos marcados con * requieren desempate manual para fijar el orden final del grupo.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PredictedGroupRow({
+  stats,
+  position,
+  team,
+  isTied,
+}: {
+  stats: TeamStats;
+  position: number;
+  team: Team | null;
+  isTied: boolean;
+}) {
+  const rowStatus = position <= 2 ? 'direct' : position === 3 ? 'third' : 'out';
+  const rowClassName = rowStatus === 'direct'
+    ? 'bg-green-50/60 dark:bg-green-950/20'
+    : rowStatus === 'third'
+      ? 'bg-amber-50/60 dark:bg-amber-950/20'
+      : '';
+
+  return (
+    <tr className={`border-t border-zinc-100 dark:border-zinc-800 ${rowClassName}`}>
+      <td className="px-3 py-3 font-semibold whitespace-nowrap">
+        <div className="flex items-center gap-2">
+          <span>{position}°</span>
+          {rowStatus === 'direct' && (
+            <span className="text-[11px] font-medium text-green-700 dark:text-green-300">Directo</span>
+          )}
+          {rowStatus === 'third' && (
+            <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">En pelea</span>
+          )}
+          {isTied && <span className="text-xs text-amber-600 dark:text-amber-400">*</span>}
+        </div>
+      </td>
+      <td className="px-3 py-3 min-w-44">
+        <div className="flex items-center gap-2">
+          {team?.flag_url && <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />}
+          <span className="font-medium">{team?.name || 'Desconocido'}</span>
+          {team?.code && <span className="text-xs text-zinc-500 dark:text-zinc-400">({team.code})</span>}
+        </div>
+      </td>
+      <td className="px-3 py-3 text-center">{stats.played}</td>
+      <td className="px-3 py-3 text-center font-bold">{stats.points}</td>
+      <td className="px-3 py-3 text-center">{stats.goalsFor}</td>
+      <td className="px-3 py-3 text-center">{stats.goalsAgainst}</td>
+      <td className="px-3 py-3 text-center">{stats.goalDifference}</td>
+    </tr>
   );
 }
