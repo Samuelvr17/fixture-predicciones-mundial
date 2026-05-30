@@ -89,6 +89,144 @@ describe('groupStandings', () => {
     expect(output.requiresManualTiebreak).toBe(false);
   });
 
+  it('two teams tied on points are ordered by their direct match before total goal difference', () => {
+    const teams: Team[] = [
+      { id: 'colombia', name: 'Colombia', code: 'COL', group_code: 'G' },
+      { id: 'mexico', name: 'Mexico', code: 'MEX', group_code: 'G' },
+      { id: 'japan', name: 'Japan', code: 'JPN', group_code: 'G' },
+      { id: 'ghana', name: 'Ghana', code: 'GHA', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 'colombia', team2_id: 'mexico', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 'japan', team2_id: 'ghana', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 'colombia', team2_id: 'japan', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 'mexico', team2_id: 'ghana', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 'colombia', team2_id: 'ghana', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 'mexico', team2_id: 'japan', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 1, team2_score: 0 }, // Colombia beats Mexico directly
+      { match_id: 'm2', team1_score: 0, team2_score: 0 },
+      { match_id: 'm3', team1_score: 0, team2_score: 1 },
+      { match_id: 'm4', team1_score: 1, team2_score: 0 },
+      { match_id: 'm5', team1_score: 1, team2_score: 0 },
+      { match_id: 'm6', team1_score: 2, team2_score: 0 }, // Mexico has better total GD, but loses H2H
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results);
+    const standings = output.standings['G'].standings;
+
+    expect(standings[0].team_id).toBe('colombia');
+    expect(standings[0].points).toBe(6);
+    expect(standings[1].team_id).toBe('mexico');
+    expect(standings[1].points).toBe(6);
+    expect(standings[1].goalDifference).toBeGreaterThan(standings[0].goalDifference);
+    expect(output.requiresManualTiebreak).toBe(false);
+  });
+
+  it('three-team tie is partially split by head-to-head points and remaining block continues to later criteria', () => {
+    const teams: Team[] = [
+      { id: 'a', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 'b', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 'c', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 'd', name: 'Team D', code: 'D', group_code: 'G' },
+      { id: 'e', name: 'Team E', code: 'E', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 'a', team2_id: 'b', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 'a', team2_id: 'c', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 'b', team2_id: 'c', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 'd', team2_id: 'a', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 'e', team2_id: 'a', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 'd', team2_id: 'b', group_code: 'G', round: 'group' },
+      { id: 'm7', team1_id: 'e', team2_id: 'b', group_code: 'G', round: 'group' },
+      { id: 'm8', team1_id: 'c', team2_id: 'd', group_code: 'G', round: 'group' },
+      { id: 'm9', team1_id: 'c', team2_id: 'e', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 0, team2_score: 0 },
+      { match_id: 'm2', team1_score: 2, team2_score: 0 },
+      { match_id: 'm3', team1_score: 1, team2_score: 0 },
+      { match_id: 'm4', team1_score: 1, team2_score: 0 },
+      { match_id: 'm5', team1_score: 1, team2_score: 0 },
+      { match_id: 'm6', team1_score: 1, team2_score: 0 },
+      { match_id: 'm7', team1_score: 1, team2_score: 0 },
+      { match_id: 'm8', team1_score: 1, team2_score: 0 },
+      { match_id: 'm9', team1_score: 0, team2_score: 0 },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results);
+    const standings = output.standings['G'].standings;
+    const tiedFourPointTeams = standings.filter((team) => ['a', 'b', 'c'].includes(team.team_id));
+
+    expect(tiedFourPointTeams.map((team) => team.team_id)).toEqual(['a', 'b', 'c']);
+    expect(tiedFourPointTeams.map((team) => team.points)).toEqual([4, 4, 4]);
+    expect(output.standings['G'].tiedTeams).not.toContain('a');
+    expect(output.standings['G'].tiedTeams).not.toContain('b');
+    expect(output.requiresManualTiebreak).toBe(false);
+  });
+
+  it('three teams tied after all head-to-head criteria are ordered by total goal difference', () => {
+    const teams: Team[] = [
+      { id: 'a', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 'b', name: 'Team B', code: 'B', group_code: 'G' },
+      { id: 'c', name: 'Team C', code: 'C', group_code: 'G' },
+      { id: 'd', name: 'Team D', code: 'D', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 'a', team2_id: 'b', group_code: 'G', round: 'group' },
+      { id: 'm2', team1_id: 'b', team2_id: 'c', group_code: 'G', round: 'group' },
+      { id: 'm3', team1_id: 'c', team2_id: 'a', group_code: 'G', round: 'group' },
+      { id: 'm4', team1_id: 'a', team2_id: 'd', group_code: 'G', round: 'group' },
+      { id: 'm5', team1_id: 'b', team2_id: 'd', group_code: 'G', round: 'group' },
+      { id: 'm6', team1_id: 'c', team2_id: 'd', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 1, team2_score: 0 },
+      { match_id: 'm2', team1_score: 1, team2_score: 0 },
+      { match_id: 'm3', team1_score: 1, team2_score: 0 },
+      { match_id: 'm4', team1_score: 5, team2_score: 0 },
+      { match_id: 'm5', team1_score: 3, team2_score: 0 },
+      { match_id: 'm6', team1_score: 1, team2_score: 0 },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results);
+    const standings = output.standings['G'].standings;
+
+    expect(standings.slice(0, 3).map((team) => team.team_id)).toEqual(['a', 'b', 'c']);
+    expect(standings.slice(0, 3).map((team) => team.points)).toEqual([6, 6, 6]);
+    expect(standings[0].goalDifference).toBeGreaterThan(standings[1].goalDifference);
+    expect(standings[1].goalDifference).toBeGreaterThan(standings[2].goalDifference);
+    expect(output.requiresManualTiebreak).toBe(false);
+  });
+
+  it('two teams still identical after every automatic criterion require manual tiebreak', () => {
+    const teams: Team[] = [
+      { id: 'a', name: 'Team A', code: 'A', group_code: 'G' },
+      { id: 'b', name: 'Team B', code: 'B', group_code: 'G' },
+    ];
+
+    const matches: Match[] = [
+      { id: 'm1', team1_id: 'a', team2_id: 'b', group_code: 'G', round: 'group' },
+    ];
+
+    const results: MatchResult[] = [
+      { match_id: 'm1', team1_score: 1, team2_score: 1 },
+    ];
+
+    const output = calculateGroupStandings(teams, matches, results);
+
+    expect(output.requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].requiresManualTiebreak).toBe(true);
+    expect(output.standings['G'].tiedTeams).toEqual(['a', 'b']);
+  });
+
   it('requires manual tiebreak when all criteria are identical', () => {
     const teams: Team[] = [
       { id: 't1', name: 'Team A', code: 'A', group_code: 'G' },

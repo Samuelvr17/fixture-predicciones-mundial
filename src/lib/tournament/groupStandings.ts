@@ -354,157 +354,150 @@ function resolveTiebreak(
   matches: Match[],
   resultMap: Map<string, MatchResult>
 ): TiebreakResolution {
-  const teamIds = new Set(tiedTeams.map((t) => t.team_id));
-
-  // Calculate head-to-head stats for tied teams
-  const h2hStats = calculateHeadToHeadStats(tiedTeams, matches, resultMap, teamIds);
-
-  let resolved = [...tiedTeams];
-
-  // Apply tiebreak criteria sequentially
-  // For multi-team ties, we apply each criterion to the entire tied group
-  // If a criterion partially separates teams, the separated teams are fixed
-  // and remaining criteria apply only to still-tied subgroups
-
-  // 1. Points in matches between tied teams
-  resolved.sort((a, b) => {
-    const aH2h = h2hStats.get(a.team_id)!;
-    const bH2h = h2hStats.get(b.team_id)!;
-    return bH2h.points - aH2h.points;
-  });
-
-  // Check if fully resolved
-  if (isFullyResolved(resolved)) {
-    return { resolved, requiresManualTiebreak: false, tiedTeams: [] };
-  }
-
-  // Find still-tied subgroups after H2H points
-  let tiedGroups = findTiedGroups(resolved);
-
-  // 2. Goal difference in matches between tied teams
-  // Apply only to still-tied subgroups
-  for (const group of tiedGroups) {
-    if (group.length > 1) {
-      group.sort((a, b) => {
-        const aH2h = h2hStats.get(a.team_id)!;
-        const bH2h = h2hStats.get(b.team_id)!;
-        return bH2h.goalDifference - aH2h.goalDifference;
-      });
-    }
-  }
-
-  // Reconstruct the full array with sorted subgroups
-  resolved = reconstructSortedArray(resolved, tiedGroups);
-
-  // Check if fully resolved
-  if (isFullyResolved(resolved)) {
-    return { resolved, requiresManualTiebreak: false, tiedTeams: [] };
-  }
-
-  // Find still-tied subgroups after H2H GD
-  tiedGroups = findTiedGroups(resolved);
-
-  // 3. Goals scored in matches between tied teams
-  for (const group of tiedGroups) {
-    if (group.length > 1) {
-      group.sort((a, b) => {
-        const aH2h = h2hStats.get(a.team_id)!;
-        const bH2h = h2hStats.get(b.team_id)!;
-        return bH2h.goalsFor - aH2h.goalsFor;
-      });
-    }
-  }
-
-  // Reconstruct the full array
-  resolved = reconstructSortedArray(resolved, tiedGroups);
-
-  // Check if fully resolved
-  if (isFullyResolved(resolved)) {
-    return { resolved, requiresManualTiebreak: false, tiedTeams: [] };
-  }
-
-  // Find still-tied subgroups after H2H goals
-  tiedGroups = findTiedGroups(resolved);
-
-  // 4. Total goal difference (apply to still-tied subgroups)
-  for (const group of tiedGroups) {
-    if (group.length > 1) {
-      group.sort((a, b) => b.goalDifference - a.goalDifference);
-    }
-  }
-
-  // Reconstruct the full array
-  resolved = reconstructSortedArray(resolved, tiedGroups);
-
-  // Check if fully resolved
-  if (isFullyResolved(resolved)) {
-    return { resolved, requiresManualTiebreak: false, tiedTeams: [] };
-  }
-
-  // Find still-tied subgroups after total GD
-  tiedGroups = findTiedGroups(resolved);
-
-  // 5. Total goals scored (apply to still-tied subgroups)
-  for (const group of tiedGroups) {
-    if (group.length > 1) {
-      group.sort((a, b) => b.goalsFor - a.goalsFor);
-    }
-  }
-
-  // Reconstruct the full array
-  resolved = reconstructSortedArray(resolved, tiedGroups);
-
-  // After all criteria, check if still tied
-  const finalTiedGroups = findTiedGroups(resolved);
-  const finalTiedTeams: string[] = [];
-  for (const group of finalTiedGroups) {
-    if (group.length > 1) {
-      finalTiedTeams.push(...group.map((t) => t.team_id));
-    }
-  }
+  const resolution = resolveTiedBlock(tiedTeams, matches, resultMap, 0);
 
   return {
-    resolved,
-    requiresManualTiebreak: finalTiedTeams.length > 0,
-    tiedTeams: finalTiedTeams,
+    resolved: resolution.resolved,
+    requiresManualTiebreak: resolution.tiedTeams.length > 0,
+    tiedTeams: resolution.tiedTeams,
   };
 }
 
+interface BlockResolution {
+  resolved: TeamStats[];
+  tiedTeams: string[];
+}
+
+type TiebreakCriterion =
+  | 'headToHeadPoints'
+  | 'headToHeadGoalDifference'
+  | 'headToHeadGoalsFor'
+  | 'totalGoalDifference'
+  | 'totalGoalsFor';
+
+const TIEBREAK_CRITERIA: TiebreakCriterion[] = [
+  'headToHeadPoints',
+  'headToHeadGoalDifference',
+  'headToHeadGoalsFor',
+  'totalGoalDifference',
+  'totalGoalsFor',
+];
+
 /**
- * Reconstruct the full sorted array from sorted subgroups
- * Preserves the order of separated teams and inserts sorted subgroups
+ * Resolve one tied block criterion by criterion.
+ *
+ * Each criterion sorts the current unresolved block and splits it into smaller
+ * equal-value sub-blocks. Teams (or sub-blocks) already separated by an earlier
+ * criterion keep their relative ranking, and the next criterion is applied only
+ * to the sub-blocks that remain tied.
  */
-function reconstructSortedArray(
-  original: TeamStats[],
-  tiedGroups: TeamStats[][]
-): TeamStats[] {
-  if (tiedGroups.length === 0) {
-    return [...original];
+function resolveTiedBlock(
+  block: TeamStats[],
+  matches: Match[],
+  resultMap: Map<string, MatchResult>,
+  criterionIndex: number
+): BlockResolution {
+  if (block.length <= 1) {
+    return { resolved: block, tiedTeams: [] };
   }
 
-  // Create a map of team_id to index in original
-  const indexMap = new Map<string, number>();
-  original.forEach((team, idx) => {
-    indexMap.set(team.team_id, idx);
+  if (criterionIndex >= TIEBREAK_CRITERIA.length) {
+    return {
+      resolved: block,
+      tiedTeams: block.map((team) => team.team_id),
+    };
+  }
+
+  const criterion = TIEBREAK_CRITERIA[criterionIndex];
+  const h2hStats = criterion.startsWith('headToHead')
+    ? calculateHeadToHeadStats(
+        block,
+        matches,
+        resultMap,
+        new Set(block.map((team) => team.team_id))
+      )
+    : undefined;
+  const inheritedOrder = new Map(block.map((team, index) => [team.team_id, index]));
+
+  const sorted = [...block].sort((a, b) => {
+    const diff =
+      getCriterionValue(b, criterion, h2hStats) - getCriterionValue(a, criterion, h2hStats);
+    if (diff !== 0) return diff;
+
+    // Stable tie: preserve the order inherited from previous criteria.
+    return inheritedOrder.get(a.team_id)! - inheritedOrder.get(b.team_id)!;
   });
 
-  // For each tied group, find their positions in the original array
-  // and replace them with the sorted version
-  const result = [...original];
+  const equalValueBlocks = splitByCriterionValue(sorted, criterion, h2hStats);
+  const resolved: TeamStats[] = [];
+  const tiedTeams: string[] = [];
 
-  for (const group of tiedGroups) {
-    if (group.length <= 1) continue;
+  for (const equalValueBlock of equalValueBlocks) {
+    if (equalValueBlock.length === 1) {
+      resolved.push(equalValueBlock[0]);
+      continue;
+    }
 
-    // Find the range of indices this group occupies in the original array
-    const indices = group.map((team) => indexMap.get(team.team_id)!).sort((a, b) => a - b);
-    const startIndex = indices[0];
-    const endIndex = indices[indices.length - 1];
+    const subResolution = resolveTiedBlock(
+      equalValueBlock,
+      matches,
+      resultMap,
+      criterionIndex + 1
+    );
 
-    // Replace the range with the sorted group
-    result.splice(startIndex, endIndex - startIndex + 1, ...group);
+    resolved.push(...subResolution.resolved);
+    tiedTeams.push(...subResolution.tiedTeams);
   }
 
-  return result;
+  return { resolved, tiedTeams };
+}
+
+function getCriterionValue(
+  team: TeamStats,
+  criterion: TiebreakCriterion,
+  h2hStats?: Map<string, H2HStats>
+): number {
+  switch (criterion) {
+    case 'headToHeadPoints':
+      return h2hStats?.get(team.team_id)?.points ?? 0;
+    case 'headToHeadGoalDifference':
+      return h2hStats?.get(team.team_id)?.goalDifference ?? 0;
+    case 'headToHeadGoalsFor':
+      return h2hStats?.get(team.team_id)?.goalsFor ?? 0;
+    case 'totalGoalDifference':
+      return team.goalDifference;
+    case 'totalGoalsFor':
+      return team.goalsFor;
+  }
+}
+
+function splitByCriterionValue(
+  sorted: TeamStats[],
+  criterion: TiebreakCriterion,
+  h2hStats?: Map<string, H2HStats>
+): TeamStats[][] {
+  const blocks: TeamStats[][] = [];
+  let currentBlock: TeamStats[] = [];
+  let currentValue: number | null = null;
+
+  for (const team of sorted) {
+    const value = getCriterionValue(team, criterion, h2hStats);
+
+    if (currentBlock.length === 0 || value === currentValue) {
+      currentBlock.push(team);
+      currentValue = value;
+    } else {
+      blocks.push(currentBlock);
+      currentBlock = [team];
+      currentValue = value;
+    }
+  }
+
+  if (currentBlock.length > 0) {
+    blocks.push(currentBlock);
+  }
+
+  return blocks;
 }
 
 /**
@@ -584,76 +577,76 @@ function applyManualTiebreakToStandings(
   manualTiebreak: ManualTiebreak,
   tiedTeams: string[]
 ): TeamStats[] {
-  // If no tied teams, return standings unchanged
   if (!tiedTeams || tiedTeams.length === 0) {
     return standings;
   }
 
-  // Find the positions of tied teams in the standings
-  const tiedTeamIndices = tiedTeams
-    .map(teamId => standings.findIndex(s => s.team_id === teamId))
-    .filter(index => index !== -1);
-
-  if (tiedTeamIndices.length === 0) {
-    // No tied teams found in standings, return unchanged
-    return standings;
-  }
-
-  // Find the range of the tied block
-  const startIndex = Math.min(...tiedTeamIndices);
-  const endIndex = Math.max(...tiedTeamIndices);
-
-  // Extract the tied block
-  const tiedBlock = standings.slice(startIndex, endIndex + 1);
-
-  // Create a map of team_id to index in the manual order
-  const manualOrderMap = new Map<string, number>();
-  manualTiebreak.ordered_team_ids.forEach((teamId, index) => {
-    manualOrderMap.set(teamId, index);
-  });
-
-  // Sort the tied block: teams in manual order first, then others in automatic order
-  const sortedBlock = [...tiedBlock].sort((a, b) => {
-    const aInManual = manualOrderMap.has(a.team_id);
-    const bInManual = manualOrderMap.has(b.team_id);
-
-    if (aInManual && bInManual) {
-      // Both in manual order, sort by manual order
-      return manualOrderMap.get(a.team_id)! - manualOrderMap.get(b.team_id)!;
-    } else if (aInManual) {
-      // Only a is in manual order, a comes first
-      return -1;
-    } else if (bInManual) {
-      // Only b is in manual order, b comes first
-      return 1;
-    } else {
-      // Neither in manual order, maintain automatic order (by original index)
-      const aOriginalIndex = standings.findIndex(s => s.team_id === a.team_id);
-      const bOriginalIndex = standings.findIndex(s => s.team_id === b.team_id);
-      return aOriginalIndex - bOriginalIndex;
-    }
-  });
-
-  // Reconstruct the full standings with the sorted block
+  const tiedTeamIds = new Set(tiedTeams);
   const result = [...standings];
-  result.splice(startIndex, endIndex - startIndex + 1, ...sortedBlock);
+  const tiedBlocks = findContiguousTiedBlocks(standings, tiedTeamIds);
+
+  for (const block of tiedBlocks) {
+    const sortedBlock = sortBlockByManualOrder(
+      block.teams,
+      manualTiebreak.ordered_team_ids
+    );
+    result.splice(block.startIndex, sortedBlock.length, ...sortedBlock);
+  }
 
   return result;
 }
 
-/**
- * Check if all teams have unique positions (no ties)
- */
-function isFullyResolved(standings: TeamStats[]): boolean {
-  for (let i = 0; i < standings.length - 1; i++) {
-    const current = standings[i];
-    const next = standings[i + 1];
+function findContiguousTiedBlocks(
+  standings: TeamStats[],
+  tiedTeamIds: Set<string>
+): Array<{ startIndex: number; teams: TeamStats[] }> {
+  const blocks: Array<{ startIndex: number; teams: TeamStats[] }> = [];
+  let currentBlock: TeamStats[] = [];
+  let currentStartIndex = 0;
 
-    if (current.points === next.points &&
-        current.goalDifference === next.goalDifference &&
-        current.goalsFor === next.goalsFor) {
-      return false;
+  standings.forEach((team, index) => {
+    if (tiedTeamIds.has(team.team_id)) {
+      if (currentBlock.length === 0) {
+        currentStartIndex = index;
+      }
+      currentBlock.push(team);
+      return;
     }
+
+    if (currentBlock.length > 0) {
+      blocks.push({ startIndex: currentStartIndex, teams: currentBlock });
+      currentBlock = [];
+    }
+  });
+
+  if (currentBlock.length > 0) {
+    blocks.push({ startIndex: currentStartIndex, teams: currentBlock });
   }
-  return true;
+
+  return blocks;
+}
+
+function sortBlockByManualOrder(
+  block: TeamStats[],
+  orderedTeamIds: string[]
+): TeamStats[] {
+  const manualOrderMap = new Map<string, number>();
+  orderedTeamIds.forEach((teamId, index) => {
+    manualOrderMap.set(teamId, index);
+  });
+  const originalOrderMap = new Map(block.map((team, index) => [team.team_id, index]));
+
+  return [...block].sort((a, b) => {
+    const aInManual = manualOrderMap.has(a.team_id);
+    const bInManual = manualOrderMap.has(b.team_id);
+
+    if (aInManual && bInManual) {
+      return manualOrderMap.get(a.team_id)! - manualOrderMap.get(b.team_id)!;
+    }
+
+    if (aInManual) return -1;
+    if (bInManual) return 1;
+
+    return originalOrderMap.get(a.team_id)! - originalOrderMap.get(b.team_id)!;
+  });
 }
