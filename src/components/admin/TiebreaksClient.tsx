@@ -73,6 +73,7 @@ export default function TiebreaksClient({
   const [bestThirdsTiebreak, setBestThirdsTiebreak] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [showTiebreakDefinitions, setShowTiebreakDefinitions] = useState(false);
 
   useEffect(() => {
     calculateTiebreaks();
@@ -187,42 +188,70 @@ export default function TiebreaksClient({
     );
   }
 
+  const groupTiebreakCount = Object.keys(groupTiebreaks).length;
+  const totalTiebreakCount = groupTiebreakCount + (hasBestThirdsTiebreak ? 1 : 0);
+
   return (
     <div className="space-y-8">
-      {/* Group Tiebreaks */}
-      {hasGroupTiebreaks && (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Desempates dentro de grupos</h2>
-          <div className="space-y-6">
-            {GROUP_ORDER
-              .filter(groupCode => groupTiebreaks[groupCode])
-              .map(groupCode => (
-                <GroupTiebreakCard
-                  key={groupCode}
-                  groupCode={groupCode}
-                  tiedTeams={groupTiebreaks[groupCode].tiedTeams}
-                  fullStandings={groupTiebreaks[groupCode].fullStandings}
-                  existingResolution={groupTiebreaks[groupCode].existingResolution}
-                  resolved={groupTiebreaks[groupCode].resolved}
-                  onSave={(order) => saveGroupTiebreak(groupCode, order)}
-                  saving={saving === `group_${groupCode}`}
-                />
-              ))}
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-900/20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-amber-950 dark:text-amber-100">
+              Desempates pendientes ({totalTiebreakCount})
+            </h2>
+            <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+              Las tarjetas de resolución están ocultas para evitar mostrar demasiada información junta.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowTiebreakDefinitions((current) => !current)}
+            aria-expanded={showTiebreakDefinitions}
+            className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+          >
+            {showTiebreakDefinitions ? 'Ocultar desempates' : 'Definir desempates'}
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Best Thirds Tiebreak */}
-      {hasBestThirdsTiebreak && (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Desempates entre mejores terceros</h2>
-          <BestThirdsTiebreakCard
-            tiedTeams={bestThirdsTiebreak.tiedTeams}
-            existingResolution={bestThirdsTiebreak.existingResolution}
-            resolved={bestThirdsTiebreak.resolved}
-            onSave={(order) => saveBestThirdsTiebreak(order)}
-            saving={saving === 'best_thirds'}
-          />
+      {showTiebreakDefinitions && (
+        <div className="space-y-8">
+          {/* Group Tiebreaks */}
+          {hasGroupTiebreaks && (
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Desempates dentro de grupos</h2>
+              <div className="space-y-6">
+                {GROUP_ORDER
+                  .filter(groupCode => groupTiebreaks[groupCode])
+                  .map(groupCode => (
+                    <GroupTiebreakCard
+                      key={groupCode}
+                      groupCode={groupCode}
+                      tiedTeams={groupTiebreaks[groupCode].tiedTeams}
+                      fullStandings={groupTiebreaks[groupCode].fullStandings}
+                      existingResolution={groupTiebreaks[groupCode].existingResolution}
+                      resolved={groupTiebreaks[groupCode].resolved}
+                      onSave={(order) => saveGroupTiebreak(groupCode, order)}
+                      saving={saving === `group_${groupCode}`}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Best Thirds Tiebreak */}
+          {hasBestThirdsTiebreak && (
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Desempates entre mejores terceros</h2>
+              <BestThirdsTiebreakCard
+                tiedTeams={bestThirdsTiebreak.tiedTeams}
+                existingResolution={bestThirdsTiebreak.existingResolution}
+                resolved={bestThirdsTiebreak.resolved}
+                onSave={(order) => saveBestThirdsTiebreak(order)}
+                saving={saving === 'best_thirds'}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import { calculateBestThirds, type ManualTiebreak as BestThirdsManualTiebreak } 
 import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/tournament/manualTiebreaks';
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
+import { TogglePanel } from '@/components/TogglePanel';
 
 // Database types
 type DbTeam = {
@@ -134,36 +135,44 @@ export default async function StandingsPage() {
 
         <main>
           {/* Group Tables */}
-          <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Tablas por Grupo</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedGroupCodes.map((groupCode) => {
-                const groupStanding = groupStandingsOutput.standings[groupCode];
-                if (!groupStanding) return null;
+          <TogglePanel
+            title="Tablas por Grupo"
+            description="Ocultas por defecto para no cargar demasiada información de una sola vez."
+            showLabel="Ver tablas"
+            hideLabel="Ocultar tablas"
+            className="mb-8"
+            contentClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {sortedGroupCodes.map((groupCode) => {
+              const groupStanding = groupStandingsOutput.standings[groupCode];
+              if (!groupStanding) return null;
 
-                return (
-                  <GroupTable
-                    key={groupCode}
-                    groupCode={groupCode}
-                    standings={groupStanding.standings}
-                    teams={teams}
-                    requiresManualTiebreak={groupStanding.requiresManualTiebreak}
-                    tiedTeams={groupStanding.tiedTeams}
-                    isProvisional={isProvisional}
-                  />
-                );
-              })}
-            </div>
-          </section>
+              return (
+                <GroupTable
+                  key={groupCode}
+                  groupCode={groupCode}
+                  standings={groupStanding.standings}
+                  teams={teams}
+                  requiresManualTiebreak={groupStanding.requiresManualTiebreak}
+                  tiedTeams={groupStanding.tiedTeams}
+                  isProvisional={isProvisional}
+                />
+              );
+            })}
+          </TogglePanel>
 
           {/* Best Thirds Table */}
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Mejores Terceros</h2>
+          <TogglePanel
+            title="Mejores Terceros"
+            description="Muestra esta tabla solo cuando quieras revisar el ranking de terceros."
+            showLabel="Ver mejores terceros"
+            hideLabel="Ocultar mejores terceros"
+          >
             <BestThirdsTable
               bestThirds={bestThirdsOutput}
               teams={teams}
             />
-          </section>
+          </TogglePanel>
         </main>
       </div>
     </div>

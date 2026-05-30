@@ -107,6 +107,8 @@ export default function MyPredictionsClient({
   const [savingTiebreaks, setSavingTiebreaks] = useState<Record<string, boolean>>({});
   const [tiebreakErrors, setTiebreakErrors] = useState<Record<string, string>>({});
   const [tiebreakSuccess, setTiebreakSuccess] = useState<Record<string, boolean>>({});
+  const [showPredictedTables, setShowPredictedTables] = useState(false);
+  const [showPredictionTiebreaks, setShowPredictionTiebreaks] = useState(false);
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -441,35 +443,57 @@ export default function MyPredictionsClient({
       </div>
 
       <section className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-5">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">Mis tablas predichas</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Estas posiciones se recalculan automaticamente con tus marcadores de fase de grupos. Los puestos 1 y 2 clasifican directo; el 3 queda en pelea.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight">Mis tablas predichas</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Estas posiciones se recalculan automaticamente con tus marcadores de fase de grupos. Los puestos 1 y 2 clasifican directo; el 3 queda en pelea.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPredictedTables((current) => !current)}
+            aria-expanded={showPredictedTables}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+          >
+            {showPredictedTables ? 'Ocultar tablas' : 'Ver tablas'}
+          </button>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {predictedGroupStandings.map((groupStanding) => (
-            <PredictedGroupTable
-              key={groupStanding.group_code}
-              groupStanding={groupStanding}
-              teamsMap={teamsMap}
-            />
-          ))}
-        </div>
+        {showPredictedTables && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {predictedGroupStandings.map((groupStanding) => (
+              <PredictedGroupTable
+                key={groupStanding.group_code}
+                groupStanding={groupStanding}
+                teamsMap={teamsMap}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {unresolvedGroupTiebreaks.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 space-y-5">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-amber-950 dark:text-amber-100">
-              Desempates manuales de tus predicciones
-            </h2>
-            <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-              Hay empates no resueltos despues de los criterios automaticos. Ordena los equipos para definir tu bracket predicho.
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-amber-950 dark:text-amber-100">
+                Desempates manuales de tus predicciones
+              </h2>
+              <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                Hay empates no resueltos despues de los criterios automaticos. Ordena los equipos para definir tu bracket predicho.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPredictionTiebreaks((current) => !current)}
+              aria-expanded={showPredictionTiebreaks}
+              className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+            >
+              {showPredictionTiebreaks ? 'Ocultar desempates' : 'Definir desempates'}
+            </button>
           </div>
 
-          {unresolvedGroupTiebreaks.map((groupStanding) => {
+          {showPredictionTiebreaks && unresolvedGroupTiebreaks.map((groupStanding) => {
             const reference = `group_${groupStanding.group_code}`;
             const order = getManualOrderForGroup(groupStanding.group_code, groupStanding.tiedTeams);
 
