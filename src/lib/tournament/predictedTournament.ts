@@ -8,6 +8,7 @@
 import { calculateBestThirds } from './bestThirds';
 import {
   calculateGroupStandings,
+  type ManualTiebreak as GroupManualTiebreak,
   type Match as GroupMatch,
   type MatchResult as GroupMatchResult,
   type Team as GroupTeam,
@@ -77,7 +78,8 @@ const KNOCKOUT_ROUNDS = new Set([
 export function buildPredictedTournamentFromScores(
   teams: PredictedTournamentTeam[],
   matches: PredictedTournamentMatch[],
-  predictions: PredictedScore[]
+  predictions: PredictedScore[],
+  manualTiebreaks: GroupManualTiebreak[] = []
 ): PredictedTournamentOutput {
   const predictionByMatchId = new Map(predictions.map((p) => [p.match_id, p]));
 
@@ -111,7 +113,12 @@ export function buildPredictedTournamentFromScores(
     })
     .filter((result): result is GroupMatchResult => result !== null);
 
-  const groupStandings = calculateGroupStandings(groupTeams, groupMatches, groupResults);
+  const groupStandings = calculateGroupStandings(
+    groupTeams,
+    groupMatches,
+    groupResults,
+    manualTiebreaks
+  );
   const bestThirds = calculateBestThirds(groupStandings.thirdPlaceTeams);
 
   const bracketMatches: BracketMatch[] = matches
