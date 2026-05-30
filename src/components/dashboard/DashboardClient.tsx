@@ -21,6 +21,30 @@ interface DashboardClientProps {
   memberCounts: Map<string, number>;
 }
 
+const deadlineDateFormatter = new Intl.DateTimeFormat('es-ES', {
+  timeZone: 'UTC',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+function formatDeadline(deadline: string) {
+  const date = new Date(deadline);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Sin fecha';
+  }
+
+  const parts = deadlineDateFormatter.formatToParts(date);
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value;
+
+  return `${getPart('day')} de ${getPart('month')} de ${getPart('year')}, ${getPart('hour')}:${getPart('minute')}`;
+}
+
 export default function DashboardClient({ groups, memberCounts }: DashboardClientProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -59,13 +83,7 @@ export default function DashboardClient({ groups, memberCounts }: DashboardClien
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                      Deadline: {new Date(member.groups?.prediction_deadline || '').toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      Deadline: {formatDeadline(member.groups?.prediction_deadline || '')}
                     </p>
                   </div>
                   <div className="text-zinc-400">
