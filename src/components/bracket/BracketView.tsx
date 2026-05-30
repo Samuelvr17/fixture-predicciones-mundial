@@ -124,13 +124,19 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
       )}
 
       {/* Mobile round sections */}
-      <div className="space-y-7 md:hidden">
-        {ROUND_ORDER.map((round) => (
-          <section key={round} className="space-y-3" aria-labelledby={`mobile-${round}`}>
-            <div id={`mobile-${round}`}>{renderRoundHeader(round)}</div>
-            {renderRoundMatches(round)}
-          </section>
-        ))}
+      <div className="-mx-4 overflow-x-auto px-4 pb-4 md:hidden">
+        <div className="flex min-w-max gap-4">
+          {ROUND_ORDER.map((round) => (
+            <section
+              key={round}
+              className="w-[280px] shrink-0 space-y-3"
+              aria-labelledby={`mobile-${round}`}
+            >
+              <div id={`mobile-${round}`}>{renderRoundHeader(round)}</div>
+              {renderRoundMatches(round)}
+            </section>
+          ))}
+        </div>
       </div>
 
       {/* Tablet and desktop bracket columns */}
