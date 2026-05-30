@@ -55,8 +55,8 @@ export async function triggerRecalculateAllScores() {
 
     // Revalidate relevant routes
     revalidatePath('/standings');
-    revalidatePath('/groups/[groupId]/leaderboard');
-    revalidatePath('/groups/[groupId]/bracket');
+    revalidatePath('/groups/[groupId]/leaderboard', 'page');
+    revalidatePath('/groups/[groupId]/bracket', 'page');
 
     return {
       success: true,

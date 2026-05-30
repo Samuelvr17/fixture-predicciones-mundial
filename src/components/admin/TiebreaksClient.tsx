@@ -9,9 +9,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@/types/database.types';
 import { calculateTiebreakData } from '@/lib/tournament/tiebreaksHelper';
+import { saveManualTiebreak } from '@/server/actions/saveManualTiebreak';
 
 // Group order constant for consistent A-L display
 const GROUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
@@ -51,7 +50,6 @@ interface Props {
   groupMatches: MatchData[];
   matchResults: MatchResultData[];
   manualTiebreaks: ManualTiebreakData[];
-  currentUserId: string;
 }
 
 export default function TiebreaksClient({
@@ -59,16 +57,8 @@ export default function TiebreaksClient({
   groupMatches,
   matchResults,
   manualTiebreaks,
-  currentUserId,
 }: Props) {
   const router = useRouter();
-  const [supabase] = useState(() =>
-    createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    )
-  );
-
   const [groupTiebreaks, setGroupTiebreaks] = useState<Record<string, any>>({});
   const [bestThirdsTiebreak, setBestThirdsTiebreak] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -92,36 +82,26 @@ export default function TiebreaksClient({
   async function saveGroupTiebreak(groupCode: string, orderedTeamIds: string[]) {
     setSaving(`group_${groupCode}`);
     try {
-      const existing = manualTiebreaks.find(
-        (t) => t.type === 'group_tiebreak' && t.reference === groupCode
-      );
+      const result = await saveManualTiebreak({
+        type: 'group_tiebreak',
+        reference: groupCode,
+        orderedTeamIds,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('manual_tiebreaks')
-          .update({
-            ordered_team_ids: orderedTeamIds,
-            resolved_by: currentUserId,
-          })
-          .eq('id', existing.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('manual_tiebreaks').insert({
-          type: 'group_tiebreak',
-          reference: groupCode,
-          ordered_team_ids: orderedTeamIds,
-          resolved_by: currentUserId,
-        });
-
-        if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Error al guardar el desempate');
       }
 
-      // Refresh data using Next.js router
+      if (result.recalculationError) {
+        alert(
+          `Desempate guardado, pero hubo un error al recalcular puntajes: ${result.recalculationError}`
+        );
+      }
+
       router.refresh();
     } catch (error) {
       console.error('Error saving group tiebreak:', error);
-      alert('Error al guardar el desempate');
+      alert(error instanceof Error ? error.message : 'Error al guardar el desempate');
     } finally {
       setSaving(null);
     }
@@ -130,36 +110,26 @@ export default function TiebreaksClient({
   async function saveBestThirdsTiebreak(orderedTeamIds: string[]) {
     setSaving('best_thirds');
     try {
-      const existing = manualTiebreaks.find(
-        (t) => t.type === 'best_thirds' && t.reference === 'best_thirds'
-      );
+      const result = await saveManualTiebreak({
+        type: 'best_thirds',
+        reference: 'best_thirds',
+        orderedTeamIds,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('manual_tiebreaks')
-          .update({
-            ordered_team_ids: orderedTeamIds,
-            resolved_by: currentUserId,
-          })
-          .eq('id', existing.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('manual_tiebreaks').insert({
-          type: 'best_thirds',
-          reference: 'best_thirds',
-          ordered_team_ids: orderedTeamIds,
-          resolved_by: currentUserId,
-        });
-
-        if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Error al guardar el desempate');
       }
 
-      // Refresh data using Next.js router
+      if (result.recalculationError) {
+        alert(
+          `Desempate guardado, pero hubo un error al recalcular puntajes: ${result.recalculationError}`
+        );
+      }
+
       router.refresh();
     } catch (error) {
       console.error('Error saving best thirds tiebreak:', error);
-      alert('Error al guardar el desempate');
+      alert(error instanceof Error ? error.message : 'Error al guardar el desempate');
     } finally {
       setSaving(null);
     }

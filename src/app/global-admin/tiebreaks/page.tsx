@@ -83,7 +83,6 @@ export default async function GlobalAdminTiebreaksPage() {
         groupMatches={groupMatches || []}
         matchResults={matchResults || []}
         manualTiebreaks={manualTiebreaks || []}
-        currentUserId={user.id}
       />
     </div>
   );
