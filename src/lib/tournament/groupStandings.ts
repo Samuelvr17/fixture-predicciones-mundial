@@ -59,6 +59,47 @@ export interface GroupStandingsOutput {
   requiresManualTiebreak: boolean;
 }
 
+/**
+ * Determine whether a group has all scheduled round-robin results needed to
+ * treat its standings as final. In this World Cup format every team plays every
+ * other team in its group once, so a complete group has team_count - 1 matches
+ * played per team.
+ */
+export function isGroupComplete(group: GroupStandings): boolean {
+  const teamCount = group.standings.length;
+  if (teamCount < 2) {
+    return false;
+  }
+
+  const expectedMatchesPerTeam = teamCount - 1;
+  return group.standings.every((team) => team.played >= expectedMatchesPerTeam);
+}
+
+/**
+ * A group is resolved for official bracket/scoring purposes only after all of
+ * its matches have results and any required manual tiebreak has been entered.
+ */
+export function isGroupResolved(group: GroupStandings): boolean {
+  return isGroupComplete(group) && !group.requiresManualTiebreak;
+}
+
+/**
+ * Determine whether all groups in the tournament are complete.
+ */
+export function areAllGroupsComplete(groupStandings: GroupStandingsOutput): boolean {
+  const groups = Object.values(groupStandings.standings);
+  return groups.length > 0 && groups.every(isGroupComplete);
+}
+
+/**
+ * Determine whether every group can be used for official bracket/scoring
+ * purposes.
+ */
+export function areAllGroupsResolved(groupStandings: GroupStandingsOutput): boolean {
+  const groups = Object.values(groupStandings.standings);
+  return groups.length > 0 && groups.every(isGroupResolved);
+}
+
 // ============================================================================
 // PURE FUNCTIONS
 // ============================================================================

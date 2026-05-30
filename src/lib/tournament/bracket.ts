@@ -11,7 +11,13 @@
  * is not yet fully populated.
  */
 
-import { GroupStandingsOutput, TeamStats } from './groupStandings';
+import {
+  areAllGroupsComplete,
+  areAllGroupsResolved,
+  isGroupComplete,
+  GroupStandingsOutput,
+  TeamStats,
+} from './groupStandings';
 import { BestThirdsOutput } from './bestThirds';
 import { assignThirdPlaceSlots, SlotPattern, hasCombination } from './thirdPlaceAssignment';
 
@@ -67,7 +73,7 @@ export interface ManualTiebreak {
 
 export interface PendingSlot {
   slot: Slot;
-  reason: 'missing_standings' | 'missing_best_thirds' | 'missing_third_place_assignment' | 'missing_match_result' | 'invalid_slot';
+  reason: 'missing_standings' | 'incomplete_group' | 'unresolved_tiebreak' | 'missing_best_thirds' | 'missing_third_place_assignment' | 'missing_match_result' | 'invalid_slot';
 }
 
 export interface ResolvedMatch {
@@ -89,6 +95,15 @@ export interface BracketOutput {
   complete: boolean; // true if all slots resolved and final has winner
 }
 
+export interface ResolveBracketOptions {
+  /**
+   * When true, group-derived slots are resolved only after official group
+   * standings are complete and tiebreaks are settled. Predicted brackets can
+   * disable this to keep rendering a user's hypothetical bracket path.
+   */
+  requireOfficialGroupResolution?: boolean;
+}
+
 // ============================================================================
 // MAIN FUNCTION
 // ============================================================================
@@ -108,8 +123,10 @@ export function resolveBracket(
   matchResults: MatchResult[],
   groupStandings: GroupStandingsOutput,
   bestThirds: BestThirdsOutput,
-  manualTiebreaks?: ManualTiebreak[]
+  manualTiebreaks?: ManualTiebreak[],
+  options: ResolveBracketOptions = {}
 ): BracketOutput {
+  const requireOfficialGroupResolution = options.requireOfficialGroupResolution ?? true;
   // Create lookup maps
   const matchMap = new Map<string, Match>();
   for (const match of matches) {
@@ -149,7 +166,8 @@ export function resolveBracket(
       bestThirds,
       matchWinners,
       matchLosers,
-      manualTiebreakMap
+      manualTiebreakMap,
+      requireOfficialGroupResolution
     );
 
     // Resolve team2
@@ -160,7 +178,8 @@ export function resolveBracket(
       bestThirds,
       matchWinners,
       matchLosers,
-      manualTiebreakMap
+      manualTiebreakMap,
+      requireOfficialGroupResolution
     );
 
     const pendingSlots = [...team1Result.pendingSlots, ...team2Result.pendingSlots];
@@ -250,7 +269,8 @@ function resolveSlot(
   bestThirds: BestThirdsOutput,
   matchWinners: Map<number, string>,
   matchLosers: Map<number, string>,
-  manualTiebreaks: Map<string, ManualTiebreak>
+  manualTiebreaks: Map<string, ManualTiebreak>,
+  requireOfficialGroupResolution: boolean
 ): SlotResolution {
   // If team is already set, use it
   if (existingTeamId) {
@@ -264,10 +284,10 @@ function resolveSlot(
   // Parse slot type
   if (slot.match(/^\d[A-L]$/)) {
     // Group position: 1A, 2A, etc.
-    return resolveGroupPositionSlot(slot, groupStandings, manualTiebreaks);
+    return resolveGroupPositionSlot(slot, groupStandings, manualTiebreaks, requireOfficialGroupResolution);
   } else if (slot.startsWith('3')) {
     // Third place: 3A/B/C/D/F, etc.
-    return resolveThirdPlaceSlot(slot, bestThirds, groupStandings);
+    return resolveThirdPlaceSlot(slot, bestThirds, groupStandings, requireOfficialGroupResolution);
   } else if (slot.startsWith('W')) {
     // Winner: W74, W75, etc.
     return resolveWinnerSlot(slot, matchWinners);
@@ -285,7 +305,8 @@ function resolveSlot(
 function resolveGroupPositionSlot(
   slot: Slot,
   groupStandings: GroupStandingsOutput,
-  manualTiebreaks: Map<string, ManualTiebreak>
+  manualTiebreaks: Map<string, ManualTiebreak>,
+  requireOfficialGroupResolution: boolean
 ): SlotResolution {
   const position = parseInt(slot[0]); // 1 or 2
   const groupCode = slot[1] as GroupCode; // A, B, etc.
@@ -297,6 +318,22 @@ function resolveGroupPositionSlot(
       team_id: undefined,
       pendingSlots: [{ slot, reason: 'missing_standings' }],
     };
+  }
+
+  if (requireOfficialGroupResolution) {
+    if (!isGroupComplete(groupStanding)) {
+      return {
+        team_id: undefined,
+        pendingSlots: [{ slot, reason: 'incomplete_group' }],
+      };
+    }
+
+    if (groupStanding.requiresManualTiebreak) {
+      return {
+        team_id: undefined,
+        pendingSlots: [{ slot, reason: 'unresolved_tiebreak' }],
+      };
+    }
   }
 
   const index = position - 1; // 0-indexed
@@ -315,8 +352,27 @@ function resolveGroupPositionSlot(
 function resolveThirdPlaceSlot(
   slot: Slot,
   bestThirds: BestThirdsOutput,
-  groupStandings: GroupStandingsOutput
+  groupStandings: GroupStandingsOutput,
+  requireOfficialGroupResolution: boolean
 ): SlotResolution {
+  // Third-place slots are official only after all groups are complete and
+  // any group/best-thirds tiebreaks have been resolved.
+  if (requireOfficialGroupResolution) {
+    if (!areAllGroupsComplete(groupStandings)) {
+      return {
+        team_id: undefined,
+        pendingSlots: [{ slot, reason: 'incomplete_group' }],
+      };
+    }
+
+    if (!areAllGroupsResolved(groupStandings) || bestThirds.requiresManualTiebreak) {
+      return {
+        team_id: undefined,
+        pendingSlots: [{ slot, reason: 'unresolved_tiebreak' }],
+      };
+    }
+  }
+
   // Check if best thirds are calculated
   if (bestThirds.pending || bestThirds.qualifiedThirds.length === 0) {
     return {
