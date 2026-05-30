@@ -20,6 +20,8 @@ const ROUND_LABELS: Record<string, string> = {
 
 const PENDING_REASON_LABELS: Record<string, string> = {
   missing_standings: 'Faltan posiciones de grupo',
+  incomplete_group: 'Grupo pendiente por completar',
+  unresolved_tiebreak: 'Desempate pendiente',
   missing_best_thirds: 'Faltan mejores terceros',
   missing_third_place_assignment: 'Asignación de terceros pendiente',
   missing_match_result: 'Falta resultado del partido',

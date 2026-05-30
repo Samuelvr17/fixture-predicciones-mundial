@@ -68,6 +68,64 @@ function createMockBestThirds(): BestThirdsOutput {
 // ============================================================================
 
 describe('bracket.ts', () => {
+  describe('keeps slots pending until official group standings are complete', () => {
+    it('should not resolve 1A from incomplete Group A standings', () => {
+      const matches: Match[] = [
+        {
+          id: 'match-73',
+          num: 73,
+          round: 'round_of_32',
+          date: '2026-06-28',
+          time: '12:00 UTC-7',
+          ground: 'Los Angeles',
+          team1_slot: '1A',
+          team2_slot: '2B',
+        },
+      ];
+
+      const groupStandings = createMockGroupStandings();
+      groupStandings.standings.A.standings = groupStandings.standings.A.standings.map((team) => ({
+        ...team,
+        played: 1,
+      }));
+      const bestThirds = createMockBestThirds();
+
+      const result = resolveBracket(matches, [], groupStandings, bestThirds);
+
+      expect(result.matches[0].team1_id).toBeUndefined();
+      expect(result.matches[0].team1_slot).toBe('1A');
+      expect(result.matches[0].pendingSlots[0]).toEqual({ slot: '1A', reason: 'incomplete_group' });
+    });
+
+    it('should not resolve third-place slots until every group is complete', () => {
+      const matches: Match[] = [
+        {
+          id: 'match-73',
+          num: 73,
+          round: 'round_of_32',
+          date: '2026-06-28',
+          time: '12:00 UTC-7',
+          ground: 'Los Angeles',
+          team1_slot: '3A/B',
+          team2_slot: '1B',
+        },
+      ];
+
+      const groupStandings = createMockGroupStandings();
+      groupStandings.standings.A.standings = groupStandings.standings.A.standings.map((team) => ({
+        ...team,
+        played: 1,
+      }));
+      const bestThirds = createMockBestThirds();
+
+      const result = resolveBracket(matches, [], groupStandings, bestThirds);
+
+      expect(result.matches[0].team1_id).toBeUndefined();
+      expect(result.matches[0].team1_slot).toBe('3A/B');
+      expect(result.matches[0].pendingSlots[0]).toEqual({ slot: '3A/B', reason: 'incomplete_group' });
+    });
+  });
+
   describe('resolves 1A and 2A from standings', () => {
     it('should resolve 1A to first place team in Group A', () => {
       const matches: Match[] = [

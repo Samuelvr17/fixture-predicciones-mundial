@@ -6,7 +6,7 @@
  */
 
 import type { TournamentRound } from '@/lib/scoring/scoring';
-import type { GroupStandingsOutput } from './groupStandings';
+import { areAllGroupsResolved, isGroupResolved, type GroupStandingsOutput } from './groupStandings';
 import type { BestThirdsOutput } from './bestThirds';
 import type { BracketOutput } from './bracket';
 
@@ -64,18 +64,24 @@ export function buildTeamAdvancesFromBracket(
     }
   }
 
-  // b. Mark first and second place teams as round_of_32
+  // b. Mark first and second place teams as round_of_32 only when that
+  // group's official standings are final. Partial standings must not award
+  // advancement points because they can change as the admin enters results.
   for (const groupCode in groupStandings.standings) {
     const group = groupStandings.standings[groupCode];
-    if (group.standings.length >= 2) {
+    if (isGroupResolved(group) && group.standings.length >= 2) {
       setMaxRound(group.standings[0].team_id, 'round_of_32');
       setMaxRound(group.standings[1].team_id, 'round_of_32');
     }
   }
 
-  // c. Mark only the 8 best thirds as round_of_32
-  for (const team of bestThirds.qualifiedThirds) {
-    setMaxRound(team.team_id, 'round_of_32');
+  // c. Mark only the 8 best thirds as round_of_32 once every group is resolved
+  // and the best-thirds cut is no longer pending. Before that point, these
+  // places are not official and should not generate progressive points.
+  if (areAllGroupsResolved(groupStandings) && !bestThirds.pending && !bestThirds.requiresManualTiebreak) {
+    for (const team of bestThirds.qualifiedThirds) {
+      setMaxRound(team.team_id, 'round_of_32');
+    }
   }
 
   // d. Process bracket matches (excluding third_place)
@@ -91,6 +97,10 @@ export function buildTeamAdvancesFromBracket(
   for (const resolvedMatch of bracketOutput.matches) {
     // e. Ignore third_place matches
     if (resolvedMatch.match.round === 'third_place') {
+      continue;
+    }
+
+    if (resolvedMatch.pendingSlots.length > 0) {
       continue;
     }
 

@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildTeamAdvancesFromBracket } from './teamAdvances';
 import type { TournamentRound } from '@/lib/scoring/scoring';
+import type { BracketOutput, PendingSlot, Round } from './bracket';
 
 describe('buildTeamAdvancesFromBracket', () => {
   // Helper to create mock group standings
@@ -63,7 +64,7 @@ describe('buildTeamAdvancesFromBracket', () => {
   });
 
   // Helper to create mock bracket output
-  const createMockBracketOutput = (matches: any[]) => ({
+  const createMockBracketOutput = (matches: Array<{ id: string; round: Round; winner_team_id?: string }>): BracketOutput => ({
     matches: matches.map(m => ({
       match: { 
         id: m.id, 
@@ -73,12 +74,43 @@ describe('buildTeamAdvancesFromBracket', () => {
         ground: 'Stadium',
       },
       winner_team_id: m.winner_team_id,
-      pendingSlots: [],
+      pendingSlots: [] as PendingSlot[],
     })),
     champion: undefined,
     thirdPlace: undefined,
-    pendingSlots: [],
+    pendingSlots: [] as PendingSlot[],
     complete: false,
+  });
+
+  it('should not award round_of_32 advances from incomplete group standings', () => {
+    const groupStandings = createMockGroupStandings();
+    groupStandings.standings.A.standings = groupStandings.standings.A.standings.map((team) => ({
+      ...team,
+      played: 1,
+    }));
+    const bestThirds = createMockBestThirds(['team-a3']);
+    const bracketOutput = createMockBracketOutput([]);
+
+    const result = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds);
+
+    expect(result['team-a1']).toBe('no_clasifica');
+    expect(result['team-a2']).toBe('no_clasifica');
+    expect(result['team-a3']).toBe('no_clasifica');
+    expect(result['team-b1']).toBe('round_of_32');
+    expect(result['team-b2']).toBe('round_of_32');
+  });
+
+  it('should ignore knockout winners while their bracket slots are still pending', () => {
+    const groupStandings = createMockGroupStandings();
+    const bestThirds = createMockBestThirds([]);
+    const bracketOutput = createMockBracketOutput([
+      { id: 'match-1', round: 'round_of_32', winner_team_id: 'team-a1' },
+    ]);
+    bracketOutput.matches[0].pendingSlots = [{ slot: '1A', reason: 'incomplete_group' }];
+
+    const result = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds);
+
+    expect(result['team-a1']).toBe('round_of_32');
   });
 
   it('should only mark qualified thirds as round_of_32, not all 12 thirds', () => {

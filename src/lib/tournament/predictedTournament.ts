@@ -149,7 +149,9 @@ export function buildPredictedTournamentFromScores(
     }
   }
 
-  const bracket = resolveBracket(bracketMatches, bracketResults, groupStandings, bestThirds);
+  const bracket = resolveBracket(bracketMatches, bracketResults, groupStandings, bestThirds, undefined, {
+    requireOfficialGroupResolution: false,
+  });
   const teamAdvances = buildTeamAdvancesFromBracket(bracket, groupStandings, bestThirds);
 
   return {
