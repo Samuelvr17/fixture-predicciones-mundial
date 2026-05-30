@@ -5,6 +5,7 @@ import { calculateBestThirds, type ManualTiebreak as BestThirdsManualTiebreak } 
 import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/tournament/manualTiebreaks';
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
+import AppShell from '@/components/layout/AppShell';
 
 // Database types
 type DbTeam = {
@@ -103,15 +104,14 @@ export default async function StandingsPage() {
   const sortedGroupCodes = Object.keys(groupStandingsOutput.standings).sort();
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
-      <div className="max-w-7xl w-full mx-auto flex flex-col gap-8">
-        <header className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800">
-          <h1 className="text-3xl font-bold tracking-tight">Standings Globales</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-2">
-            Tablas de posiciones de la fase de grupos del Mundial 2026
-          </p>
+    <AppShell
+      title="Standings Globales"
+      subtitle="Tablas de posiciones de la fase de grupos del Mundial 2026"
+      maxWidthClassName="max-w-7xl"
+      headerNotice={
+        <>
           {isProvisional && (
-            <div className="mt-4 flex items-center gap-2 text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -130,9 +130,9 @@ export default async function StandingsPage() {
               </span>
             </div>
           )}
-        </header>
-
-        <main>
+        </>
+      }
+    >
           {/* Group Tables */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Tablas por Grupo</h2>
@@ -164,8 +164,6 @@ export default async function StandingsPage() {
               teams={teams}
             />
           </section>
-        </main>
-      </div>
-    </div>
+    </AppShell>
   );
 }
