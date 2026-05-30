@@ -1,4 +1,4 @@
-import { ResolvedMatch, PendingSlot } from '@/lib/tournament/bracket';
+import { ResolvedMatch } from '@/lib/tournament/bracket';
 import { formatMatchDateShort } from '@/lib/utils/matchDate';
 
 interface BracketMatchCardProps {
@@ -51,69 +51,110 @@ export default function BracketMatchCard({
     return PENDING_REASON_LABELS[pendingSlots[0].reason] || pendingSlots[0].reason;
   };
 
-  const isTeam1Pending = !team1_id && team1_slot;
-  const isTeam2Pending = !team2_id && team2_slot;
+  const isTeam1Pending = Boolean(!team1_id && team1_slot);
+  const isTeam2Pending = Boolean(!team2_id && team2_slot);
   const pendingReason = getPendingReason();
+  const winnerName = winner_team_id === team1_id ? team1Name : team2Name;
+
+  const renderTeamRow = ({
+    code,
+    isPending,
+    isWinner,
+    name,
+    slot,
+  }: {
+    code?: string;
+    isPending: boolean;
+    isWinner: boolean;
+    name?: string;
+    slot?: string;
+  }) => (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
+        isWinner
+          ? 'border-green-200 bg-green-50 dark:border-green-800/70 dark:bg-green-950/40'
+          : 'border-zinc-100 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-950/40'
+      }`}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span
+          className={`inline-flex min-w-11 justify-center rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wide ring-1 ${
+            code
+              ? 'bg-white text-zinc-800 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700'
+              : 'bg-zinc-200/70 text-zinc-500 ring-zinc-300/70 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700'
+          }`}
+        >
+          {code || 'TBD'}
+        </span>
+        <span
+          className={`min-w-0 truncate text-sm font-semibold ${
+            isPending
+              ? 'text-zinc-500 italic dark:text-zinc-400'
+              : isWinner
+                ? 'text-green-950 dark:text-green-50'
+                : 'text-zinc-900 dark:text-zinc-100'
+          }`}
+        >
+          {name || slot || 'TBD'}
+        </span>
+      </div>
+      {isWinner && (
+        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-700 dark:bg-green-900/70 dark:text-green-200">
+          Avanza
+        </span>
+      )}
+    </div>
+  );
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 shadow-sm">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
       {/* Match number and round */}
-      <div className="flex justify-between items-center mb-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         {m.num && (
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            #{m.num}
+          <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-1 text-xs font-black text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-950">
+            Partido #{m.num}
           </span>
         )}
-        <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800/70">
           {ROUND_LABELS[m.round] || m.round}
         </span>
       </div>
 
       {/* Date and venue */}
-      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
-        <div>{formatDate(m.date)} - {formatTime(m.time)}</div>
+      <div className="mb-4 rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-950/60 dark:text-zinc-400">
+        <div className="font-semibold text-zinc-700 dark:text-zinc-300">
+          {formatDate(m.date)} · {formatTime(m.time)}
+        </div>
         <div className="truncate">{m.ground}</div>
       </div>
 
       {/* Teams */}
       <div className="space-y-2">
-        {/* Team 1 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
-            {team1Code && (
-              <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                {team1Code}
-              </span>
-            )}
-            <span className={`text-sm ${isTeam1Pending ? 'text-zinc-400 italic' : 'text-zinc-900 dark:text-zinc-100'}`}>
-              {team1Name || team1_slot || 'TBD'}
-            </span>
-          </div>
-          {/* Score would go here if we had results */}
-        </div>
+        {renderTeamRow({
+          code: team1Code,
+          isPending: isTeam1Pending,
+          isWinner: Boolean(winner_team_id && winner_team_id === team1_id),
+          name: team1Name,
+          slot: team1_slot,
+        })}
 
-        {/* Team 2 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
-            {team2Code && (
-              <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                {team2Code}
-              </span>
-            )}
-            <span className={`text-sm ${isTeam2Pending ? 'text-zinc-400 italic' : 'text-zinc-900 dark:text-zinc-100'}`}>
-              {team2Name || team2_slot || 'TBD'}
-            </span>
-          </div>
-          {/* Score would go here if we had results */}
-        </div>
+        {renderTeamRow({
+          code: team2Code,
+          isPending: isTeam2Pending,
+          isWinner: Boolean(winner_team_id && winner_team_id === team2_id),
+          name: team2Name,
+          slot: team2_slot,
+        })}
       </div>
 
       {/* Pending status */}
       {pendingReason && (
-        <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-amber-500 rounded-full" />
-            <span className="text-xs text-amber-600 dark:text-amber-400">
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/80 dark:bg-amber-950/40">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-xs font-black text-amber-700 dark:bg-amber-900 dark:text-amber-200">
+              !
+            </span>
+            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
               {pendingReason}
             </span>
           </div>
@@ -122,9 +163,9 @@ export default function BracketMatchCard({
 
       {/* Winner indicator */}
       {winner_team_id && (
-        <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-          <span className="text-xs font-medium text-green-600 dark:text-green-400">
-            Avanza: {winner_team_id === team1_id ? team1Name : team2Name}
+        <div className="mt-3 rounded-xl bg-green-50 px-3 py-2 ring-1 ring-green-200 dark:bg-green-950/40 dark:ring-green-800/70">
+          <span className="text-xs font-bold text-green-700 dark:text-green-200">
+            Ganador / avanza: {winnerName || 'TBD'}
           </span>
         </div>
       )}

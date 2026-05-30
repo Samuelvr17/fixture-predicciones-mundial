@@ -11,8 +11,8 @@ const ROUND_ORDER: Round[] = [
   'round_of_16',
   'quarter_final',
   'semi_final',
-  'third_place',
   'final',
+  'third_place',
 ];
 
 const COLUMN_LABELS: Record<string, string> = {
@@ -56,167 +56,94 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     return teams.get(teamId);
   };
 
+  const renderRoundMatches = (round: Round) => (
+    <div className="space-y-3">
+      {matchesByRound.get(round)?.map((match) => {
+        const team1Info = getTeamInfo(match.team1_id);
+        const team2Info = getTeamInfo(match.team2_id);
+        return (
+          <BracketMatchCard
+            key={match.match.id}
+            match={match}
+            team1Name={team1Info?.name}
+            team2Name={team2Info?.name}
+            team1Code={team1Info?.code}
+            team2Code={team2Info?.code}
+          />
+        );
+      })}
+    </div>
+  );
+
+  const renderRoundHeader = (round: Round) => (
+    <div className="sticky top-0 z-10 -mx-1 border-b border-zinc-200/80 bg-zinc-50/95 px-1 py-3 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-950/95 md:static md:z-auto md:mx-0 md:rounded-xl md:border md:bg-white md:px-4 md:py-3 md:shadow-sm md:backdrop-blur-none md:dark:bg-zinc-900">
+      <h2 className="text-base font-bold text-zinc-950 dark:text-zinc-50 md:text-lg">
+        {COLUMN_LABELS[round]}
+      </h2>
+      <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        {matchesByRound.get(round)?.length || 0} partidos
+      </p>
+    </div>
+  );
+
   return (
     <div className="space-y-8">
-      {/* Champion banner */}
-      {champion && (
-        <div className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-lg p-6 shadow-lg">
-          <div className="text-center">
-            <div className="text-sm font-medium uppercase tracking-wide mb-1">Campeón</div>
-            <div className="text-3xl font-bold">
-              {getTeamInfo(champion)?.name || 'TBD'}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bracket columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        {/* Round of 32 */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2">
-            {COLUMN_LABELS.round_of_32}
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('round_of_32')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Round of 16 */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2">
-            {COLUMN_LABELS.round_of_16}
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('round_of_16')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Quarter Finals */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2">
-            {COLUMN_LABELS.quarter_final}
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('quarter_final')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Semi Finals */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2">
-            {COLUMN_LABELS.semi_final}
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('semi_final')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Final and Third Place */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2">
-            Final
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('final')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 sticky top-0 bg-zinc-50 dark:bg-zinc-950 py-2 mt-8">
-            {COLUMN_LABELS.third_place}
-          </h2>
-          <div className="space-y-3">
-            {matchesByRound.get('third_place')?.map((match) => {
-              const team1Info = getTeamInfo(match.team1_id);
-              const team2Info = getTeamInfo(match.team2_id);
-              return (
-                <BracketMatchCard
-                  key={match.match.id}
-                  match={match}
-                  team1Name={team1Info?.name}
-                  team2Name={team2Info?.name}
-                  team1Code={team1Info?.code}
-                  team2Code={team2Info?.code}
-                />
-              );
-            })}
-          </div>
-
-          {/* Third place winner */}
-          {thirdPlace && (
-            <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg p-4">
-              <div className="text-center">
-                <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Tercer Puesto</div>
-                <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                  {getTeamInfo(thirdPlace)?.name || 'TBD'}
+      {/* Champion and third place highlights */}
+      {(champion || thirdPlace) && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:gap-6">
+          {champion && (
+            <div className="overflow-hidden rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 p-1 shadow-lg shadow-amber-500/20 dark:border-amber-600/70">
+              <div className="rounded-[0.875rem] bg-white/15 p-5 text-white backdrop-blur sm:p-6 lg:p-7">
+                <div className="text-xs font-black uppercase tracking-[0.22em] text-amber-50/90">
+                  Campeón
+                </div>
+                <div className="mt-3 text-2xl font-black leading-tight sm:text-3xl lg:text-4xl">
+                  {getTeamInfo(champion)?.name || 'TBD'}
+                </div>
+                <div className="mt-4 inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white ring-1 ring-white/30">
+                  Levanta la copa
                 </div>
               </div>
             </div>
           )}
+
+          {thirdPlace && (
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5 shadow-sm dark:border-sky-800/80 dark:bg-sky-950/40 sm:p-6 lg:p-7">
+              <div className="text-xs font-black uppercase tracking-[0.22em] text-sky-700 dark:text-sky-300">
+                Tercer Puesto
+              </div>
+              <div className="mt-3 text-2xl font-black leading-tight text-sky-950 dark:text-sky-50 sm:text-3xl">
+                {getTeamInfo(thirdPlace)?.name || 'TBD'}
+              </div>
+              <div className="mt-4 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sky-800 ring-1 ring-sky-200 dark:bg-sky-900/60 dark:text-sky-200 dark:ring-sky-700/70">
+                Podio confirmado
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile round sections */}
+      <div className="space-y-7 md:hidden">
+        {ROUND_ORDER.map((round) => (
+          <section key={round} className="space-y-3" aria-labelledby={`mobile-${round}`}>
+            <div id={`mobile-${round}`}>{renderRoundHeader(round)}</div>
+            {renderRoundMatches(round)}
+          </section>
+        ))}
+      </div>
+
+      {/* Tablet and desktop bracket columns */}
+      <div className="hidden md:block">
+        <div className="overflow-x-auto pb-4">
+          <div className="flex min-w-max gap-5 lg:gap-6">
+            {ROUND_ORDER.map((round) => (
+              <section key={round} className="min-w-[280px] max-w-[320px] flex-1 space-y-4">
+                {renderRoundHeader(round)}
+                {renderRoundMatches(round)}
+              </section>
+            ))}
+          </div>
         </div>
       </div>
 
