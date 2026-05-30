@@ -183,7 +183,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       supabase.from('matches').select('*'),
       supabase.from('match_results').select('*'),
       supabase.from('manual_tiebreaks').select('*'),
-      supabase.from('tournament_results').select('*').single(),
+      supabase.from('tournament_results').select('*').maybeSingle(),
     ]);
 
     if (teamsData.error) throw teamsData.error;
