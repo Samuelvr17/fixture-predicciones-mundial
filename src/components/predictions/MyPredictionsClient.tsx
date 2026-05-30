@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
@@ -418,15 +421,13 @@ export default function MyPredictionsClient({
   return (
     <div className="space-y-6">
       {isBeforeDeadline && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <p className="text-blue-800 dark:text-blue-200 font-medium">
-            Puedes editar tus predicciones hasta: {new Date(deadline).toLocaleString('es-ES')}
-          </p>
-        </div>
+        <Alert variant="info">
+          Puedes editar tus predicciones hasta: {new Date(deadline).toLocaleString('es-ES')}
+        </Alert>
       )}
 
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Resumen derivado de tus marcadores</h2>
+      <Card className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Resumen derivado de tus marcadores</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           La app calcula clasificados, avances, tercer puesto y campeon desde los resultados que guardas abajo.
         </p>
@@ -440,28 +441,27 @@ export default function MyPredictionsClient({
             <span className="font-semibold">{thirdPlace || 'Pendiente'}</span>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <section className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <Card as="section" className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Mis tablas predichas</h2>
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Mis tablas predichas</h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Estas posiciones se recalculan automaticamente con tus marcadores de fase de grupos. Los puestos 1 y 2 clasifican directo; el 3 queda en pelea.
             </p>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={() => setShowPredictedTables((current) => !current)}
             aria-expanded={showPredictedTables}
-            className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="shrink-0"
           >
             {showPredictedTables ? 'Ocultar tablas' : 'Ver tablas'}
-          </button>
+          </Button>
         </div>
 
         {showPredictedTables && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
             {predictedGroupStandings.map((groupStanding) => (
               <PredictedGroupTable
                 key={groupStanding.group_code}
@@ -471,13 +471,13 @@ export default function MyPredictionsClient({
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
       {unresolvedGroupTiebreaks.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 space-y-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <Card className="space-y-3 border-amber-200 bg-amber-50 sm:space-y-4 dark:border-amber-800 dark:bg-amber-900/20">
+          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-amber-950 dark:text-amber-100">
+              <h2 className="text-xl font-bold tracking-tight text-amber-950 sm:text-2xl dark:text-amber-100">
                 Desempates manuales de tus predicciones
               </h2>
               <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
@@ -563,11 +563,11 @@ export default function MyPredictionsClient({
               </div>
             );
           })}
-        </div>
+        </Card>
       )}
 
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-6">
-        <h2 className="text-2xl font-bold tracking-tight">Prediccion especial</h2>
+      <Card className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Prediccion especial</h2>
         <div className="space-y-2">
           <label className="block text-sm font-medium">Goleador del Torneo</label>
           <input
@@ -580,27 +580,23 @@ export default function MyPredictionsClient({
           />
         </div>
 
-        {specialsError && <div className="text-sm text-red-600 dark:text-red-400">{specialsError}</div>}
-        {specialsSuccess && <div className="text-sm text-green-600 dark:text-green-400">Guardado</div>}
+        {specialsError && <Alert variant="error">{specialsError}</Alert>}
+        {specialsSuccess && <Alert variant="success">Guardado</Alert>}
 
         {isBeforeDeadline && (
-          <button
-            onClick={handleSaveSpecials}
-            disabled={savingSpecials}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white font-medium rounded transition-colors"
-          >
+          <Button onClick={handleSaveSpecials} disabled={savingSpecials} className="w-full">
             {savingSpecials ? 'Guardando...' : 'Guardar goleador'}
-          </button>
+          </Button>
         )}
-      </div>
+      </Card>
 
       {Object.entries(groupedMatches).map(([round, dates]) => (
         <div key={round} className="space-y-4">
-          <h2 className="text-2xl font-bold tracking-tight">{ROUND_LABELS[round]}</h2>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{ROUND_LABELS[round]}</h2>
           {round !== 'group' && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
+            <Alert variant="warning" className="p-3">
               En eliminatorias, el marcador corresponde a los 90 minutos. Si predices empate, selecciona quien clasifica.
-            </div>
+            </Alert>
           )}
 
           {Object.entries(dates).map(([date, matchesByDate]) => (
@@ -608,7 +604,7 @@ export default function MyPredictionsClient({
               <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
                 {formatMatchDateLong(date)}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {matchesByDate.map((match) => {
                   const pred = predictions[match.id] || { team1: 0, team2: 0 };
                   const isSaved = predictionsMap.has(match.id);
@@ -626,7 +622,7 @@ export default function MyPredictionsClient({
                   );
 
                   return (
-                    <div key={match.id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
+                    <Card key={match.id} padding="compact" className="space-y-3">
                       {match.match_number && (
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">
                           Partido #{match.match_number}
@@ -671,17 +667,13 @@ export default function MyPredictionsClient({
                         </div>
                       )}
 
-                      {errors[match.id] && <div className="text-sm text-red-600 dark:text-red-400">{errors[match.id]}</div>}
-                      {success[match.id] && <div className="text-sm text-green-600 dark:text-green-400">Guardado</div>}
+                      {errors[match.id] && <Alert variant="error" className="py-2">{errors[match.id]}</Alert>}
+                      {success[match.id] && <Alert variant="success" className="py-2">Guardado</Alert>}
 
                       {isBeforeDeadline && (
-                        <button
-                          onClick={() => handleSavePrediction(match.id)}
-                          disabled={saving[match.id]}
-                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white font-medium rounded transition-colors"
-                        >
+                        <Button onClick={() => handleSavePrediction(match.id)} disabled={saving[match.id]} className="w-full">
                           {saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
-                        </button>
+                        </Button>
                       )}
 
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
@@ -689,7 +681,7 @@ export default function MyPredictionsClient({
                         <div>{match.venue}</div>
                         {match.group_code && <div>Grupo {match.group_code}</div>}
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
