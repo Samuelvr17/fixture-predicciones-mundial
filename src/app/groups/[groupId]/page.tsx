@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import AppShell from '@/components/layout/AppShell';
 
 type Params = {
     params: Promise<{
@@ -85,26 +86,20 @@ export default async function GroupDetailPage(props: Params) {
     });
 
     return (
-        <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
-            <div className="max-w-6xl w-full mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link
-                        href="/dashboard"
-                        className="inline-flex items-center text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-4 transition-colors"
-                    >
-                        ← Volver al dashboard
-                    </Link>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">{group.name}</h1>
-                    <div className="flex flex-wrap gap-4 text-sm text-zinc-500 dark:text-zinc-400">
-                        <span>Código: <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">{group.invite_code}</span></span>
-                        <span>•</span>
-                        <span>Miembros: {memberCount || 0}</span>
-                        <span>•</span>
-                        <span>Tu rol: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{isLeader ? 'Líder' : 'Miembro'}</span></span>
-                    </div>
+        <AppShell
+            title={group.name}
+            groupId={params.groupId}
+            groupName={group.name}
+            headerMeta={
+                <div className="flex flex-wrap gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+                    <span>Código: <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">{group.invite_code}</span></span>
+                    <span>•</span>
+                    <span>Miembros: {memberCount || 0}</span>
+                    <span>•</span>
+                    <span>Tu rol: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{isLeader ? 'Líder' : 'Miembro'}</span></span>
                 </div>
-
+            }
+        >
                 {/* Deadline Status Banner */}
                 <div className={`mb-8 p-4 rounded-lg border ${
                     isDeadlinePassed
@@ -283,7 +278,6 @@ export default async function GroupDetailPage(props: Params) {
                         </Link>
                     </div>
                 )}
-            </div>
-        </div>
+        </AppShell>
     );
 }
