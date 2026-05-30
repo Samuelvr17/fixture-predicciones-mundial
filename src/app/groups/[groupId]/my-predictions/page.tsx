@@ -16,6 +16,7 @@ type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
 
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
+type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
 
 export default async function MyPredictionsPage(props: Params) {
@@ -115,6 +116,13 @@ export default async function MyPredictionsPage(props: Params) {
         .select('*')
         .order('name');
 
+    // Fetch existing manual tiebreaks for this user's predictions in this group
+    const { data: predictionManualTiebreaks } = await supabase
+        .from('prediction_manual_tiebreaks')
+        .select('*')
+        .eq('group_id', params.groupId)
+        .eq('user_id', user.id);
+
     // Fetch existing special predictions for this user in this group
     const { data: specialPredictions } = await supabase
         .from('predictions_specials')
@@ -148,6 +156,7 @@ export default async function MyPredictionsPage(props: Params) {
                     deadline={group.prediction_deadline}
                     teams={teams as Team[] || []}
                     specialPrediction={specialPredictions as SpecialPrediction | null}
+                    manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
                 />
             </div>
         </div>

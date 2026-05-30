@@ -267,7 +267,12 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
     // Process each member
     for (const userId of userIds) {
       // Load predictions for this user in this group
-      const [predictionsScoresData, predictionsAdvancesData, predictionsSpecialsData] = await Promise.all([
+      const [
+        predictionsScoresData,
+        predictionsAdvancesData,
+        predictionsSpecialsData,
+        predictionManualTiebreaksData,
+      ] = await Promise.all([
         supabase
           .from('predictions_scores')
           .select('*')
@@ -284,10 +289,17 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
           .eq('group_id', groupId)
           .eq('user_id', userId)
           .single(),
+        supabase
+          .from('prediction_manual_tiebreaks')
+          .select('*')
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .eq('type', 'group_tiebreak'),
       ]);
 
       if (predictionsScoresData.error) throw predictionsScoresData.error;
       if (predictionsAdvancesData.error) throw predictionsAdvancesData.error;
+      if (predictionManualTiebreaksData.error) throw predictionManualTiebreaksData.error;
       // predictions_specials might not exist for this user
       let predictionsSpecials: Database['public']['Tables']['predictions_specials']['Row'];
       if (predictionsSpecialsData.error || !predictionsSpecialsData.data) {
@@ -309,6 +321,13 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       const matchPredictions = predictionsScoresData.data.map(dbPredictionToMatchPrediction);
       const predictionAdvances = predictionsAdvancesData.data.map(dbPredictionToPredictionAdvance);
       const predictionSpecials = dbPredictionToPredictionSpecial(predictionsSpecials);
+      const groupManualTiebreaks = (predictionManualTiebreaksData.data || []).map((tiebreak) => ({
+        type: 'group' as const,
+        reference: tiebreak.reference.startsWith('group_')
+          ? tiebreak.reference
+          : `group_${tiebreak.reference}`,
+        ordered_team_ids: tiebreak.ordered_team_ids,
+      }));
       const predictedTournament = buildPredictedTournamentFromScores(
         teamsData.data.map((team) => ({
           id: team.id,
@@ -329,7 +348,8 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
           team1_slot: match.team1_slot,
           team2_slot: match.team2_slot,
         })),
-        matchPredictions
+        matchPredictions,
+        groupManualTiebreaks
       );
 
       // Calculate score

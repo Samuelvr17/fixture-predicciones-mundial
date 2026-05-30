@@ -9,6 +9,7 @@ import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTo
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
+type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 
 type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
   team1: Team | null;
@@ -23,6 +24,7 @@ interface MyPredictionsClientProps {
   deadline: string;
   teams: Team[];
   specialPrediction: SpecialPrediction | null;
+  manualTiebreaks: PredictionManualTiebreak[];
 }
 
 const ROUND_ORDER = [
@@ -62,6 +64,7 @@ export default function MyPredictionsClient({
   deadline,
   teams,
   specialPrediction,
+  manualTiebreaks,
 }: MyPredictionsClientProps) {
   const supabase = createClient();
   const [predictions, setPredictions] = useState<Record<string, { team1: number; team2: number }>>(() => {
@@ -91,6 +94,18 @@ export default function MyPredictionsClient({
   const [savingSpecials, setSavingSpecials] = useState(false);
   const [specialsError, setSpecialsError] = useState<string | null>(null);
   const [specialsSuccess, setSpecialsSuccess] = useState(false);
+  const [manualTiebreakOrders, setManualTiebreakOrders] = useState<Record<string, string[]>>(() => {
+    const initial: Record<string, string[]> = {};
+    manualTiebreaks.forEach((tiebreak) => {
+      if (tiebreak.type === 'group_tiebreak') {
+        initial[tiebreak.reference] = tiebreak.ordered_team_ids;
+      }
+    });
+    return initial;
+  });
+  const [savingTiebreaks, setSavingTiebreaks] = useState<Record<string, boolean>>({});
+  const [tiebreakErrors, setTiebreakErrors] = useState<Record<string, string>>({});
+  const [tiebreakSuccess, setTiebreakSuccess] = useState<Record<string, boolean>>({});
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -117,7 +132,8 @@ export default function MyPredictionsClient({
   const matchById = useMemo(() => new Map(matches.map((match) => [match.id, match])), [matches]);
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
 
-  const predictedTournament = useMemo(() => {
+
+  const automaticPredictedTournament = useMemo(() => {
     return buildPredictedTournamentFromScores(
       teams,
       matches,
@@ -129,6 +145,24 @@ export default function MyPredictionsClient({
       }))
     );
   }, [matches, predictions, predictedWinners, teams]);
+
+  const predictedTournament = useMemo(() => {
+    return buildPredictedTournamentFromScores(
+      teams,
+      matches,
+      matches.map((match) => ({
+        match_id: match.id,
+        predicted_team1_score: predictions[match.id]?.team1 ?? 0,
+        predicted_team2_score: predictions[match.id]?.team2 ?? 0,
+        predicted_winner_team_id: predictedWinners[match.id] ?? null,
+      })),
+      Object.entries(manualTiebreakOrders).map(([reference, orderedTeamIds]) => ({
+        type: 'group' as const,
+        reference,
+        ordered_team_ids: orderedTeamIds,
+      }))
+    );
+  }, [manualTiebreakOrders, matches, predictions, predictedWinners, teams]);
 
   const resolvedMatchMap = useMemo(() => {
     return new Map(predictedTournament.bracket.matches.map((match) => [match.match.id, match]));
@@ -304,6 +338,70 @@ export default function MyPredictionsClient({
     }
   };
 
+  const unresolvedGroupTiebreaks = Object.values(automaticPredictedTournament.groupStandings.standings)
+    .filter((groupStanding) => groupStanding.requiresManualTiebreak && groupStanding.tiedTeams.length > 0);
+
+  const getManualOrderForGroup = (groupCode: string, tiedTeamIds: string[]) => {
+    const reference = `group_${groupCode}`;
+    const tiedSet = new Set(tiedTeamIds);
+    const savedOrder = manualTiebreakOrders[reference] || [];
+    const orderedSaved = savedOrder.filter((teamId) => tiedSet.has(teamId));
+    const missingTeams = tiedTeamIds.filter((teamId) => !orderedSaved.includes(teamId));
+
+    return [...orderedSaved, ...missingTeams];
+  };
+
+  const moveTiebreakTeam = (reference: string, order: string[], index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= order.length) return;
+
+    const nextOrder = [...order];
+    [nextOrder[index], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[index]];
+    setManualTiebreakOrders((prev) => ({ ...prev, [reference]: nextOrder }));
+    setTiebreakSuccess((prev) => ({ ...prev, [reference]: false }));
+  };
+
+  const handleSaveManualTiebreak = async (reference: string, orderedTeamIds: string[]) => {
+    setSavingTiebreaks((prev) => ({ ...prev, [reference]: true }));
+    setTiebreakErrors((prev) => {
+      const next = { ...prev };
+      delete next[reference];
+      return next;
+    });
+    setTiebreakSuccess((prev) => ({ ...prev, [reference]: false }));
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setTiebreakErrors((prev) => ({ ...prev, [reference]: 'No autenticado' }));
+        return;
+      }
+
+      const { error } = await supabase
+        .from('prediction_manual_tiebreaks')
+        .upsert({
+          group_id: groupId,
+          user_id: user.id,
+          type: 'group_tiebreak',
+          reference,
+          ordered_team_ids: orderedTeamIds,
+        }, {
+          onConflict: 'group_id,user_id,type,reference',
+        });
+
+      if (error) {
+        setTiebreakErrors((prev) => ({ ...prev, [reference]: error.message }));
+      } else {
+        setManualTiebreakOrders((prev) => ({ ...prev, [reference]: orderedTeamIds }));
+        setTiebreakSuccess((prev) => ({ ...prev, [reference]: true }));
+      }
+    } catch {
+      setTiebreakErrors((prev) => ({ ...prev, [reference]: 'Error al guardar desempate manual' }));
+    } finally {
+      setSavingTiebreaks((prev) => ({ ...prev, [reference]: false }));
+    }
+  };
+
   const champion = predictedTournament.championTeamId
     ? teamsMap.get(predictedTournament.championTeamId)?.name
     : null;
@@ -337,6 +435,89 @@ export default function MyPredictionsClient({
           </div>
         </div>
       </div>
+
+      {unresolvedGroupTiebreaks.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 space-y-5">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-amber-950 dark:text-amber-100">
+              Desempates manuales de tus predicciones
+            </h2>
+            <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+              Hay empates no resueltos despues de los criterios automaticos. Ordena los equipos para definir tu bracket predicho.
+            </p>
+          </div>
+
+          {unresolvedGroupTiebreaks.map((groupStanding) => {
+            const reference = `group_${groupStanding.group_code}`;
+            const order = getManualOrderForGroup(groupStanding.group_code, groupStanding.tiedTeams);
+
+            return (
+              <div key={reference} className="bg-white/80 dark:bg-zinc-900/80 rounded-lg border border-amber-200 dark:border-amber-800 p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-amber-950 dark:text-amber-100">
+                    Hay empate no resuelto en Grupo {groupStanding.group_code}. Ordena estos equipos.
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Puedes previsualizar el cambio al mover equipos; guarda el orden para mantenerlo.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {order.map((teamId, index) => {
+                    const team = teamsMap.get(teamId);
+
+                    return (
+                      <div key={teamId} className="flex items-center justify-between gap-3 rounded-md bg-zinc-50 dark:bg-zinc-800 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 w-6">{index + 1}</span>
+                          {team?.flag_url && <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />}
+                          <span className="font-medium truncate">{team?.name || teamId}</span>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => moveTiebreakTeam(reference, order, index, -1)}
+                            disabled={!isBeforeDeadline || index === 0}
+                            className="px-2 py-1 text-xs rounded border border-zinc-300 dark:border-zinc-700 disabled:opacity-40"
+                          >
+                            Subir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveTiebreakTeam(reference, order, index, 1)}
+                            disabled={!isBeforeDeadline || index === order.length - 1}
+                            className="px-2 py-1 text-xs rounded border border-zinc-300 dark:border-zinc-700 disabled:opacity-40"
+                          >
+                            Bajar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {tiebreakErrors[reference] && (
+                  <div className="text-sm text-red-600 dark:text-red-400">{tiebreakErrors[reference]}</div>
+                )}
+                {tiebreakSuccess[reference] && (
+                  <div className="text-sm text-green-700 dark:text-green-300">Orden guardado</div>
+                )}
+
+                {isBeforeDeadline && (
+                  <button
+                    type="button"
+                    onClick={() => handleSaveManualTiebreak(reference, order)}
+                    disabled={savingTiebreaks[reference]}
+                    className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-400 text-white font-medium rounded transition-colors"
+                  >
+                    {savingTiebreaks[reference] ? 'Guardando orden...' : 'Guardar orden del desempate'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-6">
         <h2 className="text-2xl font-bold tracking-tight">Prediccion especial</h2>

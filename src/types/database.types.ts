@@ -197,6 +197,54 @@ export type Database = {
           },
         ]
       }
+      prediction_manual_tiebreaks: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          ordered_team_ids: string[]
+          reference: string
+          type: Database["public"]["Enums"]["tiebreak_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          ordered_team_ids: string[]
+          reference: string
+          type: Database["public"]["Enums"]["tiebreak_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          ordered_team_ids?: string[]
+          reference?: string
+          type?: Database["public"]["Enums"]["tiebreak_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_manual_tiebreaks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prediction_manual_tiebreaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_results: {
         Row: {
           created_at: string
