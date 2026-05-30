@@ -1,4 +1,6 @@
 import type { MatchWithNormalizedResult } from '@/app/groups/[groupId]/matches/page';
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 import { formatMatchDateShort } from '@/lib/utils/matchDate';
 
 interface MatchCardProps {
@@ -17,7 +19,7 @@ export default function MatchCard({ match }: MatchCardProps) {
     };
 
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
+        <Card padding="compact" className="space-y-3">
             {/* Match Number */}
             {match.match_number && (
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -80,7 +82,7 @@ export default function MatchCard({ match }: MatchCardProps) {
 
             {/* Result / Status */}
             {match.result ? (
-                <div className="text-sm text-green-600 dark:text-green-400 font-medium">
+                <Alert variant="success" className="py-2">
                     Final: {match.result.team1_score} - {match.result.team2_score}
                     {isKnockout && match.result.winner_team_id && (
                         <span className="ml-2">
@@ -88,7 +90,7 @@ export default function MatchCard({ match }: MatchCardProps) {
                             {match.team2?.id === match.result.winner_team_id && '✓ ' + match.team2.name}
                         </span>
                     )}
-                </div>
+                </Alert>
             ) : (
                 <div className="text-sm text-zinc-500 dark:text-zinc-400">
                     Pendiente
@@ -107,6 +109,6 @@ export default function MatchCard({ match }: MatchCardProps) {
                     <div>Grupo {match.group_code}</div>
                 )}
             </div>
-        </div>
+        </Card>
     );
 }

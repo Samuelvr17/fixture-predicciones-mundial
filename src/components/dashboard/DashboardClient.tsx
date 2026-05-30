@@ -3,6 +3,9 @@
 import { useState } from "react";
 import CreateGroupModal from "@/components/groups/CreateGroupModal";
 import JoinGroupModal from "@/components/groups/JoinGroupModal";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Group {
   group_id: string;
@@ -51,19 +54,16 @@ export default function DashboardClient({ groups, memberCounts }: DashboardClien
 
   return (
     <>
-      <section className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800">
+      <Card as="section">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Mis Grupos</h2>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-sm transition-all active:scale-95"
-          >
+          <h2 className="text-xl font-semibold sm:text-2xl">Mis Grupos</h2>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
             Crear Nuevo Grupo
-          </button>
+          </Button>
         </div>
 
         {groups && groups.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             {groups.map((member) => (
               <a
                 key={member.group_id}
@@ -73,7 +73,7 @@ export default function DashboardClient({ groups, memberCounts }: DashboardClien
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-lg">{member.groups?.name}</h3>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-1 flex items-center gap-3 sm:gap-4 text-sm text-zinc-500 dark:text-zinc-400">
                       <span>
                         {member.role === 'leader' ? 'Líder' : 'Miembro'}
                       </span>
@@ -94,23 +94,18 @@ export default function DashboardClient({ groups, memberCounts }: DashboardClien
             ))}
           </div>
         ) : (
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-            Aún no perteneces a ningún grupo.
-          </p>
+          <EmptyState title="Aún no perteneces a ningún grupo." />
         )}
-      </section>
+      </Card>
 
-      <section className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800">
+      <Card as="section">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Unirme a un Grupo</h2>
-          <button
-            onClick={() => setIsJoinModalOpen(true)}
-            className="px-4 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-          >
+          <h2 className="text-xl font-semibold sm:text-2xl">Unirme a un Grupo</h2>
+          <Button variant="secondary" onClick={() => setIsJoinModalOpen(true)}>
             Unirse con Código
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
       <CreateGroupModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
       <JoinGroupModal isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)} />

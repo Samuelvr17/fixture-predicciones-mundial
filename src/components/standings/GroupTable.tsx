@@ -1,5 +1,7 @@
 'use client';
 
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 import { TeamStats } from '@/lib/tournament/groupStandings';
 
 interface DbTeam {
@@ -30,8 +32,8 @@ export function GroupTable({
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-      <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+    <Card padding="none" className="overflow-hidden">
+      <div className="border-b border-zinc-100 px-4 py-4 sm:px-6 dark:border-zinc-800">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Grupo {groupCode}</h3>
           {isProvisional && (
@@ -41,7 +43,7 @@ export function GroupTable({
           )}
         </div>
         {requiresManualTiebreak && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
             Requiere desempate manual
           </p>
         )}
@@ -123,12 +125,10 @@ export function GroupTable({
       </div>
 
       {requiresManualTiebreak && (
-        <div className="px-6 py-3 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-100 dark:border-amber-900/30">
-          <p className="text-xs text-amber-700 dark:text-amber-300">
-            * Equipos empatados que requieren resolución manual por el administrador
-          </p>
-        </div>
+        <Alert variant="warning" className="rounded-none border-x-0 border-b-0 px-4 py-3 text-xs sm:px-6">
+          * Equipos empatados que requieren resolución manual por el administrador
+        </Alert>
       )}
-    </div>
+    </Card>
   );
 }
