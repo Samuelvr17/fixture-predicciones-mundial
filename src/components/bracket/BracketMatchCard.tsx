@@ -30,6 +30,36 @@ const PENDING_REASON_LABELS: Record<string, string> = {
   invalid_slot: 'Slot inválido',
 };
 
+const formatSlotLabel = (slot?: string) => {
+  if (!slot) return undefined;
+
+  const winnerSlot = slot.match(/^W(\d+)$/);
+  if (winnerSlot) {
+    const [, matchNumber] = winnerSlot;
+    return `Ganador del partido ${matchNumber}`;
+  }
+
+  const loserSlot = slot.match(/^L(\d+)$/);
+  if (loserSlot) {
+    const [, matchNumber] = loserSlot;
+    return `Perdedor del partido ${matchNumber}`;
+  }
+
+  const groupPositionSlot = slot.match(/^([12])([A-L])$/);
+  if (groupPositionSlot) {
+    const [, position, groupCode] = groupPositionSlot;
+    return `${position}.º del Grupo ${groupCode}`;
+  }
+
+  const bestThirdSlot = slot.match(/^3([A-L](?:\/[A-L])*)?$/);
+  if (bestThirdSlot) {
+    const [, groups] = bestThirdSlot;
+    return groups ? `Mejor 3.º (${groups})` : 'Mejor 3.º';
+  }
+
+  return `Origen ${slot}`;
+};
+
 export default function BracketMatchCard({
   match,
   team1Name,
@@ -65,57 +95,69 @@ export default function BracketMatchCard({
     isPending,
     isWinner,
     name,
+    slot,
     sourceLabel,
   }: {
     code?: string;
     isPending: boolean;
     isWinner: boolean;
     name?: string;
+    slot?: string;
     sourceLabel?: string;
-  }) => (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
-        isWinner
-          ? 'border-green-200 bg-green-50 dark:border-green-800/70 dark:bg-green-950/40'
-          : 'border-zinc-100 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-950/40'
-      }`}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <span
-          className={`inline-flex min-w-11 justify-center rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wide ring-1 ${
-            code
-              ? 'bg-white text-zinc-800 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700'
-              : 'bg-zinc-200/70 text-zinc-500 ring-zinc-300/70 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700'
-          }`}
-        >
-          {code || 'TBD'}
-        </span>
-        <div className="min-w-0 flex-1">
+  }) => {
+    const slotLabel = formatSlotLabel(slot);
+    const secondaryLabels = [sourceLabel, slotLabel].filter(
+      (label, index, labels): label is string => Boolean(label) && labels.indexOf(label) === index,
+    );
+
+    return (
+      <div
+        className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
+          isWinner
+            ? 'border-green-200 bg-green-50 dark:border-green-800/70 dark:bg-green-950/40'
+            : 'border-zinc-100 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-950/40'
+        }`}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
-            className={`block truncate text-sm font-semibold ${
-              isPending
-                ? 'text-zinc-500 italic dark:text-zinc-400'
-                : isWinner
-                  ? 'text-green-950 dark:text-green-50'
-                  : 'text-zinc-900 dark:text-zinc-100'
+            className={`inline-flex min-w-11 justify-center rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wide ring-1 ${
+              code
+                ? 'bg-white text-zinc-800 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700'
+                : 'bg-zinc-200/70 text-zinc-500 ring-zinc-300/70 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700'
             }`}
           >
-            {name || 'TBD'}
+            {code || 'TBD'}
           </span>
-          {sourceLabel && (
-            <span className="block truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-              {sourceLabel}
+          <div className="min-w-0 flex-1">
+            <span
+              className={`block truncate text-sm font-semibold ${
+                isPending
+                  ? 'text-zinc-500 italic dark:text-zinc-400'
+                  : isWinner
+                    ? 'text-green-950 dark:text-green-50'
+                    : 'text-zinc-900 dark:text-zinc-100'
+              }`}
+            >
+              {name || 'TBD'}
             </span>
-          )}
+            {secondaryLabels.map((label) => (
+              <span
+                key={label}
+                className="block truncate text-[11px] text-zinc-500 dark:text-zinc-400"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
+        {isWinner && (
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-700 dark:bg-green-900/70 dark:text-green-200">
+            Avanza
+          </span>
+        )}
       </div>
-      {isWinner && (
-        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-700 dark:bg-green-900/70 dark:text-green-200">
-          Avanza
-        </span>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
@@ -146,6 +188,7 @@ export default function BracketMatchCard({
           isPending: isTeam1Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team1_id),
           name: team1Name,
+          slot: team1_slot ?? m.team1_slot,
           sourceLabel: team1SourceLabel,
         })}
 
@@ -154,6 +197,7 @@ export default function BracketMatchCard({
           isPending: isTeam2Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team2_id),
           name: team2Name,
+          slot: team2_slot ?? m.team2_slot,
           sourceLabel: team2SourceLabel,
         })}
       </div>
