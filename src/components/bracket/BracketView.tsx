@@ -351,8 +351,11 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
       )}
 
       {/* Mobile round sections */}
-      <div className="-mx-4 overflow-x-auto px-4 pb-4 md:hidden">
-        <div className="flex min-w-max gap-4">
+      <div
+        className="-mx-4 overflow-x-auto overscroll-x-contain px-4 pb-4 md:hidden"
+        aria-label="Rondas eliminatorias con desplazamiento horizontal"
+      >
+        <div className="flex w-max min-w-full gap-4">
           {ROUND_ORDER.map((round) => (
             <section
               key={round}
