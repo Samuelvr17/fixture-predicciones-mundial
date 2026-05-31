@@ -19,40 +19,15 @@ type NavItem = {
     shortLabel?: string;
 };
 
-function getNavItems(groupId?: string, groupName?: string): NavItem[] {
-    const items: NavItem[] = [
+function getNavItems(): NavItem[] {
+    return [
         { href: '/dashboard', label: 'Dashboard' },
+        { href: '/predictions', label: 'Mis predicciones', shortLabel: 'Predicciones' },
+        { href: '/leaderboard', label: 'Tabla general', shortLabel: 'Tabla' },
+        { href: '/matches', label: 'Partidos' },
+        { href: '/bracket', label: 'Bracket' },
+        { href: '/standings', label: 'Standings' },
     ];
-
-    if (groupId) {
-        items.push(
-            {
-                href: `/groups/${groupId}`,
-                label: groupName ? `Grupo: ${groupName}` : 'Grupo actual',
-                shortLabel: 'Grupo',
-            },
-            {
-                href: `/groups/${groupId}/my-predictions`,
-                label: 'Predicciones',
-            },
-            {
-                href: `/groups/${groupId}/matches`,
-                label: 'Calendario',
-            },
-            {
-                href: `/groups/${groupId}/bracket`,
-                label: 'Bracket',
-            },
-            {
-                href: `/groups/${groupId}/leaderboard`,
-                label: 'Leaderboard',
-            },
-        );
-    }
-
-    items.push({ href: '/standings', label: 'Standings' });
-
-    return items;
 }
 
 export default function AppShell({
@@ -66,7 +41,7 @@ export default function AppShell({
     headerNotice,
     maxWidthClassName = 'max-w-6xl',
 }: AppShellProps) {
-    const navItems = getNavItems(groupId, groupName);
+    const navItems = getNavItems();
 
     return (
         <div className="flex min-h-screen flex-col bg-zinc-50 p-4 pb-24 font-sans text-zinc-900 sm:p-6 lg:p-8 dark:bg-zinc-950 dark:text-zinc-100">

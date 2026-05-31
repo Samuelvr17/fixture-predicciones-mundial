@@ -1,7 +1,36 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
-import DashboardClient from "@/components/dashboard/DashboardClient";
 import AppShell from "@/components/layout/AppShell";
+import { ensureGlobalGroupMembership } from "@/lib/groups/globalGroup";
+
+const dashboardLinks = [
+    {
+        href: "/predictions",
+        title: "Mis predicciones",
+        description: "Completa y revisa tus marcadores para la quiniela global.",
+    },
+    {
+        href: "/leaderboard",
+        title: "Tabla general",
+        description: "Consulta el ranking global de participantes.",
+    },
+    {
+        href: "/matches",
+        title: "Partidos",
+        description: "Revisa el calendario completo y resultados oficiales.",
+    },
+    {
+        href: "/bracket",
+        title: "Bracket",
+        description: "Sigue el cuadro oficial de eliminatorias.",
+    },
+    {
+        href: "/standings",
+        title: "Standings",
+        description: "Mira las tablas globales de fase de grupos.",
+    },
+];
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -11,32 +40,13 @@ export default async function DashboardPage() {
         return null;
     }
 
+    await ensureGlobalGroupMembership(supabase, user.id);
+
     const { data: profile } = await supabase
         .from("profiles")
         .select("username")
         .eq("id", user.id)
         .single();
-
-    const { data: groups } = await supabase
-        .from("group_members")
-        .select(`
-            group_id,
-            role,
-            groups (
-                id,
-                name,
-                invite_code,
-                prediction_deadline,
-                created_at
-            )
-        `)
-        .eq("user_id", user.id);
-
-    const { data: memberCounts } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .in("group_id", groups?.map(g => g.group_id) || []);
-
 
     // Check if user is global admin
     const { data: globalAdmin } = await supabase
@@ -44,11 +54,6 @@ export default async function DashboardPage() {
         .select("user_id")
         .eq("user_id", user.id)
         .single();
-
-    const countMap = new Map<string, number>();
-    memberCounts?.forEach(m => {
-        countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1);
-    });
 
     return (
         <AppShell
@@ -66,7 +71,6 @@ export default async function DashboardPage() {
                 </form>
             }
         >
-
             {globalAdmin && (
                 <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-6 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900">
                     <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-4">Panel Global Admin</h2>
@@ -87,9 +91,23 @@ export default async function DashboardPage() {
                 </section>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <DashboardClient groups={groups || []} memberCounts={countMap} />
-            </div>
+            <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {dashboardLinks.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className="group rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{item.title}</h2>
+                                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{item.description}</p>
+                            </div>
+                            <span className="text-2xl text-zinc-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-300">→</span>
+                        </div>
+                    </Link>
+                ))}
+            </section>
         </AppShell>
     );
 }
