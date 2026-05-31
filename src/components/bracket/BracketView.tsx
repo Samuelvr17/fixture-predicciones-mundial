@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { BracketOutput, ResolvedMatch, Round } from '@/lib/tournament/bracket';
 import BracketMatchCard from './BracketMatchCard';
 
@@ -25,38 +24,31 @@ const COLUMN_LABELS: Record<string, string> = {
   third_place: 'Tercer Puesto',
 };
 
-type RoundSpacing = {
-  className: string;
-  style: CSSProperties & { '--connector-gap': string };
+type PositionedMatch = {
+  match: ResolvedMatch;
+  topRem: number;
+  centerRem: number;
 };
 
-const ROUND_SPACING: Record<Round, RoundSpacing> = {
-  round_of_32: {
-    className: 'pt-0',
-    style: { '--connector-gap': '0.75rem', gap: '0.75rem' },
-  },
-  round_of_16: {
-    className: 'pt-16 lg:pt-20',
-    style: { '--connector-gap': '2rem', gap: '2rem' },
-  },
-  quarter_final: {
-    className: 'pt-36 lg:pt-44',
-    style: { '--connector-gap': '5rem', gap: '5rem' },
-  },
-  semi_final: {
-    className: 'pt-64 lg:pt-80',
-    style: { '--connector-gap': '9rem', gap: '9rem' },
-  },
-  final: {
-    className: 'pt-[28rem] lg:pt-[36rem]',
-    style: { '--connector-gap': '0rem', gap: '0.75rem' },
-  },
-  third_place: {
-    className: 'pt-16 lg:pt-20',
-    style: { '--connector-gap': '0rem', gap: '0.75rem' },
-  },
+type RoundLayout = {
+  heightRem: number;
+  positionedMatches: PositionedMatch[];
 };
 
+type ConnectorLayout = {
+  direction: 'down' | 'up' | 'straight';
+  heightRem: number;
+};
+
+const MAIN_BRACKET_ROUNDS: Round[] = [
+  'round_of_32',
+  'round_of_16',
+  'quarter_final',
+  'semi_final',
+  'final',
+];
+
+const POSITIONED_ROUNDS = new Set<Round>([...MAIN_BRACKET_ROUNDS, 'third_place']);
 const CONNECTOR_ROUNDS = new Set<Round>([
   'round_of_32',
   'round_of_16',
@@ -64,7 +56,100 @@ const CONNECTOR_ROUNDS = new Set<Round>([
   'semi_final',
 ]);
 
-const getRoundSpacing = (round: Round) => ROUND_SPACING[round];
+const BRACKET_CARD_HEIGHT_REM = 17;
+const FIRST_ROUND_GAP_REM = 1.25;
+const FIRST_ROUND_PITCH_REM = BRACKET_CARD_HEIGHT_REM + FIRST_ROUND_GAP_REM;
+const MIN_COLUMN_HEIGHT_REM = BRACKET_CARD_HEIGHT_REM;
+
+const getSlotMatchNumber = (slot?: string) => {
+  if (!slot) return undefined;
+
+  const previousMatchSlot = slot.match(/^[WL](\d+)$/);
+  if (!previousMatchSlot) return undefined;
+
+  return Number(previousMatchSlot[1]);
+};
+
+const getSourceMatchNumbers = (match: ResolvedMatch) =>
+  [match.match.team1_slot, match.match.team2_slot]
+    .map((slot) => getSlotMatchNumber(slot))
+    .filter((matchNumber): matchNumber is number => matchNumber !== undefined);
+
+const getAverage = (values: number[]) =>
+  values.reduce((total, value) => total + value, 0) / values.length;
+
+const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
+  const layouts = new Map<Round, RoundLayout>();
+  const matchCentersByNumber = new Map<number, number>();
+
+  for (const round of ROUND_ORDER) {
+    const roundMatches = matchesByRound.get(round) ?? [];
+    const isFirstMainRound = round === MAIN_BRACKET_ROUNDS[0];
+    const isPositionedRound = POSITIONED_ROUNDS.has(round);
+
+    const positionedMatches = roundMatches.map((match, index) => {
+      const sourceCenters = getSourceMatchNumbers(match)
+        .map((matchNumber) => matchCentersByNumber.get(matchNumber))
+        .filter((center): center is number => center !== undefined);
+
+      const centerRem =
+        isPositionedRound && !isFirstMainRound && sourceCenters.length > 0
+          ? getAverage(sourceCenters)
+          : index * FIRST_ROUND_PITCH_REM + BRACKET_CARD_HEIGHT_REM / 2;
+      const topRem = Math.max(0, centerRem - BRACKET_CARD_HEIGHT_REM / 2);
+
+      return { match, topRem, centerRem };
+    });
+
+    for (const positionedMatch of positionedMatches) {
+      const matchNumber = positionedMatch.match.match.num;
+      if (matchNumber !== undefined) {
+        matchCentersByNumber.set(matchNumber, positionedMatch.centerRem);
+      }
+    }
+
+    const heightRem = Math.max(
+      MIN_COLUMN_HEIGHT_REM,
+      ...positionedMatches.map(
+        (positionedMatch) => positionedMatch.topRem + BRACKET_CARD_HEIGHT_REM
+      )
+    );
+
+    layouts.set(round, { heightRem, positionedMatches });
+  }
+
+  return layouts;
+};
+
+const createWinnerTargetLookup = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
+  const targetRoundBySourceNumber = new Map<number, Round>();
+
+  for (const targetRound of MAIN_BRACKET_ROUNDS.slice(1)) {
+    for (const targetMatch of matchesByRound.get(targetRound) ?? []) {
+      for (const sourceNumber of getSourceMatchNumbers(targetMatch)) {
+        targetRoundBySourceNumber.set(sourceNumber, targetRound);
+      }
+    }
+  }
+
+  return targetRoundBySourceNumber;
+};
+
+const getConnectorLayout = (fromCenterRem: number, toCenterRem?: number): ConnectorLayout => {
+  if (toCenterRem === undefined) {
+    return { direction: 'straight', heightRem: 0 };
+  }
+
+  const deltaRem = toCenterRem - fromCenterRem;
+  if (Math.abs(deltaRem) < 0.1) {
+    return { direction: 'straight', heightRem: 0 };
+  }
+
+  return {
+    direction: deltaRem > 0 ? 'down' : 'up',
+    heightRem: Math.abs(deltaRem),
+  };
+};
 
 const getSlotSourceLabel = (slot?: string) => {
   if (!slot) return undefined;
@@ -106,7 +191,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   }
 
   // Sort matches within each round by match number
-  for (const [round, roundMatches] of matchesByRound) {
+  for (const roundMatches of matchesByRound.values()) {
     roundMatches.sort((a, b) => {
       if (a.match.num !== undefined && b.match.num !== undefined) {
         return a.match.num - b.match.num;
@@ -121,50 +206,86 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     return teams.get(teamId);
   };
 
-  const renderRoundMatches = (round: Round, showConnectors = false) => {
-    const spacing = getRoundSpacing(round);
-    const canConnectToNextRound = showConnectors && CONNECTOR_ROUNDS.has(round);
+  const roundLayouts = createRoundLayouts(matchesByRound);
+  const winnerTargetLookup = createWinnerTargetLookup(matchesByRound);
+
+  const renderMatchCard = (match: ResolvedMatch) => {
+    const team1Info = getTeamInfo(match.team1_id);
+    const team2Info = getTeamInfo(match.team2_id);
+    const team1SourceLabel = getSlotSourceLabel(match.team1_slot ?? match.match.team1_slot);
+    const team2SourceLabel = getSlotSourceLabel(match.team2_slot ?? match.match.team2_slot);
+
+    return (
+      <BracketMatchCard
+        match={match}
+        team1Name={team1Info?.name}
+        team2Name={team2Info?.name}
+        team1Code={team1Info?.code}
+        team2Code={team2Info?.code}
+        team1SourceLabel={team1SourceLabel}
+        team2SourceLabel={team2SourceLabel}
+      />
+    );
+  };
+
+  const renderRoundMatches = (round: Round) => (
+    <div className="space-y-3">
+      {matchesByRound.get(round)?.map((match) => (
+        <div key={match.match.id}>{renderMatchCard(match)}</div>
+      ))}
+    </div>
+  );
+
+  const renderPositionedRoundMatches = (round: Round) => {
+    const layout = roundLayouts.get(round);
+    if (!layout) return null;
 
     return (
       <div
-        className={showConnectors ? `flex flex-col ${spacing.className}` : 'space-y-3'}
-        style={showConnectors ? spacing.style : undefined}
+        className="relative min-w-[280px] overflow-visible"
+        style={{ height: `${layout.heightRem}rem` }}
       >
-        {matchesByRound.get(round)?.map((match, index) => {
-          const team1Info = getTeamInfo(match.team1_id);
-          const team2Info = getTeamInfo(match.team2_id);
-          const team1SourceLabel = getSlotSourceLabel(match.team1_slot ?? match.match.team1_slot);
-          const team2SourceLabel = getSlotSourceLabel(match.team2_slot ?? match.match.team2_slot);
-          const card = (
-            <BracketMatchCard
-              key={match.match.id}
-              match={match}
-              team1Name={team1Info?.name}
-              team2Name={team2Info?.name}
-              team1Code={team1Info?.code}
-              team2Code={team2Info?.code}
-              team1SourceLabel={team1SourceLabel}
-              team2SourceLabel={team2SourceLabel}
-            />
+        {layout.positionedMatches.map((positionedMatch) => {
+          const matchNumber = positionedMatch.match.match.num;
+          const targetRound =
+            matchNumber !== undefined ? winnerTargetLookup.get(matchNumber) : undefined;
+          const targetPositionedMatch = targetRound
+            ? roundLayouts
+                .get(targetRound)
+                ?.positionedMatches.find((targetMatch) =>
+                  matchNumber !== undefined &&
+                  getSourceMatchNumbers(targetMatch.match).includes(matchNumber)
+                )
+            : undefined;
+          const connector = getConnectorLayout(
+            positionedMatch.centerRem,
+            targetPositionedMatch?.centerRem
           );
-
-          if (!showConnectors) {
-            return card;
-          }
+          const canConnectToNextRound = CONNECTOR_ROUNDS.has(round) && targetPositionedMatch;
 
           return (
-            <div key={match.match.id} className="relative">
-              {card}
+            <div
+              key={positionedMatch.match.match.id}
+              className="absolute left-0 right-0"
+              style={{
+                top: `${positionedMatch.topRem}rem`,
+                minHeight: `${BRACKET_CARD_HEIGHT_REM}rem`,
+              }}
+            >
+              {renderMatchCard(positionedMatch.match)}
               {canConnectToNextRound && (
                 <>
                   <div className="pointer-events-none absolute left-full top-1/2 hidden w-2 border-t border-zinc-300 dark:border-zinc-700 md:block lg:w-3" />
-                  <div
-                    className={`pointer-events-none absolute left-[calc(100%+0.5rem)] hidden w-3 border-r border-zinc-300 dark:border-zinc-700 md:block lg:left-[calc(100%+0.75rem)] lg:w-3 ${
-                      index % 2 === 0
-                        ? 'top-1/2 h-[calc(50%+var(--connector-gap)/2)] rounded-tr-xl border-t'
-                        : 'bottom-1/2 h-[calc(50%+var(--connector-gap)/2)] rounded-br-xl border-b'
-                    }`}
-                  />
+                  {connector.direction !== 'straight' && (
+                    <div
+                      className={`pointer-events-none absolute left-[calc(100%+0.5rem)] hidden w-3 border-r border-zinc-300 dark:border-zinc-700 md:block lg:left-[calc(100%+0.75rem)] lg:w-3 ${
+                        connector.direction === 'down'
+                          ? 'top-1/2 rounded-tr-xl border-t'
+                          : 'bottom-1/2 rounded-br-xl border-b'
+                      }`}
+                      style={{ height: `${connector.heightRem}rem` }}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -243,9 +364,9 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
         <div className="overflow-x-auto pb-4">
           <div className="flex min-w-max gap-5 lg:gap-6">
             {ROUND_ORDER.map((round) => (
-              <section key={round} className="min-w-[280px] max-w-[320px] flex-1 space-y-4">
+              <section key={round} className="relative min-w-[280px] max-w-[320px] flex-1 space-y-4">
                 {renderRoundHeader(round)}
-                {renderRoundMatches(round, true)}
+                {renderPositionedRoundMatches(round)}
               </section>
             ))}
           </div>
