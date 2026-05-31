@@ -35,9 +35,10 @@ type RoundLayout = {
   positionedMatches: PositionedMatch[];
 };
 
-type ConnectorLayout = {
-  direction: 'down' | 'up' | 'straight';
-  heightRem: number;
+type ConnectorGroup = {
+  id: string;
+  sourceCentersRem: [number, number];
+  targetCenterRem: number;
 };
 
 const MAIN_BRACKET_ROUNDS: Round[] = [
@@ -49,7 +50,7 @@ const MAIN_BRACKET_ROUNDS: Round[] = [
 ];
 
 const POSITIONED_ROUNDS = new Set<Round>([...MAIN_BRACKET_ROUNDS, 'third_place']);
-const CONNECTOR_ROUNDS = new Set<Round>([
+const CONNECTOR_SOURCE_ROUNDS = new Set<Round>([
   'round_of_32',
   'round_of_16',
   'quarter_final',
@@ -121,34 +122,42 @@ const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
   return layouts;
 };
 
-const createWinnerTargetLookup = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
-  const targetRoundBySourceNumber = new Map<number, Round>();
+const getNextMainBracketRound = (round: Round) => {
+  const roundIndex = MAIN_BRACKET_ROUNDS.indexOf(round);
 
-  for (const targetRound of MAIN_BRACKET_ROUNDS.slice(1)) {
-    for (const targetMatch of matchesByRound.get(targetRound) ?? []) {
-      for (const sourceNumber of getSourceMatchNumbers(targetMatch)) {
-        targetRoundBySourceNumber.set(sourceNumber, targetRound);
-      }
-    }
+  if (roundIndex === -1 || roundIndex === MAIN_BRACKET_ROUNDS.length - 1) {
+    return undefined;
   }
 
-  return targetRoundBySourceNumber;
+  return MAIN_BRACKET_ROUNDS[roundIndex + 1];
 };
 
-const getConnectorLayout = (fromCenterRem: number, toCenterRem?: number): ConnectorLayout => {
-  if (toCenterRem === undefined) {
-    return { direction: 'straight', heightRem: 0 };
-  }
+const createConnectorGroups = (
+  round: Round,
+  roundLayouts: Map<Round, RoundLayout>
+): ConnectorGroup[] => {
+  if (!CONNECTOR_SOURCE_ROUNDS.has(round)) return [];
 
-  const deltaRem = toCenterRem - fromCenterRem;
-  if (Math.abs(deltaRem) < 0.1) {
-    return { direction: 'straight', heightRem: 0 };
-  }
+  const sourceMatches = roundLayouts.get(round)?.positionedMatches ?? [];
+  const nextRound = getNextMainBracketRound(round);
+  const targetMatches = nextRound
+    ? roundLayouts.get(nextRound)?.positionedMatches ?? []
+    : [];
 
-  return {
-    direction: deltaRem > 0 ? 'down' : 'up',
-    heightRem: Math.abs(deltaRem),
-  };
+  return targetMatches.flatMap((targetMatch, targetIndex) => {
+    const firstSource = sourceMatches[targetIndex * 2];
+    const secondSource = sourceMatches[targetIndex * 2 + 1];
+
+    if (!firstSource || !secondSource) return [];
+
+    return [
+      {
+        id: `${round}-${targetMatch.match.match.id}`,
+        sourceCentersRem: [firstSource.centerRem, secondSource.centerRem],
+        targetCenterRem: targetMatch.centerRem,
+      },
+    ];
+  });
 };
 
 const getSlotSourceLabel = (slot?: string) => {
@@ -207,7 +216,6 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   };
 
   const roundLayouts = createRoundLayouts(matchesByRound);
-  const winnerTargetLookup = createWinnerTargetLookup(matchesByRound);
 
   const renderMatchCard = (match: ResolvedMatch) => {
     const team1Info = getTeamInfo(match.team1_id);
@@ -236,8 +244,40 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     </div>
   );
 
+  const renderConnectors = (round: Round) =>
+    createConnectorGroups(round, roundLayouts).map((connector) => {
+      const [firstSourceCenterRem, secondSourceCenterRem] = connector.sourceCentersRem;
+      const topCenterRem = Math.min(firstSourceCenterRem, secondSourceCenterRem);
+      const bottomCenterRem = Math.max(firstSourceCenterRem, secondSourceCenterRem);
+      const verticalHeightRem = bottomCenterRem - topCenterRem;
+
+      return (
+        <div key={connector.id} className="pointer-events-none absolute inset-0 hidden md:block">
+          {connector.sourceCentersRem.map((sourceCenterRem) => (
+            <div
+              key={`${connector.id}-${sourceCenterRem}`}
+              className="absolute left-full w-2.5 border-t border-zinc-300 dark:border-zinc-700 lg:w-3"
+              style={{ top: `${sourceCenterRem}rem` }}
+            />
+          ))}
+          <div
+            className="absolute left-[calc(100%+0.625rem)] border-r border-zinc-300 dark:border-zinc-700 lg:left-[calc(100%+0.75rem)]"
+            style={{
+              top: `${topCenterRem}rem`,
+              height: `${verticalHeightRem}rem`,
+            }}
+          />
+          <div
+            className="absolute left-[calc(100%+0.625rem)] w-2.5 border-t border-zinc-300 dark:border-zinc-700 lg:left-[calc(100%+0.75rem)] lg:w-3"
+            style={{ top: `${connector.targetCenterRem}rem` }}
+          />
+        </div>
+      );
+    });
+
   const renderPositionedRoundMatches = (round: Round) => {
     const layout = roundLayouts.get(round);
+
     if (!layout) return null;
 
     return (
@@ -245,52 +285,19 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
         className="relative min-w-[280px] overflow-visible"
         style={{ height: `${layout.heightRem}rem` }}
       >
-        {layout.positionedMatches.map((positionedMatch) => {
-          const matchNumber = positionedMatch.match.match.num;
-          const targetRound =
-            matchNumber !== undefined ? winnerTargetLookup.get(matchNumber) : undefined;
-          const targetPositionedMatch = targetRound
-            ? roundLayouts
-                .get(targetRound)
-                ?.positionedMatches.find((targetMatch) =>
-                  matchNumber !== undefined &&
-                  getSourceMatchNumbers(targetMatch.match).includes(matchNumber)
-                )
-            : undefined;
-          const connector = getConnectorLayout(
-            positionedMatch.centerRem,
-            targetPositionedMatch?.centerRem
-          );
-          const canConnectToNextRound = CONNECTOR_ROUNDS.has(round) && targetPositionedMatch;
-
-          return (
-            <div
-              key={positionedMatch.match.match.id}
-              className="absolute left-0 right-0"
-              style={{
-                top: `${positionedMatch.topRem}rem`,
-                minHeight: `${BRACKET_CARD_HEIGHT_REM}rem`,
-              }}
-            >
-              {renderMatchCard(positionedMatch.match)}
-              {canConnectToNextRound && (
-                <>
-                  <div className="pointer-events-none absolute left-full top-1/2 hidden w-2 border-t border-zinc-300 dark:border-zinc-700 md:block lg:w-3" />
-                  {connector.direction !== 'straight' && (
-                    <div
-                      className={`pointer-events-none absolute left-[calc(100%+0.5rem)] hidden w-3 border-r border-zinc-300 dark:border-zinc-700 md:block lg:left-[calc(100%+0.75rem)] lg:w-3 ${
-                        connector.direction === 'down'
-                          ? 'top-1/2 rounded-tr-xl border-t'
-                          : 'bottom-1/2 rounded-br-xl border-b'
-                      }`}
-                      style={{ height: `${connector.heightRem}rem` }}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
+        {renderConnectors(round)}
+        {layout.positionedMatches.map((positionedMatch) => (
+          <div
+            key={positionedMatch.match.match.id}
+            className="absolute left-0 right-0 z-10"
+            style={{
+              top: `${positionedMatch.topRem}rem`,
+              minHeight: `${BRACKET_CARD_HEIGHT_REM}rem`,
+            }}
+          >
+            {renderMatchCard(positionedMatch.match)}
+          </div>
+        ))}
       </div>
     );
   };
