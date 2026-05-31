@@ -6,6 +6,7 @@ import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/t
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
 import AppShell from '@/components/layout/AppShell';
+import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 
 // Database types
 type DbTeam = {
@@ -104,7 +105,12 @@ export default async function StandingsPage() {
   const sortedGroupCodes = Object.keys(groupStandingsOutput.standings).sort();
 
   return (
-    <AppShell
+    <>
+      <RealtimeRefresh
+        tables={['match_results', 'manual_tiebreaks', 'tournament_results']}
+        channelName="realtime-standings"
+      />
+      <AppShell
       title="Standings Globales"
       subtitle="Tablas de posiciones de la fase de grupos del Mundial 2026"
       maxWidthClassName="max-w-7xl"
@@ -164,6 +170,7 @@ export default async function StandingsPage() {
               teams={teams}
             />
           </section>
-    </AppShell>
+      </AppShell>
+    </>
   );
 }

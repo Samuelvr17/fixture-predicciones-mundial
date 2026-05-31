@@ -11,6 +11,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { saveMatchResult } from '@/server/actions/saveMatchResult';
 import ResultMatchCard from './ResultMatchCard';
 
@@ -57,6 +58,7 @@ interface GlobalResultsClientProps {
 }
 
 export default function GlobalResultsClient({ matches, teams, currentUserId }: GlobalResultsClientProps) {
+  const router = useRouter();
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -100,8 +102,8 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
       setSuccess(successMessage);
       setTimeout(() => setSuccess(null), 5000);
 
-      // Recargar la página para mostrar el resultado actualizado
-      window.location.reload();
+      // Refrescar la ruta para mostrar el resultado actualizado sin recargar el navegador.
+      router.refresh();
     } catch (err) {
       console.error('Error saving result:', err);
       setError(err instanceof Error ? err.message : 'Error al guardar el resultado');
