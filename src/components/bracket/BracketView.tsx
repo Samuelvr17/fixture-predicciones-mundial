@@ -66,6 +66,29 @@ const CONNECTOR_ROUNDS = new Set<Round>([
 
 const getRoundSpacing = (round: Round) => ROUND_SPACING[round];
 
+const getSlotSourceLabel = (slot?: string) => {
+  if (!slot) return undefined;
+
+  const previousMatchSlot = slot.match(/^([WL])(\d+)$/);
+  if (previousMatchSlot) {
+    const [, resultType, matchNumber] = previousMatchSlot;
+    return `${resultType === 'W' ? 'Ganador' : 'Perdedor'} del partido ${matchNumber}`;
+  }
+
+  const groupPositionSlot = slot.match(/^([12])([A-L])$/);
+  if (groupPositionSlot) {
+    const [, position, groupCode] = groupPositionSlot;
+    return `${position}.º del Grupo ${groupCode}`;
+  }
+
+  if (slot.startsWith('3')) {
+    const groups = slot.slice(1);
+    return groups ? `Mejor 3.º (${groups})` : 'Mejor 3.º';
+  }
+
+  return `Origen ${slot}`;
+};
+
 export default function BracketView({ bracket, teams }: BracketViewProps) {
   const { matches, champion, thirdPlace } = bracket;
 
@@ -110,6 +133,12 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
         {matchesByRound.get(round)?.map((match, index) => {
           const team1Info = getTeamInfo(match.team1_id);
           const team2Info = getTeamInfo(match.team2_id);
+          const team1SourceLabel = getSlotSourceLabel(match.team1_slot ?? match.match.team1_slot);
+          const team2SourceLabel = getSlotSourceLabel(match.team2_slot ?? match.match.team2_slot);
+          const sourceLabels = [
+            team1SourceLabel ? { side: 'Equipo 1', label: team1SourceLabel } : undefined,
+            team2SourceLabel ? { side: 'Equipo 2', label: team2SourceLabel } : undefined,
+          ].filter((sourceLabel): sourceLabel is { side: string; label: string } => Boolean(sourceLabel));
           const card = (
             <BracketMatchCard
               key={match.match.id}
@@ -120,14 +149,34 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
               team2Code={team2Info?.code}
             />
           );
+          const cardWithSourceLabels = (
+            <div key={match.match.id} className="space-y-1.5">
+              {card}
+              {sourceLabels.length > 0 && (
+                <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/70 px-3 py-2 text-[11px] font-semibold text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-950/30 dark:text-indigo-300">
+                  <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-400">
+                    Mapa visual de origen
+                  </div>
+                  <div className="space-y-0.5">
+                    {sourceLabels.map(({ side, label }) => (
+                      <div key={`${side}-${label}`} className="flex items-center justify-between gap-2">
+                        <span className="shrink-0 text-indigo-500 dark:text-indigo-400">{side}</span>
+                        <span className="truncate text-right">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
 
           if (!showConnectors) {
-            return card;
+            return cardWithSourceLabels;
           }
 
           return (
             <div key={match.match.id} className="relative">
-              {card}
+              {cardWithSourceLabels}
               {canConnectToNextRound && (
                 <>
                   <div className="pointer-events-none absolute left-full top-1/2 hidden w-2 border-t border-zinc-300 dark:border-zinc-700 md:block lg:w-3" />
