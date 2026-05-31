@@ -63,7 +63,7 @@ type ConnectorGroup = {
 };
 
 const BRACKET_CARD_HEIGHT_REM = 7.6;
-const FIRST_ROUND_GAP_REM = 1.15;
+const FIRST_ROUND_GAP_REM = 2.2;
 const FIRST_ROUND_PITCH_REM = BRACKET_CARD_HEIGHT_REM + FIRST_ROUND_GAP_REM;
 const MIN_COLUMN_HEIGHT_REM = BRACKET_CARD_HEIGHT_REM;
 
@@ -303,34 +303,45 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
       const horizontalSideClasses =
         side === 'left'
           ? {
-              source: 'left-full',
-              vertical: 'left-[calc(100%+0.5rem)]',
-              target: 'left-[calc(100%+0.5rem)]',
+              source: 'left-[calc(100%+0.25rem)]',
+              vertical: 'left-[calc(100%+1rem)]',
+              target: 'left-[calc(100%+1rem)]',
+              targetWidth: 'w-3',
+              targetOrigin: '',
+              dot: 'left-[calc(100%+1rem)] -translate-x-1/2',
             }
           : {
-              source: 'right-full',
-              vertical: 'right-[calc(100%+0.5rem)]',
-              target: 'right-[calc(100%+0.5rem)]',
+              source: 'right-[calc(100%+0.25rem)]',
+              vertical: 'right-[calc(100%+1rem)]',
+              target: 'right-[calc(100%+1rem)]',
+              targetWidth: 'w-3',
+              targetOrigin: '',
+              dot: 'right-[calc(100%+1rem)] translate-x-1/2',
             };
 
       return (
-        <div key={connector.id} className="pointer-events-none absolute inset-0">
+        <div key={connector.id} className="pointer-events-none absolute inset-0 z-0">
           {connector.sourceCentersRem.map((sourceCenterRem) => (
-            <div
-              key={`${connector.id}-${sourceCenterRem}`}
-              className={`absolute ${horizontalSideClasses.source} w-2 border-t-2 border-slate-300 dark:border-zinc-700`}
-              style={{ top: `${sourceCenterRem}rem` }}
-            />
+            <div key={`${connector.id}-${sourceCenterRem}`}>
+              <div
+                className={`absolute ${horizontalSideClasses.source} w-3 border-t-2 border-slate-400 dark:border-zinc-500`}
+                style={{ top: `${sourceCenterRem}rem` }}
+              />
+              <div
+                className={`absolute ${horizontalSideClasses.dot} h-2 w-2 -translate-y-1/2 rounded-full bg-slate-400 dark:bg-zinc-500`}
+                style={{ top: `${sourceCenterRem}rem` }}
+              />
+            </div>
           ))}
           <div
-            className={`absolute ${horizontalSideClasses.vertical} border-r-2 border-slate-300 dark:border-zinc-700`}
+            className={`absolute ${horizontalSideClasses.vertical} border-r-[3px] border-slate-400 dark:border-zinc-500`}
             style={{
               top: `${topCenterRem}rem`,
               height: `${verticalHeightRem}rem`,
             }}
           />
           <div
-            className={`absolute ${horizontalSideClasses.target} w-2 border-t-2 border-slate-300 dark:border-zinc-700`}
+            className={`absolute ${horizontalSideClasses.target} ${horizontalSideClasses.targetWidth} ${horizontalSideClasses.targetOrigin} border-t-[3px] border-slate-500 dark:border-zinc-400`}
             style={{ top: `${connector.targetCenterRem}rem` }}
           />
         </div>
@@ -346,14 +357,14 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     const matchesCount = layout?.positionedMatches.length ?? 0;
 
     return (
-      <section key={`${side}-${round}`} className="w-52 shrink-0 space-y-3">
+      <section key={`${side}-${round}`} className="w-56 shrink-0 space-y-5">
         {renderRoundHeader(round, matchesCount)}
         <div className="relative overflow-visible" style={{ height: `${bracketHeightRem}rem` }}>
           {layout && renderConnectors(round, layouts, side)}
           {layout?.positionedMatches.map((positionedMatch) => (
             <div
               key={positionedMatch.match.match.id}
-              className="absolute left-0 right-0 z-10"
+              className="absolute left-0 right-0 z-20"
               style={{ top: `${positionedMatch.topRem}rem` }}
             >
               {renderMatchCard(positionedMatch.match)}
@@ -427,10 +438,10 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
 
       <div className="hidden md:block">
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
-          <div className="flex min-w-max items-start gap-4">
+          <div className="flex min-w-max items-start gap-8">
             {LEFT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, leftLayouts, 'left'))}
 
-            <section className="w-52 shrink-0 space-y-3">
+            <section className="w-60 shrink-0 space-y-5">
               <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-center dark:border-zinc-700 dark:bg-zinc-900/60">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-zinc-200">
                   Mundial 2026
@@ -442,14 +453,14 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
               <div className="relative" style={{ height: `${bracketHeightRem}rem` }}>
                 {finalMatch && (
                   <div
-                    className="pointer-events-none absolute left-[-1rem] right-[-1rem] border-t-2 border-slate-300 dark:border-zinc-700"
+                    className="pointer-events-none absolute left-[-1.25rem] right-[-1.25rem] z-0 border-t-[3px] border-slate-500 dark:border-zinc-400"
                     style={{
                       top: `${finalTopRem + finalLabelOffsetRem + BRACKET_CARD_HEIGHT_REM / 2}rem`,
                     }}
                   />
                 )}
                 {finalMatch && (
-                  <div className="absolute left-0 right-0" style={{ top: `${finalTopRem}rem` }}>
+                  <div className="absolute left-0 right-0 z-20" style={{ top: `${finalTopRem}rem` }}>
                     <div className="mb-2 text-center text-lg font-black uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
                       🏆 Final
                     </div>
@@ -460,7 +471,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
                 )}
 
                 {thirdPlaceMatch && (
-                  <div className="absolute left-0 right-0" style={{ top: `${thirdPlaceTopRem}rem` }}>
+                  <div className="absolute left-0 right-0 z-20" style={{ top: `${thirdPlaceTopRem}rem` }}>
                     <div className="mb-2 text-center text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-zinc-400">
                       3er puesto
                     </div>
