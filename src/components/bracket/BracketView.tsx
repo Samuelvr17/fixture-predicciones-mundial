@@ -376,14 +376,6 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     );
   };
 
-  const renderMobileRoundMatches = (round: Round) => (
-    <div className="space-y-3">
-      {matchesByRound.get(round)?.map((match) => (
-        <div key={match.match.id}>{renderMatchCard(match)}</div>
-      ))}
-    </div>
-  );
-
   const renderChampionSummary = () => {
     if (!champion && !thirdPlace) return null;
 
@@ -418,27 +410,10 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
       {renderChampionSummary()}
 
       <div
-        className="-mx-4 overflow-x-auto overscroll-x-contain px-4 pb-4 md:hidden"
-        aria-label="Rondas eliminatorias con desplazamiento horizontal"
+        className="overflow-x-auto overscroll-x-contain pb-4"
+        aria-label="Llaves eliminatorias con desplazamiento horizontal"
       >
-        <div className="flex w-max min-w-full gap-4">
-          {ROUND_ORDER.map((round) => (
-            <section
-              key={round}
-              className="w-64 shrink-0 space-y-3"
-              aria-labelledby={`mobile-${round}`}
-            >
-              <div id={`mobile-${round}`}>
-                {renderRoundHeader(round, matchesByRound.get(round)?.length ?? 0)}
-              </div>
-              {renderMobileRoundMatches(round)}
-            </section>
-          ))}
-        </div>
-      </div>
-
-      <div className="hidden md:block">
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
           <div className="flex min-w-max items-start gap-8">
             {LEFT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, leftLayouts, 'left'))}
 
