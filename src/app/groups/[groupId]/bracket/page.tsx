@@ -70,9 +70,9 @@ export default async function GroupBracketPage(props: Params) {
     );
 
     return (
-        <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
-            <div className="max-w-7xl w-full mx-auto">
-                <h1 className="text-3xl font-bold tracking-tight mb-6">Bracket Oficial</h1>
+        <div className="flex min-h-screen flex-col bg-zinc-50 p-4 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 sm:p-6 lg:p-8">
+            <div className="w-full">
+                <h1 className="mb-6 text-3xl font-bold tracking-tight">Bracket Oficial</h1>
                 <BracketView bracket={bracket} teams={viewTeamsMap} />
             </div>
         </div>

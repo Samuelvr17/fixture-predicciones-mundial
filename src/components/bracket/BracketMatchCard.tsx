@@ -11,22 +11,13 @@ interface BracketMatchCardProps {
   team2SourceLabel?: string;
 }
 
-const ROUND_LABELS: Record<string, string> = {
-  round_of_32: 'Dieciseisavos',
-  round_of_16: 'Octavos',
-  quarter_final: 'Cuartos',
-  semi_final: 'Semifinales',
-  third_place: 'Tercer Puesto',
-  final: 'Final',
-};
-
 const PENDING_REASON_LABELS: Record<string, string> = {
-  missing_standings: 'Faltan posiciones de grupo',
-  incomplete_group: 'Grupo pendiente por completar',
+  missing_standings: 'Faltan grupos',
+  incomplete_group: 'Grupo pendiente',
   unresolved_tiebreak: 'Desempate pendiente',
-  missing_best_thirds: 'Faltan mejores terceros',
-  missing_third_place_assignment: 'Asignación de terceros pendiente',
-  missing_match_result: 'Falta resultado del partido',
+  missing_best_thirds: 'Faltan mejores 3.º',
+  missing_third_place_assignment: 'Falta asignación',
+  missing_match_result: 'Falta resultado',
   invalid_slot: 'Slot inválido',
 };
 
@@ -36,29 +27,32 @@ const formatSlotLabel = (slot?: string) => {
   const winnerSlot = slot.match(/^W(\d+)$/);
   if (winnerSlot) {
     const [, matchNumber] = winnerSlot;
-    return `Ganador del partido ${matchNumber}`;
+    return `Ganador P${matchNumber}`;
   }
 
   const loserSlot = slot.match(/^L(\d+)$/);
   if (loserSlot) {
     const [, matchNumber] = loserSlot;
-    return `Perdedor del partido ${matchNumber}`;
+    return `Perdedor P${matchNumber}`;
   }
 
   const groupPositionSlot = slot.match(/^([12])([A-L])$/);
   if (groupPositionSlot) {
     const [, position, groupCode] = groupPositionSlot;
-    return `${position}.º del Grupo ${groupCode}`;
+    return `${position}.º Grupo ${groupCode}`;
   }
 
   const bestThirdSlot = slot.match(/^3([A-L](?:\/[A-L])*)?$/);
   if (bestThirdSlot) {
     const [, groups] = bestThirdSlot;
-    return groups ? `Mejor 3.º (${groups})` : 'Mejor 3.º';
+    return groups ? `Mejor 3.º ${groups}` : 'Mejor 3.º';
   }
 
   return `Origen ${slot}`;
 };
+
+const getTeamDisplay = (name?: string, sourceLabel?: string, slotLabel?: string) =>
+  name || sourceLabel || slotLabel || 'TBD';
 
 export default function BracketMatchCard({
   match,
@@ -71,142 +65,95 @@ export default function BracketMatchCard({
 }: BracketMatchCardProps) {
   const { match: m, team1_id, team2_id, team1_slot, team2_slot, winner_team_id, pendingSlots } = match;
 
-  const formatDate = (dateStr: string) => {
-    return formatMatchDateShort(dateStr);
-  };
-
-  const formatTime = (timeStr: string) => {
-    return timeStr.substring(0, 5);
-  };
-
-  const getPendingReason = () => {
-    if (pendingSlots.length === 0) return null;
-    // Return the first pending slot's reason
-    return PENDING_REASON_LABELS[pendingSlots[0].reason] || pendingSlots[0].reason;
-  };
-
-  const isTeam1Pending = Boolean(!team1_id && team1_slot);
-  const isTeam2Pending = Boolean(!team2_id && team2_slot);
-  const pendingReason = getPendingReason();
+  const pendingReason =
+    pendingSlots.length > 0
+      ? PENDING_REASON_LABELS[pendingSlots[0].reason] || pendingSlots[0].reason
+      : null;
 
   const renderTeamRow = ({
     code,
-    isPending,
     isWinner,
     name,
     slot,
     sourceLabel,
   }: {
     code?: string;
-    isPending: boolean;
     isWinner: boolean;
     name?: string;
     slot?: string;
     sourceLabel?: string;
   }) => {
     const slotLabel = formatSlotLabel(slot);
-    const secondaryLabels = [sourceLabel, slotLabel].filter(
-      (label, index, labels): label is string => Boolean(label) && labels.indexOf(label) === index,
-    );
+    const displayName = getTeamDisplay(name, sourceLabel, slotLabel);
+    const detailLabel = name ? sourceLabel || slotLabel : slotLabel;
 
     return (
       <div
-        className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
+        className={`grid grid-cols-[2.25rem_1fr] items-center gap-2 border-t px-2 py-1.5 first:border-t-0 ${
           isWinner
-            ? 'border-green-200 bg-green-50 dark:border-green-800/70 dark:bg-green-950/40'
-            : 'border-zinc-100 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-950/40'
+            ? 'border-green-200 bg-green-50/90 text-green-950 dark:border-green-800/70 dark:bg-green-950/40 dark:text-green-50'
+            : 'border-zinc-200/80 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/20 dark:text-zinc-100'
         }`}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <span
-            className={`inline-flex min-w-11 justify-center rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wide ring-1 ${
-              code
-                ? 'bg-white text-zinc-800 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700'
-                : 'bg-zinc-200/70 text-zinc-500 ring-zinc-300/70 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700'
-            }`}
-          >
-            {code || 'TBD'}
-          </span>
-          <div className="min-w-0 flex-1">
-            <span
-              className={`block truncate text-sm font-semibold ${
-                isPending
-                  ? 'text-zinc-500 italic dark:text-zinc-400'
-                  : isWinner
-                    ? 'text-green-950 dark:text-green-50'
-                    : 'text-zinc-900 dark:text-zinc-100'
-              }`}
-            >
-              {name || 'TBD'}
-            </span>
-            {secondaryLabels.map((label) => (
-              <span
-                key={label}
-                className="block truncate text-[11px] text-zinc-500 dark:text-zinc-400"
-              >
-                {label}
-              </span>
-            ))}
+        <span
+          className={`inline-flex h-5 min-w-8 items-center justify-center rounded-full px-1.5 text-[10px] font-black uppercase tracking-wide ring-1 ${
+            code
+              ? 'bg-zinc-50 text-zinc-800 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700'
+              : 'bg-zinc-100 text-zinc-500 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700'
+          }`}
+        >
+          {code || '?'}
+        </span>
+        <div className="min-w-0">
+          <div className={`truncate text-[12px] font-bold leading-4 ${name ? '' : 'italic text-zinc-500 dark:text-zinc-400'}`}>
+            {displayName}
           </div>
+          {detailLabel && (
+            <div className="truncate text-[10px] font-medium leading-3 text-zinc-500 dark:text-zinc-400">
+              {detailLabel}
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-      {/* Match number and round */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        {m.num && (
-          <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-1 text-xs font-black text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-950">
-            Partido #{m.num}
+    <article className="overflow-hidden rounded-lg border border-slate-300 bg-white shadow-[0_1px_0_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/80">
+        <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white dark:bg-zinc-100 dark:text-zinc-950">
+          {m.num ? `P${m.num}` : 'Partido'}
+        </span>
+        {pendingReason && (
+          <span className="truncate rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-amber-800">
+            {pendingReason}
           </span>
         )}
-        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-300 dark:ring-zinc-700">
-          {ROUND_LABELS[m.round] || m.round}
-        </span>
       </div>
 
-      {/* Date and venue */}
-      <div className="mb-4 rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-950/60 dark:text-zinc-400">
-        <div className="font-semibold text-zinc-700 dark:text-zinc-300">
-          {formatDate(m.date)} · {formatTime(m.time)}
+      <div className="border-b border-slate-200 px-2 py-1 text-[10px] leading-3 text-slate-600 dark:border-zinc-800 dark:text-zinc-400">
+        <div className="truncate font-semibold text-slate-700 dark:text-zinc-300">
+          {formatMatchDateShort(m.date)} · {m.time.substring(0, 5)}
         </div>
         <div className="truncate">{m.ground}</div>
       </div>
 
-      {/* Teams */}
-      <div className="space-y-2">
+      <div>
         {renderTeamRow({
           code: team1Code,
-          isPending: isTeam1Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team1_id),
           name: team1Name,
           slot: team1_slot ?? m.team1_slot,
           sourceLabel: team1SourceLabel,
         })}
-
         {renderTeamRow({
           code: team2Code,
-          isPending: isTeam2Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team2_id),
           name: team2Name,
           slot: team2_slot ?? m.team2_slot,
           sourceLabel: team2SourceLabel,
         })}
       </div>
-
-      {/* Pending status */}
-      {pendingReason && (
-        <div className="mt-2 flex justify-end">
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-900/60 dark:text-amber-100 dark:ring-amber-800/70">
-            <span aria-hidden="true" className="text-[10px] font-black">
-              !
-            </span>
-            {pendingReason}
-          </span>
-        </div>
-      )}
-    </div>
+    </article>
   );
 }
