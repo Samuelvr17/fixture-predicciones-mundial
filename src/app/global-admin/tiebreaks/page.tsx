@@ -8,6 +8,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import TiebreaksClient from '@/components/admin/TiebreaksClient';
+import HelpButton from '@/components/help/HelpButton';
 
 export default async function GlobalAdminTiebreaksPage() {
   const supabase = await createClient();
@@ -74,7 +75,14 @@ export default async function GlobalAdminTiebreaksPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Panel de Admin Global - Desempates</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h1 className="text-3xl font-bold">Panel de Admin Global - Desempates</h1>
+        <HelpButton title="¿Cómo funcionan los desempates?" buttonLabel="¿Cómo funciona?">
+          <p>
+            Esta sección es solo para administradores. Aparece cuando una tabla no puede resolverse con criterios automáticos. El administrador debe ordenar manualmente los equipos empatados para que la app pueda completar clasificados, mejores terceros y llaves.
+          </p>
+        </HelpButton>
+      </div>
       <p className="text-gray-600 mb-6">
         Resuelva manualmente empates que el sistema automático no puede decidir.
       </p>

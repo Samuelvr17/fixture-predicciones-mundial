@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 import AppShell from '@/components/layout/AppShell';
+import HelpButton from '@/components/help/HelpButton';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
 
 export default async function GlobalLeaderboardPage() {
@@ -50,7 +51,16 @@ export default async function GlobalLeaderboardPage() {
                 channelName={`realtime-leaderboard-${GLOBAL_GROUP_ID}`}
                 filters={[{ table: 'score_breakdowns', filter: `group_id=eq.${GLOBAL_GROUP_ID}` }]}
             />
-            <AppShell title="Tabla general">
+            <AppShell
+                title="Tabla general"
+                headerActions={
+                    <HelpButton title="¿Cómo funciona la tabla general?" buttonLabel="¿Cómo funciona?">
+                        <p>
+                            Esta sección muestra el ranking de participantes. Los puntos se calculan con base en tus predicciones y los resultados oficiales registrados por el administrador. La tabla puede tardar unos segundos en actualizarse después de que se registre un resultado, porque la app recalcula los puntajes.
+                        </p>
+                    </HelpButton>
+                }
+            >
                 {membersWithScores.length === 0 ? (
                     <p className="text-zinc-500 dark:text-zinc-400">No hay participantes en la tabla general.</p>
                 ) : (

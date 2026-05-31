@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Database } from '@/types/database.types';
 import MyPredictionsClient from '@/components/predictions/MyPredictionsClient';
 import AppShell from '@/components/layout/AppShell';
+import HelpButton from '@/components/help/HelpButton';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
 
 type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
@@ -14,6 +15,16 @@ type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
 type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
+
+function predictionsHelpButton() {
+    return (
+        <HelpButton title="¿Cómo funcionan las predicciones?" buttonLabel="¿Cómo funciona?">
+            <p>
+                En esta sección registras tus marcadores para cada partido antes del cierre de predicciones. En fase de grupos solo indicas el marcador. En eliminatorias, si predices un empate, debes elegir qué selección avanza. La app usa tus marcadores para calcular automáticamente clasificados, llaves y posibles desempates. Si una tabla queda empatada después de todos los criterios automáticos, podrás ordenar manualmente los equipos empatados.
+            </p>
+        </HelpButton>
+    );
+}
 
 export default async function GlobalPredictionsPage() {
     const supabase = await createClient();
@@ -33,7 +44,7 @@ export default async function GlobalPredictionsPage() {
 
     if (!group) {
         return (
-            <AppShell title="Mis predicciones">
+            <AppShell title="Mis predicciones" headerActions={predictionsHelpButton()}>
                 <p className="text-zinc-500 dark:text-zinc-400">No se encontró el grupo global.</p>
             </AppShell>
         );
@@ -61,7 +72,7 @@ export default async function GlobalPredictionsPage() {
 
     if (!matches) {
         return (
-            <AppShell title="Mis predicciones">
+            <AppShell title="Mis predicciones" headerActions={predictionsHelpButton()}>
                 <p className="text-zinc-500 dark:text-zinc-400">No hay partidos disponibles.</p>
             </AppShell>
         );
@@ -96,7 +107,7 @@ export default async function GlobalPredictionsPage() {
         .single();
 
     return (
-        <AppShell title="Mis predicciones">
+        <AppShell title="Mis predicciones" headerActions={predictionsHelpButton()}>
             {!isBeforeDeadline && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                     <p className="text-yellow-800 dark:text-yellow-200 font-medium">

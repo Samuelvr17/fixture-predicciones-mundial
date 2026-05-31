@@ -4,6 +4,7 @@ import { Database } from '@/types/database.types';
 import MatchesCalendarClient from '@/components/matches/MatchesCalendarClient';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 import AppShell from '@/components/layout/AppShell';
+import HelpButton from '@/components/help/HelpButton';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
 
 type MatchWithResult = Database['public']['Tables']['matches']['Row'] & {
@@ -19,6 +20,16 @@ type MatchWithNormalizedResult = Omit<MatchWithResult, 'match_results'> & {
         winner_team_id: string | null;
     } | null;
 };
+
+function matchesHelpButton() {
+    return (
+        <HelpButton title="¿Cómo funciona la sección de partidos?" buttonLabel="¿Cómo funciona?">
+            <p>
+                Aquí puedes consultar el calendario del Mundial, las fechas, horarios y resultados oficiales registrados. Cuando el administrador registra un resultado, esta sección se actualiza automáticamente si estás conectado.
+            </p>
+        </HelpButton>
+    );
+}
 
 export default async function GlobalMatchesPage() {
     const supabase = await createClient();
@@ -55,7 +66,7 @@ export default async function GlobalMatchesPage() {
 
     if (!matches) {
         return (
-            <AppShell title="Partidos">
+            <AppShell title="Partidos" headerActions={matchesHelpButton()}>
                 <p className="text-zinc-500 dark:text-zinc-400">No hay partidos disponibles.</p>
             </AppShell>
         );
@@ -78,7 +89,7 @@ export default async function GlobalMatchesPage() {
                 tables={['match_results']}
                 channelName={`realtime-matches-${GLOBAL_GROUP_ID}`}
             />
-            <AppShell title="Partidos" maxWidthClassName="max-w-6xl">
+            <AppShell title="Partidos" maxWidthClassName="max-w-6xl" headerActions={matchesHelpButton()}>
                 <MatchesCalendarClient matches={normalizedMatches} />
             </AppShell>
         </>

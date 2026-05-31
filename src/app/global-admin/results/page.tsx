@@ -13,6 +13,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { fetchOfficialBracketData } from '@/lib/tournament/officialBracket';
 import GlobalResultsClient from '@/components/admin/GlobalResultsClient';
+import HelpButton from '@/components/help/HelpButton';
 
 const KNOCKOUT_ROUNDS = new Set([
   'round_of_32',
@@ -124,7 +125,14 @@ export default async function GlobalAdminResultsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Panel de Admin Global - Resultados</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h1 className="text-3xl font-bold">Panel de Admin Global - Resultados</h1>
+        <HelpButton title="¿Cómo funciona el registro de resultados?" buttonLabel="¿Cómo funciona?">
+          <p>
+            Esta sección es solo para administradores. Aquí se registran los resultados oficiales de los partidos. En eliminatorias, si el marcador queda empatado, debes seleccionar qué equipo avanza. Al guardar resultados, la app actualiza tablas, llaves y puntajes.
+          </p>
+        </HelpButton>
+      </div>
       <p className="text-gray-600 mb-6">
         Ingrese los resultados oficiales de los partidos del Mundial 2026.
       </p>
