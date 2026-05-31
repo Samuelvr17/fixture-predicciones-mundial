@@ -83,7 +83,7 @@ export default function DashboardClient({ groups, memberCounts }: DashboardClien
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                      Deadline: {formatDeadline(member.groups?.prediction_deadline || '')}
+                      Cierre de predicciones: {formatDeadline(member.groups?.prediction_deadline || '')}
                     </p>
                   </div>
                   <div className="text-zinc-400">

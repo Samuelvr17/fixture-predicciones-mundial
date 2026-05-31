@@ -115,7 +115,7 @@ export default async function GroupDetailPage(props: Params) {
                                 Predicciones: {deadlineStatus.toUpperCase()}
                             </p>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Deadline: {deadlineFormatted}
+                                Cierre de predicciones: {deadlineFormatted}
                             </p>
                         </div>
                     </div>
@@ -125,7 +125,7 @@ export default async function GroupDetailPage(props: Params) {
                         </p>
                     ) : (
                         <p className="mt-2 text-sm text-green-700 dark:text-green-400">
-                            ✨ ¡Aún tienes tiempo! Completa tus predicciones antes del deadline.
+                            ✨ ¡Aún tienes tiempo! Completa tus predicciones antes del cierre de predicciones.
                         </p>
                     )}
                 </div>
@@ -147,7 +147,7 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Mis Predicciones</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Mis predicciones</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             {isDeadlinePassed ? 'Ver tus predicciones' : 'Editar tus predicciones'}
                         </p>
@@ -195,7 +195,7 @@ export default async function GroupDetailPage(props: Params) {
                         </p>
                     </Link>
 
-                    {/* Bracket */}
+                    {/* Llaves */}
                     <Link
                         href={`/groups/${params.groupId}/bracket`}
                         className="group bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all"
@@ -210,13 +210,13 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Bracket</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Llaves</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             Ver el bracket de eliminatorias
                         </p>
                     </Link>
 
-                    {/* Leaderboard */}
+                    {/* Tabla general */}
                     <Link
                         href={`/groups/${params.groupId}/leaderboard`}
                         className="group bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-yellow-300 dark:hover:border-yellow-700 hover:shadow-md transition-all"
@@ -231,7 +231,7 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Leaderboard</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla general</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             Ver tabla de posiciones del grupo
                         </p>
@@ -252,7 +252,7 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Standings Globales</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla de posiciones global</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             Ver tabla de posiciones oficial del torneo
                         </p>

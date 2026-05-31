@@ -11,9 +11,9 @@ const ROUND_LABELS: Record<string, string> = {
     group: 'Fase de Grupos',
     round_of_32: 'Dieciseisavos',
     round_of_16: 'Octavos',
-    quarter_final: 'Cuartos',
+    quarter_final: 'Cuartos de final',
     semi_final: 'Semifinales',
-    third_place: 'Tercer Puesto',
+    third_place: 'Tercer puesto',
     final: 'Final'
 };
 

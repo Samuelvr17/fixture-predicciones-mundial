@@ -46,7 +46,7 @@ export default async function GlobalAdminResultsPage() {
   // Fetch todos los equipos para los selectores (fallback si resolveBracket no resuelva)
   const { data: teams, error: teamsError } = await supabase
     .from('teams')
-    .select('id, name, code')
+    .select('id, name, display_name_es, code')
     .order('name');
 
   if (teamsError) {
@@ -82,7 +82,7 @@ export default async function GlobalAdminResultsPage() {
         team2_score: result.team2_score,
         winner_team_id: result.winner_team_id,
         winner: winnerTeam
-          ? { id: winnerTeam.id, name: winnerTeam.name, code: winnerTeam.code }
+          ? { id: winnerTeam.id, name: winnerTeam.name, display_name_es: winnerTeam.display_name_es, code: winnerTeam.code }
           : null,
       }
       : null;
@@ -101,10 +101,10 @@ export default async function GlobalAdminResultsPage() {
         match_results: matchResult,
         // Equipos resueltos dinámicamente
         resolvedTeam1: resolvedTeam1
-          ? { id: resolvedTeam1.id, name: resolvedTeam1.name, code: resolvedTeam1.code }
+          ? { id: resolvedTeam1.id, name: resolvedTeam1.name, display_name_es: resolvedTeam1.display_name_es, code: resolvedTeam1.code }
           : null,
         resolvedTeam2: resolvedTeam2
-          ? { id: resolvedTeam2.id, name: resolvedTeam2.name, code: resolvedTeam2.code }
+          ? { id: resolvedTeam2.id, name: resolvedTeam2.name, display_name_es: resolvedTeam2.display_name_es, code: resolvedTeam2.code }
           : null,
       };
     }
@@ -114,8 +114,8 @@ export default async function GlobalAdminResultsPage() {
     const team2 = match.team2_id ? (teamsMap.get(match.team2_id) ?? null) : null;
     return {
       ...match,
-      team1: team1 ? { id: team1.id, name: team1.name, code: team1.code } : null,
-      team2: team2 ? { id: team2.id, name: team2.name, code: team2.code } : null,
+      team1: team1 ? { id: team1.id, name: team1.name, display_name_es: team1.display_name_es, code: team1.code } : null,
+      team2: team2 ? { id: team2.id, name: team2.name, display_name_es: team2.display_name_es, code: team2.code } : null,
       match_results: matchResult,
       resolvedTeam1: null,
       resolvedTeam2: null,

@@ -9,6 +9,7 @@ import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
 import type { GroupStandings, TeamStats } from '@/lib/tournament/groupStandings';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -45,9 +46,9 @@ const ROUND_LABELS: Record<string, string> = {
   group: 'Fase de Grupos',
   round_of_32: 'Dieciseisavos',
   round_of_16: 'Octavos',
-  quarter_final: 'Cuartos',
+  quarter_final: 'Cuartos de final',
   semi_final: 'Semifinales',
-  third_place: 'Tercer Puesto',
+  third_place: 'Tercer puesto',
   final: 'Final',
 };
 
@@ -412,10 +413,10 @@ export default function MyPredictionsClient({
     .sort((a, b) => a.group_code.localeCompare(b.group_code));
 
   const champion = predictedTournament.championTeamId
-    ? teamsMap.get(predictedTournament.championTeamId)?.name
+    ? getTeamDisplayName(teamsMap.get(predictedTournament.championTeamId))
     : null;
   const thirdPlace = predictedTournament.thirdPlaceTeamId
-    ? teamsMap.get(predictedTournament.thirdPlaceTeamId)?.name
+    ? getTeamDisplayName(teamsMap.get(predictedTournament.thirdPlaceTeamId))
     : null;
 
   return (
@@ -517,8 +518,8 @@ export default function MyPredictionsClient({
                       <div key={teamId} className="flex items-center justify-between gap-3 rounded-md bg-zinc-50 dark:bg-zinc-800 px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 w-6">{index + 1}</span>
-                          {team?.flag_url && <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />}
-                          <span className="font-medium truncate">{team?.name || teamId}</span>
+                          {team?.flag_url && <img src={team.flag_url} alt={getTeamDisplayName(team)} className="w-6 h-4 object-cover" />}
+                          <span className="font-medium truncate">{team ? getTeamDisplayName(team) : teamId}</span>
                         </div>
                         <div className="flex gap-2 shrink-0">
                           <button
@@ -661,8 +662,8 @@ export default function MyPredictionsClient({
                             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
                           >
                             <option value="">Seleccionar clasificado</option>
-                            {team1 && <option value={team1.id}>{team1.name}</option>}
-                            {team2 && <option value={team2.id}>{team2.name}</option>}
+                            {team1 && <option value={team1.id}>{getTeamDisplayName(team1)}</option>}
+                            {team2 && <option value={team2.id}>{getTeamDisplayName(team2)}</option>}
                           </select>
                         </div>
                       )}
@@ -712,9 +713,9 @@ function TeamScoreRow({
         {team ? (
           <>
             {team.flag_url && (
-              <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />
+              <img src={team.flag_url} alt={getTeamDisplayName(team)} className="w-6 h-4 object-cover" />
             )}
-            <span className="font-medium truncate">{team.name}</span>
+            <span className="font-medium truncate">{getTeamDisplayName(team)}</span>
           </>
         ) : (
           <span className="text-zinc-400 dark:text-zinc-500 truncate">
@@ -837,8 +838,8 @@ function PredictedGroupRow({
       </td>
       <td className="px-3 py-3 min-w-44">
         <div className="flex items-center gap-2">
-          {team?.flag_url && <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />}
-          <span className="font-medium">{team?.name || 'Desconocido'}</span>
+          {team?.flag_url && <img src={team.flag_url} alt={getTeamDisplayName(team)} className="w-6 h-4 object-cover" />}
+          <span className="font-medium">{team ? getTeamDisplayName(team) : 'Desconocido'}</span>
           {team?.code && <span className="text-xs text-zinc-500 dark:text-zinc-400">({team.code})</span>}
         </div>
       </td>

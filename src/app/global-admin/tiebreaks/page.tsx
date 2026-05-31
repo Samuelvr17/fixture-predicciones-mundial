@@ -32,7 +32,7 @@ export default async function GlobalAdminTiebreaksPage() {
   // Fetch todos los equipos
   const { data: teams, error: teamsError } = await supabase
     .from('teams')
-    .select('id, name, code, group_code')
+    .select('id, name, display_name_es, code, group_code')
     .order('name');
 
   if (teamsError) {

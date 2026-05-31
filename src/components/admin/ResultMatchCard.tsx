@@ -11,10 +11,12 @@
 'use client';
 
 import { useState } from 'react';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 interface Team {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
 }
 
@@ -94,7 +96,7 @@ export default function ResultMatchCard({
 
   const getTeamDisplay = (team: Team | null, slot: string | null) => {
     if (team) {
-      return `${team.name} (${team.code})`;
+      return `${getTeamDisplayName(team)} (${team.code})`;
     }
     return `Slot: ${slot ?? '?'} (pendiente)`;
   };
@@ -205,10 +207,10 @@ export default function ResultMatchCard({
           >
             <option value="">Auto (inferido del marcador)</option>
             {effectiveTeam1 && (
-              <option value={effectiveTeam1.id}>{effectiveTeam1.name}</option>
+              <option value={effectiveTeam1.id}>{getTeamDisplayName(effectiveTeam1)}</option>
             )}
             {effectiveTeam2 && (
-              <option value={effectiveTeam2.id}>{effectiveTeam2.name}</option>
+              <option value={effectiveTeam2.id}>{getTeamDisplayName(effectiveTeam2)}</option>
             )}
           </select>
         </div>
@@ -217,7 +219,7 @@ export default function ResultMatchCard({
       {isElimination && !editing && match.match_results?.winner && (
         <div className="mb-4 p-3 bg-green-50 rounded">
           <p className="text-sm font-medium text-green-800">
-            Avanza: {match.match_results.winner.name}
+            Avanza: {getTeamDisplayName(match.match_results.winner)}
           </p>
         </div>
       )}

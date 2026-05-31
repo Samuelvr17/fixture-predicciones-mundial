@@ -22,12 +22,12 @@ const dashboardLinks = [
     },
     {
         href: "/bracket",
-        title: "Bracket",
+        title: "Llaves",
         description: "Sigue el cuadro oficial de eliminatorias.",
     },
     {
         href: "/standings",
-        title: "Standings",
+        title: "Tabla de posiciones",
         description: "Mira las tablas globales de fase de grupos.",
     },
 ];
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
 
     return (
         <AppShell
-            title="Dashboard"
+            title="Panel principal"
             subtitle={<>Bienvenido, {profile?.username || user?.email}</>}
             maxWidthClassName="max-w-4xl"
             headerActions={

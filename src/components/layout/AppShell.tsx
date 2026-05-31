@@ -21,12 +21,12 @@ type NavItem = {
 
 function getNavItems(): NavItem[] {
     return [
-        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/dashboard', label: 'Panel principal' },
         { href: '/predictions', label: 'Mis predicciones', shortLabel: 'Predicciones' },
         { href: '/leaderboard', label: 'Tabla general', shortLabel: 'Tabla' },
         { href: '/matches', label: 'Partidos' },
-        { href: '/bracket', label: 'Bracket' },
-        { href: '/standings', label: 'Standings' },
+        { href: '/bracket', label: 'Llaves' },
+        { href: '/standings', label: 'Tabla de posiciones', shortLabel: 'Posiciones' },
     ];
 }
 
