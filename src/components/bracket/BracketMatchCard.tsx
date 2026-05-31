@@ -7,6 +7,8 @@ interface BracketMatchCardProps {
   team2Name?: string;
   team1Code?: string;
   team2Code?: string;
+  team1SourceLabel?: string;
+  team2SourceLabel?: string;
 }
 
 const ROUND_LABELS: Record<string, string> = {
@@ -34,6 +36,8 @@ export default function BracketMatchCard({
   team2Name,
   team1Code,
   team2Code,
+  team1SourceLabel,
+  team2SourceLabel,
 }: BracketMatchCardProps) {
   const { match: m, team1_id, team2_id, team1_slot, team2_slot, winner_team_id, pendingSlots } = match;
 
@@ -61,13 +65,13 @@ export default function BracketMatchCard({
     isPending,
     isWinner,
     name,
-    slot,
+    sourceLabel,
   }: {
     code?: string;
     isPending: boolean;
     isWinner: boolean;
     name?: string;
-    slot?: string;
+    sourceLabel?: string;
   }) => (
     <div
       className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
@@ -96,11 +100,11 @@ export default function BracketMatchCard({
                   : 'text-zinc-900 dark:text-zinc-100'
             }`}
           >
-            {name || slot || 'TBD'}
+            {name || 'TBD'}
           </span>
-          {name && slot && (
-            <span className="block truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-500">
-              Origen: {slot}
+          {sourceLabel && (
+            <span className="block truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+              {sourceLabel}
             </span>
           )}
         </div>
@@ -142,7 +146,7 @@ export default function BracketMatchCard({
           isPending: isTeam1Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team1_id),
           name: team1Name,
-          slot: team1_slot,
+          sourceLabel: team1SourceLabel,
         })}
 
         {renderTeamRow({
@@ -150,7 +154,7 @@ export default function BracketMatchCard({
           isPending: isTeam2Pending,
           isWinner: Boolean(winner_team_id && winner_team_id === team2_id),
           name: team2Name,
-          slot: team2_slot,
+          sourceLabel: team2SourceLabel,
         })}
       </div>
 
