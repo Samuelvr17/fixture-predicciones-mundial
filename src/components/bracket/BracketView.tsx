@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { BracketOutput, ResolvedMatch, Round } from '@/lib/tournament/bracket';
 import BracketMatchCard from './BracketMatchCard';
 
@@ -23,6 +24,47 @@ const COLUMN_LABELS: Record<string, string> = {
   final: 'Final',
   third_place: 'Tercer Puesto',
 };
+
+type RoundSpacing = {
+  className: string;
+  style: CSSProperties & { '--connector-gap': string };
+};
+
+const ROUND_SPACING: Record<Round, RoundSpacing> = {
+  round_of_32: {
+    className: 'pt-0',
+    style: { '--connector-gap': '0.75rem', gap: '0.75rem' },
+  },
+  round_of_16: {
+    className: 'pt-16 lg:pt-20',
+    style: { '--connector-gap': '2rem', gap: '2rem' },
+  },
+  quarter_final: {
+    className: 'pt-36 lg:pt-44',
+    style: { '--connector-gap': '5rem', gap: '5rem' },
+  },
+  semi_final: {
+    className: 'pt-64 lg:pt-80',
+    style: { '--connector-gap': '9rem', gap: '9rem' },
+  },
+  final: {
+    className: 'pt-[28rem] lg:pt-[36rem]',
+    style: { '--connector-gap': '0rem', gap: '0.75rem' },
+  },
+  third_place: {
+    className: 'pt-16 lg:pt-20',
+    style: { '--connector-gap': '0rem', gap: '0.75rem' },
+  },
+};
+
+const CONNECTOR_ROUNDS = new Set<Round>([
+  'round_of_32',
+  'round_of_16',
+  'quarter_final',
+  'semi_final',
+]);
+
+const getRoundSpacing = (round: Round) => ROUND_SPACING[round];
 
 export default function BracketView({ bracket, teams }: BracketViewProps) {
   const { matches, champion, thirdPlace } = bracket;
@@ -56,24 +98,54 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     return teams.get(teamId);
   };
 
-  const renderRoundMatches = (round: Round) => (
-    <div className="space-y-3">
-      {matchesByRound.get(round)?.map((match) => {
-        const team1Info = getTeamInfo(match.team1_id);
-        const team2Info = getTeamInfo(match.team2_id);
-        return (
-          <BracketMatchCard
-            key={match.match.id}
-            match={match}
-            team1Name={team1Info?.name}
-            team2Name={team2Info?.name}
-            team1Code={team1Info?.code}
-            team2Code={team2Info?.code}
-          />
-        );
-      })}
-    </div>
-  );
+  const renderRoundMatches = (round: Round, showConnectors = false) => {
+    const spacing = getRoundSpacing(round);
+    const canConnectToNextRound = showConnectors && CONNECTOR_ROUNDS.has(round);
+
+    return (
+      <div
+        className={showConnectors ? `flex flex-col ${spacing.className}` : 'space-y-3'}
+        style={showConnectors ? spacing.style : undefined}
+      >
+        {matchesByRound.get(round)?.map((match, index) => {
+          const team1Info = getTeamInfo(match.team1_id);
+          const team2Info = getTeamInfo(match.team2_id);
+          const card = (
+            <BracketMatchCard
+              key={match.match.id}
+              match={match}
+              team1Name={team1Info?.name}
+              team2Name={team2Info?.name}
+              team1Code={team1Info?.code}
+              team2Code={team2Info?.code}
+            />
+          );
+
+          if (!showConnectors) {
+            return card;
+          }
+
+          return (
+            <div key={match.match.id} className="relative">
+              {card}
+              {canConnectToNextRound && (
+                <>
+                  <div className="pointer-events-none absolute left-full top-1/2 hidden w-2 border-t border-zinc-300 dark:border-zinc-700 md:block lg:w-3" />
+                  <div
+                    className={`pointer-events-none absolute left-[calc(100%+0.5rem)] hidden w-3 border-r border-zinc-300 dark:border-zinc-700 md:block lg:left-[calc(100%+0.75rem)] lg:w-3 ${
+                      index % 2 === 0
+                        ? 'top-1/2 h-[calc(50%+var(--connector-gap)/2)] rounded-tr-xl border-t'
+                        : 'bottom-1/2 h-[calc(50%+var(--connector-gap)/2)] rounded-br-xl border-b'
+                    }`}
+                  />
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderRoundHeader = (round: Round) => (
     <div className="sticky top-0 z-10 -mx-1 border-b border-zinc-200/80 bg-zinc-50/95 px-1 py-3 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-950/95 md:static md:z-auto md:mx-0 md:rounded-xl md:border md:bg-white md:px-4 md:py-3 md:shadow-sm md:backdrop-blur-none md:dark:bg-zinc-900">
@@ -146,7 +218,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
             {ROUND_ORDER.map((round) => (
               <section key={round} className="min-w-[280px] max-w-[320px] flex-1 space-y-4">
                 {renderRoundHeader(round)}
-                {renderRoundMatches(round)}
+                {renderRoundMatches(round, true)}
               </section>
             ))}
           </div>
