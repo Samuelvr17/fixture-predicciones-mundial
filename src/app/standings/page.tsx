@@ -7,6 +7,7 @@ import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
 import AppShell from '@/components/layout/AppShell';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
+import { ensureGlobalGroupMembership } from '@/lib/groups/globalGroup';
 
 // Database types
 type DbTeam = {
@@ -69,6 +70,8 @@ export default async function StandingsPage() {
   if (!user) {
     redirect('/login');
   }
+
+  await ensureGlobalGroupMembership(supabase, user.id);
 
   // Fetch global data (not group-specific)
   const [teamsData, matchesData, matchResultsData, manualTiebreaksData] = await Promise.all([
