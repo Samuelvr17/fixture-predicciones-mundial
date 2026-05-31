@@ -88,7 +88,6 @@ export default function BracketMatchCard({
   const isTeam1Pending = Boolean(!team1_id && team1_slot);
   const isTeam2Pending = Boolean(!team2_id && team2_slot);
   const pendingReason = getPendingReason();
-  const winnerName = winner_team_id === team1_id ? team1Name : team2Name;
 
   const renderTeamRow = ({
     code,
@@ -150,11 +149,6 @@ export default function BracketMatchCard({
             ))}
           </div>
         </div>
-        {isWinner && (
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-700 dark:bg-green-900/70 dark:text-green-200">
-            Avanza
-          </span>
-        )}
       </div>
     );
   };
@@ -168,7 +162,7 @@ export default function BracketMatchCard({
             Partido #{m.num}
           </span>
         )}
-        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800/70">
+        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/70 dark:text-zinc-300 dark:ring-zinc-700">
           {ROUND_LABELS[m.round] || m.round}
         </span>
       </div>
@@ -204,23 +198,12 @@ export default function BracketMatchCard({
 
       {/* Pending status */}
       {pendingReason && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/80 dark:bg-amber-950/40">
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-xs font-black text-amber-700 dark:bg-amber-900 dark:text-amber-200">
+        <div className="mt-2 flex justify-end">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-900/60 dark:text-amber-100 dark:ring-amber-800/70">
+            <span aria-hidden="true" className="text-[10px] font-black">
               !
             </span>
-            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-              {pendingReason}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Winner indicator */}
-      {winner_team_id && (
-        <div className="mt-3 rounded-xl bg-green-50 px-3 py-2 ring-1 ring-green-200 dark:bg-green-950/40 dark:ring-green-800/70">
-          <span className="text-xs font-bold text-green-700 dark:text-green-200">
-            Ganador / avanza: {winnerName || 'TBD'}
+            {pendingReason}
           </span>
         </div>
       )}
