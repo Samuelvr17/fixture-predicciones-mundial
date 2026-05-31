@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 import AppShell from "@/components/layout/AppShell";
+import HelpButton from "@/components/help/HelpButton";
 import { ensureGlobalGroupMembership } from "@/lib/groups/globalGroup";
 
 const dashboardLinks = [
@@ -61,14 +62,21 @@ export default async function DashboardPage() {
             subtitle={<>Bienvenido, {profile?.username || user?.email}</>}
             maxWidthClassName="max-w-4xl"
             headerActions={
-                <form action={logout}>
-                    <button
-                        type="submit"
-                        className="min-h-11 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/50"
-                    >
-                        Cerrar sesión
-                    </button>
-                </form>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <HelpButton title="¿Cómo funciona el panel principal?" buttonLabel="¿Cómo funciona?">
+                        <p>
+                            Desde aquí puedes entrar a las secciones principales de la quiniela. Usa Mis predicciones para registrar tus marcadores, Tabla general para ver el ranking, Partidos para consultar calendario y resultados, Llaves para ver eliminatorias y Tabla de posiciones para revisar los grupos. Si eres administrador, también verás opciones para registrar resultados oficiales y resolver desempates.
+                        </p>
+                    </HelpButton>
+                    <form action={logout}>
+                        <button
+                            type="submit"
+                            className="min-h-11 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                        >
+                            Cerrar sesión
+                        </button>
+                    </form>
+                </div>
             }
         >
             {globalAdmin && (

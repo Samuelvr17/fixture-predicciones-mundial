@@ -6,6 +6,7 @@ import { normalizeManualTiebreaksFromDb, separateTiebreaksByType } from '@/lib/t
 import { GroupTable } from '@/components/standings/GroupTable';
 import { BestThirdsTable } from '@/components/standings/BestThirdsTable';
 import AppShell from '@/components/layout/AppShell';
+import HelpButton from '@/components/help/HelpButton';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 import { ensureGlobalGroupMembership } from '@/lib/groups/globalGroup';
 
@@ -118,6 +119,13 @@ export default async function StandingsPage() {
       title="Tabla de posiciones global"
       subtitle="Tablas de posiciones de la fase de grupos del Mundial 2026"
       maxWidthClassName="max-w-7xl"
+      headerActions={
+        <HelpButton title="¿Cómo funciona la tabla de posiciones?" buttonLabel="¿Cómo funciona?">
+          <p>
+            Aquí ves las tablas de cada grupo con puntos, partidos jugados, goles a favor, goles en contra y diferencia de gol. Si hay empates, la app aplica criterios automáticos: puntos entre empatados, diferencia de gol entre empatados, goles entre empatados, diferencia de gol total y goles totales. Si aún sigue el empate, se requiere desempate manual.
+          </p>
+        </HelpButton>
+      }
       headerNotice={
         <>
           {isProvisional && (

@@ -4,7 +4,18 @@ import { fetchOfficialBracketData } from '@/lib/tournament/officialBracket';
 import BracketView from '@/components/bracket/BracketView';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 import AppShell from '@/components/layout/AppShell';
+import HelpButton from '@/components/help/HelpButton';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
+
+function bracketHelpButton() {
+    return (
+        <HelpButton title="¿Cómo funcionan las llaves?" buttonLabel="¿Cómo funciona?">
+            <p>
+                Aquí se muestran las eliminatorias del torneo. Los equipos aparecen cuando la fase de grupos y los desempates necesarios ya permiten resolver los clasificados. Las llaves se actualizan según los resultados oficiales registrados por el administrador.
+            </p>
+        </HelpButton>
+    );
+}
 
 export default async function GlobalBracketPage() {
     const supabase = await createClient();
@@ -22,7 +33,7 @@ export default async function GlobalBracketPage() {
     } catch (err) {
         console.error('Error fetching bracket data:', err);
         return (
-            <AppShell title="Llaves oficiales">
+            <AppShell title="Llaves oficiales" headerActions={bracketHelpButton()}>
                 <p className="text-zinc-500 dark:text-zinc-400">No se pudo cargar el bracket. Intenta de nuevo.</p>
             </AppShell>
         );
@@ -48,7 +59,7 @@ export default async function GlobalBracketPage() {
                 tables={['match_results', 'manual_tiebreaks', 'tournament_results']}
                 channelName={`realtime-bracket-${GLOBAL_GROUP_ID}`}
             />
-            <AppShell title="Llaves oficiales" maxWidthClassName="max-w-full">
+            <AppShell title="Llaves oficiales" maxWidthClassName="max-w-full" headerActions={bracketHelpButton()}>
                 <BracketView bracket={bracket} teams={viewTeamsMap} />
             </AppShell>
         </>
