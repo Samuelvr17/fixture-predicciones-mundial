@@ -86,17 +86,24 @@ export default function BracketMatchCard({
         >
           {code || 'TBD'}
         </span>
-        <span
-          className={`min-w-0 truncate text-sm font-semibold ${
-            isPending
-              ? 'text-zinc-500 italic dark:text-zinc-400'
-              : isWinner
-                ? 'text-green-950 dark:text-green-50'
-                : 'text-zinc-900 dark:text-zinc-100'
-          }`}
-        >
-          {name || slot || 'TBD'}
-        </span>
+        <div className="min-w-0 flex-1">
+          <span
+            className={`block truncate text-sm font-semibold ${
+              isPending
+                ? 'text-zinc-500 italic dark:text-zinc-400'
+                : isWinner
+                  ? 'text-green-950 dark:text-green-50'
+                  : 'text-zinc-900 dark:text-zinc-100'
+            }`}
+          >
+            {name || slot || 'TBD'}
+          </span>
+          {name && slot && (
+            <span className="block truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-500">
+              Origen: {slot}
+            </span>
+          )}
+        </div>
       </div>
       {isWinner && (
         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-700 dark:bg-green-900/70 dark:text-green-200">
