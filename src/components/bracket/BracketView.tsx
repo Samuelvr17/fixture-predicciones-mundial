@@ -15,9 +15,26 @@ const ROUND_ORDER: Round[] = [
   'third_place',
 ];
 
+type BracketSide = 'left' | 'right';
+
 const SIDE_ROUNDS: Round[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final'];
 const LEFT_DISPLAY_ROUNDS = SIDE_ROUNDS;
 const RIGHT_DISPLAY_ROUNDS = [...SIDE_ROUNDS].reverse();
+
+const SIDE_MATCH_NUMBERS: Record<BracketSide, Partial<Record<Round, number[]>>> = {
+  left: {
+    round_of_32: [74, 77, 73, 75, 83, 84, 81, 82],
+    round_of_16: [89, 90, 93, 94],
+    quarter_final: [97, 98],
+    semi_final: [101],
+  },
+  right: {
+    round_of_32: [76, 78, 79, 80, 86, 88, 85, 87],
+    round_of_16: [91, 92, 95, 96],
+    quarter_final: [99, 100],
+    semi_final: [102],
+  },
+};
 
 const COLUMN_LABELS: Record<string, string> = {
   round_of_32: 'Dieciseisavos',
@@ -27,8 +44,6 @@ const COLUMN_LABELS: Record<string, string> = {
   final: 'Final',
   third_place: '3er puesto',
 };
-
-type BracketSide = 'left' | 'right';
 
 type PositionedMatch = {
   match: ResolvedMatch;
@@ -68,13 +83,6 @@ const getSourceMatchNumbers = (match: ResolvedMatch) =>
 
 const getAverage = (values: number[]) =>
   values.reduce((total, value) => total + value, 0) / values.length;
-
-const getRoundMatchesBySide = (roundMatches: ResolvedMatch[], side: BracketSide) => {
-  const halfwayPoint = Math.ceil(roundMatches.length / 2);
-  return side === 'left'
-    ? roundMatches.slice(0, halfwayPoint)
-    : roundMatches.slice(halfwayPoint);
-};
 
 const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
   const layouts = new Map<Round, RoundLayout>();
@@ -138,16 +146,20 @@ const createConnectorGroups = (
     ? roundLayouts.get(nextRound)?.positionedMatches ?? []
     : [];
 
-  return targetMatches.flatMap((targetMatch, targetIndex) => {
-    const firstSource = sourceMatches[targetIndex * 2];
-    const secondSource = sourceMatches[targetIndex * 2 + 1];
+  return targetMatches.flatMap((targetMatch) => {
+    const sourceCenters = getSourceMatchNumbers(targetMatch.match)
+      .map((matchNumber) =>
+        sourceMatches.find((sourceMatch) => sourceMatch.match.match.num === matchNumber),
+      )
+      .filter((sourceMatch): sourceMatch is PositionedMatch => sourceMatch !== undefined)
+      .map((sourceMatch) => sourceMatch.centerRem);
 
-    if (!firstSource || !secondSource) return [];
+    if (sourceCenters.length !== 2) return [];
 
     return [
       {
         id: `${round}-${targetMatch.match.match.id}`,
-        sourceCentersRem: [firstSource.centerRem, secondSource.centerRem],
+        sourceCentersRem: [sourceCenters[0], sourceCenters[1]],
         targetCenterRem: targetMatch.centerRem,
       },
     ];
@@ -229,7 +241,18 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     const sideMap = new Map<Round, ResolvedMatch[]>();
 
     for (const round of SIDE_ROUNDS) {
-      sideMap.set(round, getRoundMatchesBySide(matchesByRound.get(round) ?? [], side));
+      const matchesForRound = matchesByRound.get(round) ?? [];
+      const orderedMatchNumbers = SIDE_MATCH_NUMBERS[side][round] ?? [];
+      const matchesByNumber = new Map(
+        matchesForRound.map((match) => [match.match.num, match] as const),
+      );
+
+      sideMap.set(
+        round,
+        orderedMatchNumbers
+          .map((matchNumber) => matchesByNumber.get(matchNumber))
+          .filter((match): match is ResolvedMatch => match !== undefined),
+      );
     }
 
     return sideMap;
