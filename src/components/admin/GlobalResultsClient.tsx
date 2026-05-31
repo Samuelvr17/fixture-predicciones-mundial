@@ -18,6 +18,7 @@ import ResultMatchCard from './ResultMatchCard';
 interface Team {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
 }
 
@@ -135,11 +136,11 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
 
   const roundLabels: Record<string, string> = {
     group: 'Fase de Grupos',
-    round_of_32: 'Dieciseisavos de Final',
-    round_of_16: 'Octavos de Final',
-    quarter_final: 'Cuartos de Final',
+    round_of_32: 'Dieciseisavos',
+    round_of_16: 'Octavos',
+    quarter_final: 'Cuartos de final',
     semi_final: 'Semifinales',
-    third_place: 'Tercer Puesto',
+    third_place: 'Tercer puesto',
     final: 'Final',
   };
 

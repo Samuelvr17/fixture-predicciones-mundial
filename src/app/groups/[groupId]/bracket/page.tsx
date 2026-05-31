@@ -67,7 +67,7 @@ export default async function GroupBracketPage(props: Params) {
 
     // Convert teamsMap for BracketView (expects Map<string, { name: string; code: string }>)
     const viewTeamsMap = new Map(
-        [...teamsMap.entries()].map(([id, t]) => [id, { name: t.name, code: t.code }])
+        [...teamsMap.entries()].map(([id, t]) => [id, { name: t.name, display_name_es: t.display_name_es, code: t.code }])
     );
 
     return (
@@ -78,7 +78,7 @@ export default async function GroupBracketPage(props: Params) {
             />
             <div className="flex min-h-screen flex-col bg-zinc-50 p-4 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 sm:p-6 lg:p-8">
             <div className="w-full">
-                <h1 className="mb-6 text-3xl font-bold tracking-tight">Bracket Oficial</h1>
+                <h1 className="mb-6 text-3xl font-bold tracking-tight">Llaves oficiales</h1>
                 <BracketView bracket={bracket} teams={viewTeamsMap} />
             </div>
             </div>

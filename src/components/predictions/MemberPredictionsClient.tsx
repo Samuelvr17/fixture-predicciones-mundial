@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -37,9 +38,9 @@ const ROUND_LABELS: Record<string, string> = {
   group: 'Fase de Grupos',
   round_of_32: 'Dieciseisavos',
   round_of_16: 'Octavos',
-  quarter_final: 'Cuartos',
+  quarter_final: 'Cuartos de final',
   semi_final: 'Semifinales',
-  third_place: 'Tercer Puesto',
+  third_place: 'Tercer puesto',
   final: 'Final',
 };
 
@@ -199,8 +200,8 @@ function ReadOnlyTeamRow({
       <div className="flex items-center space-x-2 flex-1 min-w-0">
         {team ? (
           <>
-            {team.flag_url && <img src={team.flag_url} alt={team.name} className="w-6 h-4 object-cover" />}
-            <span className="font-medium truncate">{team.name}</span>
+            {team.flag_url && <img src={team.flag_url} alt={getTeamDisplayName(team)} className="w-6 h-4 object-cover" />}
+            <span className="font-medium truncate">{getTeamDisplayName(team)}</span>
           </>
         ) : (
           <span className="text-zinc-400 dark:text-zinc-500 truncate">

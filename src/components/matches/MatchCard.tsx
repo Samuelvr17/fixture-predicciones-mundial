@@ -2,6 +2,7 @@ import type { MatchWithNormalizedResult } from '@/app/groups/[groupId]/matches/p
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { formatMatchDateShort } from '@/lib/utils/matchDate';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 interface MatchCardProps {
     match: MatchWithNormalizedResult;
@@ -37,11 +38,11 @@ export default function MatchCard({ match }: MatchCardProps) {
                                 {match.team1.flag_url && (
                                     <img
                                         src={match.team1.flag_url}
-                                        alt={match.team1.name}
+                                        alt={getTeamDisplayName(match.team1)}
                                         className="w-6 h-4 object-cover"
                                     />
                                 )}
-                                <span className="font-medium">{match.team1.name}</span>
+                                <span className="font-medium">{getTeamDisplayName(match.team1)}</span>
                             </>
                         ) : (
                             <span className="text-zinc-400 dark:text-zinc-500">
@@ -62,11 +63,11 @@ export default function MatchCard({ match }: MatchCardProps) {
                                 {match.team2.flag_url && (
                                     <img
                                         src={match.team2.flag_url}
-                                        alt={match.team2.name}
+                                        alt={getTeamDisplayName(match.team2)}
                                         className="w-6 h-4 object-cover"
                                     />
                                 )}
-                                <span className="font-medium">{match.team2.name}</span>
+                                <span className="font-medium">{getTeamDisplayName(match.team2)}</span>
                             </>
                         ) : (
                             <span className="text-zinc-400 dark:text-zinc-500">
@@ -86,8 +87,8 @@ export default function MatchCard({ match }: MatchCardProps) {
                     Final: {match.result.team1_score} - {match.result.team2_score}
                     {isKnockout && match.result.winner_team_id && (
                         <span className="ml-2">
-                            {match.team1?.id === match.result.winner_team_id && '✓ ' + match.team1.name}
-                            {match.team2?.id === match.result.winner_team_id && '✓ ' + match.team2.name}
+                            {match.team1?.id === match.result.winner_team_id && '✓ ' + getTeamDisplayName(match.team1)}
+                            {match.team2?.id === match.result.winner_team_id && '✓ ' + getTeamDisplayName(match.team2)}
                         </span>
                     )}
                 </Alert>

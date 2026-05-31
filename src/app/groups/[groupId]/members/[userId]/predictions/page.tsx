@@ -108,8 +108,8 @@ export default async function MemberPredictionsPage(props: Params) {
             team2_id,
             team1_slot,
             team2_slot,
-            team1:teams!matches_team1_id_fkey (id, name, code, flag_url),
-            team2:teams!matches_team2_id_fkey (id, name, code, flag_url)
+            team1:teams!matches_team1_id_fkey (id, name, display_name_es, code, flag_url),
+            team2:teams!matches_team2_id_fkey (id, name, display_name_es, code, flag_url)
         `);
 
     if (!matches) {

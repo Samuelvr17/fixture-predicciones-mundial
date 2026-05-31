@@ -3,10 +3,12 @@
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { TeamStats } from '@/lib/tournament/groupStandings';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 interface DbTeam {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
   group_code: string | null;
   flag_url: string | null;
@@ -97,11 +99,11 @@ export function GroupTable({
                       {team?.flag_url && (
                         <img
                           src={team.flag_url}
-                          alt={team.name}
+                          alt={getTeamDisplayName(team)}
                           className="w-5 h-5 object-cover rounded"
                         />
                       )}
-                      <span className="font-medium">{team?.name || 'Desconocido'}</span>
+                      <span className="font-medium">{team ? getTeamDisplayName(team) : 'Desconocido'}</span>
                       {team?.code && (
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">
                           ({team.code})

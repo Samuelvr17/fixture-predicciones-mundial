@@ -82,15 +82,15 @@ export default async function MyPredictionsPage(props: Params) {
             team2_id,
             team1_slot,
             team2_slot,
-            team1:teams!matches_team1_id_fkey (id, name, code, flag_url),
-            team2:teams!matches_team2_id_fkey (id, name, code, flag_url)
+            team1:teams!matches_team1_id_fkey (id, name, display_name_es, code, flag_url),
+            team2:teams!matches_team2_id_fkey (id, name, display_name_es, code, flag_url)
         `);
 
     if (!matches) {
         return (
             <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
                 <div className="max-w-4xl w-full mx-auto">
-                    <h1 className="text-2xl font-bold tracking-tight mb-4">Mis Predicciones</h1>
+                    <h1 className="text-2xl font-bold tracking-tight mb-4">Mis predicciones</h1>
                     <p className="text-zinc-500 dark:text-zinc-400">
                         No hay partidos disponibles.
                     </p>
@@ -134,7 +134,7 @@ export default async function MyPredictionsPage(props: Params) {
 
     return (
         <AppShell
-            title="Mis Predicciones"
+            title="Mis predicciones"
             subtitle={<>Grupo: {group.name}</>}
             groupId={params.groupId}
             groupName={group.name}
@@ -142,10 +142,10 @@ export default async function MyPredictionsPage(props: Params) {
                 {!isBeforeDeadline && (
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                         <p className="text-yellow-800 dark:text-yellow-200 font-medium">
-                            ⚠️ El deadline de predicciones ha pasado. No puedes editar tus predicciones.
+                            ⚠️ El cierre de predicciones ha pasado. No puedes editar tus predicciones.
                         </p>
                         <p className="text-yellow-700 dark:text-yellow-300 text-sm mt-1">
-                            Deadline: {new Date(group.prediction_deadline).toLocaleString('es-ES')}
+                            Cierre de predicciones: {new Date(group.prediction_deadline).toLocaleString('es-ES')}
                         </p>
                     </div>
                 )}

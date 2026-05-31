@@ -14,6 +14,7 @@ import { normalizeManualTiebreaksFromDb, separateTiebreaksByType, type DbManualT
 export interface TeamData {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
   group_code: string | null;
 }
@@ -36,6 +37,7 @@ export interface GroupTiebreakData {
   tiedTeams: Array<{
     id: string;
     name: string;
+    display_name_es?: string | null;
     code: string;
     points: number;
     goalDifference: number;
@@ -51,6 +53,7 @@ export interface BestThirdsTiebreakData {
   tiedTeams: Array<{
     id: string;
     name: string;
+    display_name_es?: string | null;
     code: string;
     points: number;
     goalDifference: number;
@@ -146,6 +149,7 @@ export function calculateTiebreakData(
           return {
             id: team.id,
             name: team.name,
+            display_name_es: team.display_name_es,
             code: team.code,
             points: stats.points,
             goalDifference: stats.goalDifference,
@@ -183,6 +187,7 @@ export function calculateTiebreakData(
           return {
             id: team.id,
             name: team.name,
+            display_name_es: team.display_name_es,
             code: team.code,
             points: stats.points,
             goalDifference: stats.goalDifference,

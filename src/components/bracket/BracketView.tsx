@@ -1,9 +1,10 @@
 import { BracketOutput, ResolvedMatch, Round } from '@/lib/tournament/bracket';
 import BracketMatchCard from './BracketMatchCard';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 interface BracketViewProps {
   bracket: BracketOutput;
-  teams: Map<string, { name: string; code: string }>;
+  teams: Map<string, { name: string; display_name_es?: string | null; code: string }>;
 }
 
 const ROUND_ORDER: Round[] = [
@@ -39,10 +40,10 @@ const SIDE_MATCH_NUMBERS: Record<BracketSide, Partial<Record<Round, number[]>>> 
 const COLUMN_LABELS: Record<string, string> = {
   round_of_32: 'Dieciseisavos',
   round_of_16: 'Octavos',
-  quarter_final: 'Cuartos',
+  quarter_final: 'Cuartos de final',
   semi_final: 'Semifinales',
   final: 'Final',
-  third_place: '3er puesto',
+  third_place: 'Tercer puesto',
 };
 
 type PositionedMatch = {
@@ -227,8 +228,8 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
     return (
       <BracketMatchCard
         match={match}
-        team1Name={team1Info?.name}
-        team2Name={team2Info?.name}
+        team1Name={getTeamDisplayName(team1Info)}
+        team2Name={getTeamDisplayName(team2Info)}
         team1Code={team1Info?.code}
         team2Code={team2Info?.code}
         team1SourceLabel={team1SourceLabel}
@@ -394,7 +395,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
               Campeón
             </div>
             <div className="mt-1 text-xl font-black text-amber-950 dark:text-amber-50">
-              {getTeamInfo(champion)?.name || 'TBD'}
+              {getTeamDisplayName(getTeamInfo(champion))}
             </div>
           </div>
         )}
@@ -404,7 +405,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
               Tercer puesto
             </div>
             <div className="mt-1 text-xl font-black text-sky-950 dark:text-sky-50">
-              {getTeamInfo(thirdPlace)?.name || 'TBD'}
+              {getTeamDisplayName(getTeamInfo(thirdPlace))}
             </div>
           </div>
         )}
@@ -473,7 +474,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
                 {thirdPlaceMatch && (
                   <div className="absolute left-0 right-0 z-20" style={{ top: `${thirdPlaceTopRem}rem` }}>
                     <div className="mb-2 text-center text-sm font-black uppercase tracking-[0.14em] text-slate-500 dark:text-zinc-400">
-                      3er puesto
+                      Tercer puesto
                     </div>
                     {renderMatchCard(thirdPlaceMatch)}
                   </div>

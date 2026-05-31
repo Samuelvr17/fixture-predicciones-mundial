@@ -182,16 +182,16 @@ export default function GroupSettingsForm({
 
             {/* Prediction Deadline */}
             <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
-                <h2 className="text-lg font-semibold mb-4">Deadline de Predicciones</h2>
+                <h2 className="text-lg font-semibold mb-4">Cierre de predicciones</h2>
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-2">
-                            Deadline actual
+                            Cierre actual
                         </label>
                         <p className="text-zinc-700 dark:text-zinc-300">{deadlineFormatted}</p>
                         {isDeadlinePassed && (
                             <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                                ⚠️ El deadline ya cerró, no se puede modificar
+                                ⚠️ El cierre de predicciones ya pasó, no se puede modificar
                             </p>
                         )}
                     </div>
@@ -200,7 +200,7 @@ export default function GroupSettingsForm({
                             <input type="hidden" name="group_id" value={group.id} />
                             <div>
                                 <label htmlFor="prediction_deadline" className="block text-sm font-medium mb-2">
-                                    Nuevo deadline
+                                    Nuevo cierre
                                 </label>
                                 <input
                                     type="datetime-local"
@@ -209,20 +209,20 @@ export default function GroupSettingsForm({
                                     className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                    El deadline debe ser antes del 11 de junio de 2026, 2:00 p. m. hora Colombia
+                                    El cierre debe ser antes del 11 de junio de 2026, 2:00 p. m. hora Colombia
                                 </p>
                             </div>
                             {deadlineError && (
                                 <p className="text-sm text-red-600 dark:text-red-400">{deadlineError}</p>
                             )}
                             {deadlineSuccess && (
-                                <p className="text-sm text-green-600 dark:text-green-400">Deadline actualizado correctamente</p>
+                                <p className="text-sm text-green-600 dark:text-green-400">Cierre actualizado correctamente</p>
                             )}
                             <button
                                 type="submit"
                                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                             >
-                                Actualizar Deadline
+                                Actualizar cierre
                             </button>
                         </form>
                     )}

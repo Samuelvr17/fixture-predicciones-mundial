@@ -13,6 +13,7 @@ import { ensureGlobalGroupMembership } from '@/lib/groups/globalGroup';
 type DbTeam = {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
   group_code: string | null;
   flag_url: string | null;
@@ -114,7 +115,7 @@ export default async function StandingsPage() {
         channelName="realtime-standings"
       />
       <AppShell
-      title="Standings Globales"
+      title="Tabla de posiciones global"
       subtitle="Tablas de posiciones de la fase de grupos del Mundial 2026"
       maxWidthClassName="max-w-7xl"
       headerNotice={
@@ -144,7 +145,7 @@ export default async function StandingsPage() {
     >
           {/* Group Tables */}
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Tablas por Grupo</h2>
+            <h2 className="text-2xl font-semibold mb-4">Tablas por grupo</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedGroupCodes.map((groupCode) => {
                 const groupStanding = groupStandingsOutput.standings[groupCode];
@@ -167,7 +168,7 @@ export default async function StandingsPage() {
 
           {/* Best Thirds Table */}
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Mejores Terceros</h2>
+            <h2 className="text-2xl font-semibold mb-4">Mejores terceros</h2>
             <BestThirdsTable
               bestThirds={bestThirdsOutput}
               teams={teams}

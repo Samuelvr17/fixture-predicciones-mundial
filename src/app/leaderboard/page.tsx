@@ -50,7 +50,7 @@ export default async function GlobalLeaderboardPage() {
                 channelName={`realtime-leaderboard-${GLOBAL_GROUP_ID}`}
                 filters={[{ table: 'score_breakdowns', filter: `group_id=eq.${GLOBAL_GROUP_ID}` }]}
             />
-            <AppShell title="Tabla General">
+            <AppShell title="Tabla general">
                 {membersWithScores.length === 0 ? (
                     <p className="text-zinc-500 dark:text-zinc-400">No hay participantes en la tabla general.</p>
                 ) : (

@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateTiebreakData } from '@/lib/tournament/tiebreaksHelper';
 import { saveManualTiebreak } from '@/server/actions/saveManualTiebreak';
+import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
 // Group order constant for consistent A-L display
 const GROUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
@@ -18,6 +19,7 @@ const GROUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
 interface TeamData {
   id: string;
   name: string;
+  display_name_es?: string | null;
   code: string;
   group_code: string | null;
 }
@@ -269,7 +271,7 @@ function GroupTiebreakCard({
               <div className="flex items-center gap-4">
                 <span className="text-2xl font-bold text-gray-400 w-8">{displayPosition}</span>
                 <div>
-                  <div className="font-semibold">{team.name}</div>
+                  <div className="font-semibold">{getTeamDisplayName(team)}</div>
                   <div className="text-sm text-gray-600">
                     PTS: {team.points} | DG: {team.goalDifference} | GF: {team.goalsFor}
                   </div>
@@ -377,7 +379,7 @@ function BestThirdsTiebreakCard({
                   {team.position}
                 </span>
                 <div>
-                  <div className="font-semibold">{team.name}</div>
+                  <div className="font-semibold">{getTeamDisplayName(team)}</div>
                   <div className="text-sm text-gray-600">
                     PTS: {team.points} | DG: {team.goalDifference} | GF: {team.goalsFor}
                   </div>

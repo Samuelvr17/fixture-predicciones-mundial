@@ -22,7 +22,7 @@ export default async function GlobalBracketPage() {
     } catch (err) {
         console.error('Error fetching bracket data:', err);
         return (
-            <AppShell title="Bracket Oficial">
+            <AppShell title="Llaves oficiales">
                 <p className="text-zinc-500 dark:text-zinc-400">No se pudo cargar el bracket. Intenta de nuevo.</p>
             </AppShell>
         );
@@ -39,7 +39,7 @@ export default async function GlobalBracketPage() {
     };
 
     const viewTeamsMap = new Map(
-        [...teamsMap.entries()].map(([id, team]) => [id, { name: team.name, code: team.code }])
+        [...teamsMap.entries()].map(([id, team]) => [id, { name: team.name, display_name_es: team.display_name_es, code: team.code }])
     );
 
     return (
@@ -48,7 +48,7 @@ export default async function GlobalBracketPage() {
                 tables={['match_results', 'manual_tiebreaks', 'tournament_results']}
                 channelName={`realtime-bracket-${GLOBAL_GROUP_ID}`}
             />
-            <AppShell title="Bracket Oficial" maxWidthClassName="max-w-full">
+            <AppShell title="Llaves oficiales" maxWidthClassName="max-w-full">
                 <BracketView bracket={bracket} teams={viewTeamsMap} />
             </AppShell>
         </>

@@ -72,6 +72,7 @@ export interface DbMatchResult {
 export interface DbTeam {
     id: string;
     name: string;
+    display_name_es: string | null;
     code: string;
     group_code: string | null;
 }
@@ -115,7 +116,7 @@ export async function fetchOfficialBracketData(
         { data: allResultsData, error: resultsError },
         { data: manualTiebreaksData, error: tiebreaksError },
     ] = await Promise.all([
-        supabase.from('teams').select('id, name, code, group_code'),
+        supabase.from('teams').select('id, name, display_name_es, code, group_code'),
         supabase
             .from('matches')
             .select(

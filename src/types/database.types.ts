@@ -642,6 +642,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          display_name_es: string | null
           flag_url: string | null
           group_code: string | null
           id: string
@@ -650,6 +651,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          display_name_es?: string | null
           flag_url?: string | null
           group_code?: string | null
           id?: string
@@ -658,6 +660,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          display_name_es?: string | null
           flag_url?: string | null
           group_code?: string | null
           id?: string
