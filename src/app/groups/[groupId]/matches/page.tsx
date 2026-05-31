@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Database } from '@/types/database.types';
 import MatchesCalendarClient from '@/components/matches/MatchesCalendarClient';
+import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 
 type Params = {
     params: Promise<{
@@ -100,11 +101,17 @@ export default async function GroupMatchesPage(props: Params) {
     }));
 
     return (
-        <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
+        <>
+            <RealtimeRefresh
+                tables={['match_results']}
+                channelName={`realtime-matches-${params.groupId}`}
+            />
+            <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
             <div className="max-w-6xl w-full mx-auto">
                 <h1 className="text-3xl font-bold tracking-tight mb-6">Calendario de Partidos</h1>
                 <MatchesCalendarClient matches={normalizedMatches} />
             </div>
-        </div>
+            </div>
+        </>
     );
 }
