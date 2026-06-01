@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export const GLOBAL_GROUP_ID = 'b86590c1-8ef2-448b-b93a-4233a4af5227';
 
@@ -8,10 +9,12 @@ export function getGlobalGroupId() {
 }
 
 export async function ensureGlobalGroupMembership(
-    supabase: SupabaseClient<Database>,
+    _supabase: SupabaseClient<Database>,
     userId: string,
 ) {
-    const { data: existingMembership, error: lookupError } = await supabase
+    const serviceRoleSupabase = createServiceRoleClient();
+
+    const { data: existingMembership, error: lookupError } = await serviceRoleSupabase
         .from('group_members')
         .select('id')
         .eq('group_id', GLOBAL_GROUP_ID)
@@ -26,22 +29,24 @@ export async function ensureGlobalGroupMembership(
         return existingMembership;
     }
 
-    const { data: insertedMembership, error: insertError } = await supabase
+    const { data: insertedMembership, error: upsertError } = await serviceRoleSupabase
         .from('group_members')
-        .insert({
-            group_id: GLOBAL_GROUP_ID,
-            user_id: userId,
-            role: 'member',
-        })
+        .upsert(
+            {
+                group_id: GLOBAL_GROUP_ID,
+                user_id: userId,
+                role: 'member',
+            },
+            {
+                onConflict: 'group_id,user_id',
+                ignoreDuplicates: true,
+            }
+        )
         .select('id')
-        .single();
+        .maybeSingle();
 
-    if (insertError) {
-        if (insertError.code === '23505') {
-            return null;
-        }
-
-        throw insertError;
+    if (upsertError) {
+        throw upsertError;
     }
 
     return insertedMembership;
