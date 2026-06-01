@@ -17,6 +17,11 @@ const dashboardLinks = [
         description: "Consulta el ranking global de participantes.",
     },
     {
+        href: "/participants",
+        title: "Participantes",
+        description: "Consulta los participantes y revisa sus predicciones.",
+    },
+    {
         href: "/matches",
         title: "Partidos",
         description: "Revisa el calendario completo y resultados oficiales.",

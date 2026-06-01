@@ -24,6 +24,7 @@ function getNavItems(): NavItem[] {
         { href: '/dashboard', label: 'Panel principal' },
         { href: '/predictions', label: 'Mis predicciones', shortLabel: 'Predicciones' },
         { href: '/leaderboard', label: 'Tabla general', shortLabel: 'Tabla' },
+        { href: '/participants', label: 'Participantes' },
         { href: '/matches', label: 'Partidos' },
         { href: '/bracket', label: 'Llaves' },
         { href: '/standings', label: 'Tabla de posiciones', shortLabel: 'Posiciones' },
