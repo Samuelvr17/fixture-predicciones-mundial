@@ -2,6 +2,7 @@
 
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
+import HelpButton from '@/components/help/HelpButton';
 import { TeamStats } from '@/lib/tournament/groupStandings';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 
@@ -36,10 +37,59 @@ export function GroupTable({
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="border-b border-zinc-100 px-4 py-4 sm:px-6 dark:border-zinc-800">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Grupo {groupCode}</h3>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <h3 className="text-lg font-semibold">Grupo {groupCode}</h3>
+            <HelpButton title={`Ayuda de posiciones del Grupo ${groupCode}`} buttonLabel="Info">
+              <div className="space-y-4">
+                <section>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Columnas de la tabla</h3>
+                  <dl className="mt-2 grid gap-2">
+                    <div><dt className="inline font-semibold">PJ:</dt> <dd className="inline">Partidos jugados.</dd></div>
+                    <div><dt className="inline font-semibold">G:</dt> <dd className="inline">Partidos ganados.</dd></div>
+                    <div><dt className="inline font-semibold">E:</dt> <dd className="inline">Partidos empatados.</dd></div>
+                    <div><dt className="inline font-semibold">P:</dt> <dd className="inline">Partidos perdidos.</dd></div>
+                    <div><dt className="inline font-semibold">GF:</dt> <dd className="inline">Goles a favor.</dd></div>
+                    <div><dt className="inline font-semibold">GC:</dt> <dd className="inline">Goles en contra.</dd></div>
+                    <div><dt className="inline font-semibold">DG:</dt> <dd className="inline">Diferencia de gol, calculada como GF - GC.</dd></div>
+                    <div><dt className="inline font-semibold">PTS:</dt> <dd className="inline">Puntos obtenidos.</dd></div>
+                  </dl>
+                </section>
+
+                <section>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Clasificación</h3>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    <li>Los puestos 1° y 2° clasifican directamente.</li>
+                    <li>El puesto 3° queda en pelea para mejores terceros.</li>
+                    <li>El puesto 4° queda eliminado en fase de grupos, salvo que la app muestre otro estado por reglas específicas.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Criterios de desempate automáticos</h3>
+                  <p className="mt-2">
+                    Si dos o más equipos quedan empatados, la app intenta ordenar automáticamente aplicando estos criterios:
+                  </p>
+                  <ol className="mt-2 list-decimal space-y-1 pl-5">
+                    <li>Mayor número de puntos obtenidos en los partidos entre los equipos empatados.</li>
+                    <li>Mejor diferencia de goles en los partidos entre los equipos empatados.</li>
+                    <li>Mayor número de goles marcados en los partidos entre los equipos empatados.</li>
+                    <li>Mejor diferencia de goles en todos los partidos del grupo.</li>
+                    <li>Mayor número de goles marcados en todos los partidos del grupo.</li>
+                  </ol>
+                </section>
+
+                <section>
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Desempate manual</h3>
+                  <p className="mt-2">
+                    Si después de aplicar los criterios automáticos el empate no se puede resolver, la tabla queda marcada como ‘Requiere desempate manual’. En ese caso, el administrador debe ordenar manualmente los equipos empatados para que la app pueda definir posiciones, clasificados y llaves.
+                  </p>
+                </section>
+              </div>
+            </HelpButton>
+          </div>
           {isProvisional && (
-            <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-2 py-1 rounded-full">
+            <span className="w-fit rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
               Provisional
             </span>
           )}
@@ -128,7 +178,7 @@ export function GroupTable({
 
       {requiresManualTiebreak && (
         <Alert variant="warning" className="rounded-none border-x-0 border-b-0 px-4 py-3 text-xs sm:px-6">
-          * Equipos empatados que requieren resolución manual por el administrador
+          Este grupo todavía tiene equipos empatados que no pudieron resolverse con los criterios automáticos. El administrador debe resolver el orden manualmente.
         </Alert>
       )}
     </Card>
