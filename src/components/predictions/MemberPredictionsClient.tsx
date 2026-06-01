@@ -4,10 +4,13 @@ import { useMemo } from 'react';
 import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
+import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
+import type { ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
+type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 
 type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
   team1: Team | null;
@@ -20,6 +23,7 @@ interface MemberPredictionsClientProps {
   groupId: string;
   teams: Team[];
   specialPrediction: SpecialPrediction | null;
+  manualTiebreaks?: PredictionManualTiebreak[];
   memberName: string;
   isOwnPredictions: boolean;
   pageTitle?: string;
@@ -50,7 +54,9 @@ export default function MemberPredictionsClient({
   matches,
   predictionsMap,
   groupId,
+  teams,
   specialPrediction,
+  manualTiebreaks = [],
   memberName,
   isOwnPredictions,
   pageTitle,
@@ -77,6 +83,76 @@ export default function MemberPredictionsClient({
 
     return groups;
   }, [sortedMatches]);
+
+  const predictedTournament = useMemo(() => {
+    const predictions = Array.from(predictionsMap.values()).map((prediction) => ({
+      match_id: prediction.match_id,
+      predicted_team1_score: prediction.predicted_team1_score,
+      predicted_team2_score: prediction.predicted_team2_score,
+      predicted_winner_team_id: prediction.predicted_winner_team_id,
+    }));
+
+    const normalizedManualTiebreaks: GroupManualTiebreak[] = manualTiebreaks
+      .filter((tiebreak) => tiebreak.type === 'group_tiebreak')
+      .map((tiebreak) => ({
+        type: 'group' as const,
+        reference: tiebreak.reference.startsWith('group_')
+          ? tiebreak.reference
+          : `group_${tiebreak.reference}`,
+        ordered_team_ids: tiebreak.ordered_team_ids,
+      }));
+
+    return buildPredictedTournamentFromScores(
+      teams,
+      matches,
+      predictions,
+      normalizedManualTiebreaks
+    );
+  }, [manualTiebreaks, matches, predictionsMap, teams]);
+
+  const resolvedMatchMap = useMemo(() => {
+    return new Map(predictedTournament.bracket.matches.map((match) => [match.match.id, match]));
+  }, [predictedTournament]);
+
+  const teamsMap = useMemo(() => {
+    return new Map(teams.map((team) => [team.id, team]));
+  }, [teams]);
+
+  const getDisplayTeam = (match: MatchWithTeam, side: 'team1' | 'team2') => {
+    if (match.round === 'group') {
+      return side === 'team1' ? match.team1 : match.team2;
+    }
+
+    const resolved = resolvedMatchMap.get(match.id);
+    const teamId = side === 'team1' ? resolved?.team1_id : resolved?.team2_id;
+    return teamId ? teamsMap.get(teamId) ?? null : null;
+  };
+
+  const getDisplaySlot = (match: MatchWithTeam, side: 'team1' | 'team2') => {
+    if (match.round === 'group') {
+      return side === 'team1' ? match.team1_slot : match.team2_slot;
+    }
+
+    const resolved = resolvedMatchMap.get(match.id);
+    const resolvedSlot = side === 'team1' ? resolved?.team1_slot : resolved?.team2_slot;
+    return resolvedSlot ?? (side === 'team1' ? match.team1_slot : match.team2_slot);
+  };
+
+  const getQualifierTeam = (match: MatchWithTeam, pred: Prediction) => {
+    if (pred.predicted_winner_team_id) {
+      return teamsMap.get(pred.predicted_winner_team_id) ?? null;
+    }
+
+    if (pred.predicted_team1_score > pred.predicted_team2_score) {
+      return getDisplayTeam(match, 'team1');
+    }
+
+    if (pred.predicted_team2_score > pred.predicted_team1_score) {
+      return getDisplayTeam(match, 'team2');
+    }
+
+    return null;
+  };
 
   const hasPredictions = predictionsMap.size > 0 || !!specialPrediction?.top_scorer_name;
 
@@ -147,6 +223,10 @@ export default function MemberPredictionsClient({
                           const pred = predictionsMap.get(match.id);
                           if (!pred) return null;
 
+                          const team1 = getDisplayTeam(match, 'team1');
+                          const team2 = getDisplayTeam(match, 'team2');
+                          const qualifier = match.round === 'group' ? null : getQualifierTeam(match, pred);
+
                           return (
                             <div key={match.id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
                               {match.match_number && (
@@ -155,18 +235,18 @@ export default function MemberPredictionsClient({
                                 </div>
                               )}
                               <ReadOnlyTeamRow
-                                team={match.team1}
-                                fallbackSlot={match.team1_slot}
+                                team={team1}
+                                fallbackSlot={getDisplaySlot(match, 'team1')}
                                 score={pred.predicted_team1_score}
                               />
                               <ReadOnlyTeamRow
-                                team={match.team2}
-                                fallbackSlot={match.team2_slot}
+                                team={team2}
+                                fallbackSlot={getDisplaySlot(match, 'team2')}
                                 score={pred.predicted_team2_score}
                               />
-                              {pred.predicted_winner_team_id && (
+                              {qualifier && (
                                 <div className="text-sm text-zinc-600 dark:text-zinc-300">
-                                  Clasifica: {pred.predicted_winner_team_id}
+                                  Clasifica: {getTeamDisplayName(qualifier)}
                                 </div>
                               )}
                               <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
