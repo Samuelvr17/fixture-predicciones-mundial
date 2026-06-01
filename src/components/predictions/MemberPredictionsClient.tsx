@@ -22,6 +22,8 @@ interface MemberPredictionsClientProps {
   specialPrediction: SpecialPrediction | null;
   memberName: string;
   isOwnPredictions: boolean;
+  pageTitle?: string;
+  editHref?: string;
 }
 
 const ROUND_ORDER = [
@@ -51,6 +53,8 @@ export default function MemberPredictionsClient({
   specialPrediction,
   memberName,
   isOwnPredictions,
+  pageTitle,
+  editHref,
 }: MemberPredictionsClientProps) {
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -81,15 +85,15 @@ export default function MemberPredictionsClient({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Predicciones de {memberName}
+            {pageTitle || `Predicciones de ${memberName}`}
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Vista de solo lectura
+            {pageTitle ? `Participante: ${memberName} · Vista de solo lectura` : 'Vista de solo lectura'}
           </p>
         </div>
         {isOwnPredictions && (
           <a
-            href={`/groups/${groupId}/my-predictions`}
+            href={editHref || `/groups/${groupId}/my-predictions`}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition-colors"
           >
             Editar mis predicciones
