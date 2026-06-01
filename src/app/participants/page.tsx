@@ -41,6 +41,13 @@ export default async function ParticipantsPage() {
         .eq('group_id', GLOBAL_GROUP_ID)
         .order('joined_at', { ascending: true });
 
+    const { data: globalAdmins } = await supabase
+        .from('global_admins')
+        .select('user_id');
+
+    const globalAdminIds = new Set((globalAdmins || []).map((admin) => admin.user_id));
+    const visibleMembers = (members || []).filter((member) => !globalAdminIds.has(member.user_id));
+
     return (
         <AppShell
             title="Participantes"
@@ -48,7 +55,7 @@ export default async function ParticipantsPage() {
             headerActions={participantsHelpButton()}
             maxWidthClassName="max-w-4xl"
         >
-            {!members || members.length === 0 ? (
+            {visibleMembers.length === 0 ? (
                 <EmptyState
                     title="No hay participantes todavía"
                     description="Cuando haya participantes registrados en la quiniela global, aparecerán aquí."
@@ -56,7 +63,7 @@ export default async function ParticipantsPage() {
             ) : (
                 <section className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        {members.map((member) => {
+                        {visibleMembers.map((member) => {
                             const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
                             const username = profile?.username || 'Usuario sin nombre';
                             const isCurrentUser = user.id === member.user_id;

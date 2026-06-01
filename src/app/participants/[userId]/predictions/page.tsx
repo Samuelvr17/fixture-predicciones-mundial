@@ -42,6 +42,25 @@ export default async function ParticipantPredictionsPage(props: Params) {
 
     await ensureGlobalGroupMembership(supabase, user.id);
 
+    const { data: targetGlobalAdmin } = await supabase
+        .from('global_admins')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (targetGlobalAdmin) {
+        return (
+            <AppShell title="Predicciones del participante" headerActions={participantsHelpButton()}>
+                <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Administrador global</h2>
+                    <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                        Este usuario es administrador y no aparece como participante.
+                    </p>
+                </div>
+            </AppShell>
+        );
+    }
+
     const { data: targetMembership } = await supabase
         .from('group_members')
         .select('id')
