@@ -19,6 +19,7 @@ type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
 
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
+type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
 
 function participantsHelpButton() {
@@ -103,8 +104,8 @@ export default async function ParticipantPredictionsPage(props: Params) {
             team2_id,
             team1_slot,
             team2_slot,
-            team1:teams!matches_team1_id_fkey (id, name, display_name_es, code, flag_url),
-            team2:teams!matches_team2_id_fkey (id, name, display_name_es, code, flag_url)
+            team1:teams!matches_team1_id_fkey (id, name, display_name_es, code, group_code, flag_url),
+            team2:teams!matches_team2_id_fkey (id, name, display_name_es, code, group_code, flag_url)
         `);
 
     if (!matches) {
@@ -127,8 +128,14 @@ export default async function ParticipantPredictionsPage(props: Params) {
 
     const { data: teams } = await supabase
         .from('teams')
-        .select('*')
+        .select('id, name, display_name_es, code, group_code, flag_url')
         .order('name');
+
+    const { data: predictionManualTiebreaks } = await supabase
+        .from('prediction_manual_tiebreaks')
+        .select('*')
+        .eq('group_id', GLOBAL_GROUP_ID)
+        .eq('user_id', userId);
 
     const { data: specialPredictions } = await supabase
         .from('predictions_specials')
@@ -147,6 +154,7 @@ export default async function ParticipantPredictionsPage(props: Params) {
                 groupId={GLOBAL_GROUP_ID}
                 teams={(teams as Team[]) || []}
                 specialPrediction={specialPredictions as SpecialPrediction | null}
+                manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
                 memberName={memberName}
                 isOwnPredictions={isOwnPredictions}
                 pageTitle="Predicciones del participante"
