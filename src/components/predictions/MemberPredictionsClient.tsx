@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Database } from '@/types/database.types';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
+import ParticipantPredictionBracketView from './ParticipantPredictionBracketView';
 import type { ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
 
 type Team = Database['public']['Tables']['teams']['Row'];
@@ -62,6 +63,8 @@ export default function MemberPredictionsClient({
   pageTitle,
   editHref,
 }: MemberPredictionsClientProps) {
+  const [viewMode, setViewMode] = useState<'list' | 'bracket'>('list');
+
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
       const roundOrderA = ROUND_ORDER.indexOf(a.round);
@@ -200,70 +203,99 @@ export default function MemberPredictionsClient({
 
       {predictionsMap.size > 0 && (
         <div className="space-y-4">
-          {Object.entries(groupedMatches).map(([round, dates]) => {
-            const hasPredictionsInRound = Object.values(dates).some((matchesByDate) =>
-              matchesByDate.some((match) => predictionsMap.has(match.id))
-            );
-            if (!hasPredictionsInRound) return null;
+          <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-900" role="tablist" aria-label="Vista de predicciones">
+            {(['list', 'bracket'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={viewMode === mode}
+                onClick={() => setViewMode(mode)}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                  viewMode === mode
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white'
+                }`}
+              >
+                {mode === 'list' ? 'Lista' : 'Llave'}
+              </button>
+            ))}
+          </div>
 
-            return (
-              <div key={round} className="space-y-4">
-                <h2 className="text-2xl font-bold tracking-tight">{ROUND_LABELS[round]}</h2>
-                {Object.entries(dates).map(([date, matchesByDate]) => {
-                  const hasPredictionsInDate = matchesByDate.some((match) => predictionsMap.has(match.id));
-                  if (!hasPredictionsInDate) return null;
+          {viewMode === 'list' ? (
+            <div className="space-y-4">
+              {Object.entries(groupedMatches).map(([round, dates]) => {
+                const hasPredictionsInRound = Object.values(dates).some((matchesByDate) =>
+                  matchesByDate.some((match) => predictionsMap.has(match.id))
+                );
+                if (!hasPredictionsInRound) return null;
 
-                  return (
-                    <div key={date} className="space-y-3">
-                      <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
-                        {formatMatchDateLong(date)}
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {matchesByDate.map((match) => {
-                          const pred = predictionsMap.get(match.id);
-                          if (!pred) return null;
+                return (
+                  <div key={round} className="space-y-4">
+                    <h2 className="text-2xl font-bold tracking-tight">{ROUND_LABELS[round]}</h2>
+                    {Object.entries(dates).map(([date, matchesByDate]) => {
+                      const hasPredictionsInDate = matchesByDate.some((match) => predictionsMap.has(match.id));
+                      if (!hasPredictionsInDate) return null;
 
-                          const team1 = getDisplayTeam(match, 'team1');
-                          const team2 = getDisplayTeam(match, 'team2');
-                          const qualifier = match.round === 'group' ? null : getQualifierTeam(match, pred);
+                      return (
+                        <div key={date} className="space-y-3">
+                          <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
+                            {formatMatchDateLong(date)}
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {matchesByDate.map((match) => {
+                              const pred = predictionsMap.get(match.id);
+                              if (!pred) return null;
 
-                          return (
-                            <div key={match.id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
-                              {match.match_number && (
-                                <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                  Partido #{match.match_number}
+                              const team1 = getDisplayTeam(match, 'team1');
+                              const team2 = getDisplayTeam(match, 'team2');
+                              const qualifier = match.round === 'group' ? null : getQualifierTeam(match, pred);
+
+                              return (
+                                <div key={match.id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
+                                  {match.match_number && (
+                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                      Partido #{match.match_number}
+                                    </div>
+                                  )}
+                                  <ReadOnlyTeamRow
+                                    team={team1}
+                                    fallbackSlot={getDisplaySlot(match, 'team1')}
+                                    score={pred.predicted_team1_score}
+                                  />
+                                  <ReadOnlyTeamRow
+                                    team={team2}
+                                    fallbackSlot={getDisplaySlot(match, 'team2')}
+                                    score={pred.predicted_team2_score}
+                                  />
+                                  {qualifier && (
+                                    <div className="text-sm text-zinc-600 dark:text-zinc-300">
+                                      Clasifica: {getTeamDisplayName(qualifier)}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                                    <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
+                                    <div>{match.venue}</div>
+                                    {match.group_code && <div>Grupo {match.group_code}</div>}
+                                  </div>
                                 </div>
-                              )}
-                              <ReadOnlyTeamRow
-                                team={team1}
-                                fallbackSlot={getDisplaySlot(match, 'team1')}
-                                score={pred.predicted_team1_score}
-                              />
-                              <ReadOnlyTeamRow
-                                team={team2}
-                                fallbackSlot={getDisplaySlot(match, 'team2')}
-                                score={pred.predicted_team2_score}
-                              />
-                              {qualifier && (
-                                <div className="text-sm text-zinc-600 dark:text-zinc-300">
-                                  Clasifica: {getTeamDisplayName(qualifier)}
-                                </div>
-                              )}
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-                                <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
-                                <div>{match.venue}</div>
-                                {match.group_code && <div>Grupo {match.group_code}</div>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <ParticipantPredictionBracketView
+              bracket={predictedTournament.bracket}
+              teams={teamsMap}
+              predictionsMap={predictionsMap}
+            />
+          )}
         </div>
       )}
     </div>
