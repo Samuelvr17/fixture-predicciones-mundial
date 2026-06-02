@@ -1,5 +1,6 @@
 import { ResolvedMatch } from '@/lib/tournament/bracket';
 import { formatMatchDateShort } from '@/lib/utils/matchDate';
+import { formatSlotLabel as formatTournamentSlotLabel } from '@/lib/tournament/slotLabels';
 
 interface BracketMatchCardProps {
   match: ResolvedMatch;
@@ -83,7 +84,7 @@ export default function BracketMatchCard({
     slot?: string;
     sourceLabel?: string;
   }) => {
-    const slotLabel = formatSlotLabel(slot);
+    const slotLabel = formatTournamentSlotLabel(slot);
     const displayName = getTeamDisplay(name, sourceLabel, slotLabel);
     const detailLabel = name ? sourceLabel || slotLabel : slotLabel;
 

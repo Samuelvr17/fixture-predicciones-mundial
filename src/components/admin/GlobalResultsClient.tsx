@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveMatchResult } from '@/server/actions/saveMatchResult';
 import ResultMatchCard from './ResultMatchCard';
+import { KNOCKOUT_ROUNDS, MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 
 interface Team {
   id: string;
@@ -113,37 +114,6 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
     }
   };
 
-  const isEliminationRound = (round: string): boolean => {
-    return [
-      'round_of_32',
-      'round_of_16',
-      'quarter_final',
-      'semi_final',
-      'third_place',
-      'final',
-    ].includes(round);
-  };
-
-  const roundOrder = [
-    'group',
-    'round_of_32',
-    'round_of_16',
-    'quarter_final',
-    'semi_final',
-    'third_place',
-    'final',
-  ];
-
-  const roundLabels: Record<string, string> = {
-    group: 'Fase de Grupos',
-    round_of_32: 'Dieciseisavos',
-    round_of_16: 'Octavos',
-    quarter_final: 'Cuartos de final',
-    semi_final: 'Semifinales',
-    third_place: 'Tercer puesto',
-    final: 'Final',
-  };
-
   return (
     <div>
       {error && (
@@ -158,20 +128,20 @@ export default function GlobalResultsClient({ matches, teams, currentUserId }: G
         </div>
       )}
 
-      {roundOrder.map((round) => {
+      {MATCH_ROUND_ORDER.map((round) => {
         const matchesInRound = groupedMatches[round];
         if (!matchesInRound || matchesInRound.length === 0) return null;
 
         return (
           <div key={round} className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">{roundLabels[round]}</h2>
+            <h2 className="text-2xl font-semibold mb-4">{getRoundLabel(round)}</h2>
             <div className="grid gap-4">
               {matchesInRound.map((match) => (
                 <ResultMatchCard
                   key={match.id}
                   match={match}
                   teams={teams}
-                  isElimination={isEliminationRound(round)}
+                  isElimination={KNOCKOUT_ROUNDS.has(round)}
                   onSave={handleSaveResult}
                   saving={saving === match.id}
                   resolvedTeam1={match.resolvedTeam1}

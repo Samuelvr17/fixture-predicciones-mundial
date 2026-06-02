@@ -10,6 +10,7 @@ import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
 import type { GroupStandings, TeamStats } from '@/lib/tournament/groupStandings';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
+import { KNOCKOUT_ROUNDS, MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -31,35 +32,6 @@ interface MyPredictionsClientProps {
   specialPrediction: SpecialPrediction | null;
   manualTiebreaks: PredictionManualTiebreak[];
 }
-
-const ROUND_ORDER = [
-  'group',
-  'round_of_32',
-  'round_of_16',
-  'quarter_final',
-  'semi_final',
-  'third_place',
-  'final',
-] as const;
-
-const ROUND_LABELS: Record<string, string> = {
-  group: 'Fase de Grupos',
-  round_of_32: 'Dieciseisavos',
-  round_of_16: 'Octavos',
-  quarter_final: 'Cuartos de final',
-  semi_final: 'Semifinales',
-  third_place: 'Tercer puesto',
-  final: 'Final',
-};
-
-const KNOCKOUT_ROUNDS = new Set([
-  'round_of_32',
-  'round_of_16',
-  'quarter_final',
-  'semi_final',
-  'third_place',
-  'final',
-]);
 
 export default function MyPredictionsClient({
   matches,
@@ -116,8 +88,8 @@ export default function MyPredictionsClient({
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
-      const roundOrderA = ROUND_ORDER.indexOf(a.round);
-      const roundOrderB = ROUND_ORDER.indexOf(b.round);
+      const roundOrderA = MATCH_ROUND_ORDER.indexOf(a.round);
+      const roundOrderB = MATCH_ROUND_ORDER.indexOf(b.round);
       if (roundOrderA !== roundOrderB) return roundOrderA - roundOrderB;
 
       return compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time);
@@ -593,7 +565,7 @@ export default function MyPredictionsClient({
 
       {Object.entries(groupedMatches).map(([round, dates]) => (
         <div key={round} className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{ROUND_LABELS[round]}</h2>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{getRoundLabel(round)}</h2>
           {round !== 'group' && (
             <Alert variant="warning" className="p-3">
               En eliminatorias, el marcador corresponde a los 90 minutos. Si predices empate, selecciona quien clasifica.

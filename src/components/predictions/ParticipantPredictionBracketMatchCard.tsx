@@ -2,6 +2,7 @@ import type { ResolvedMatch } from '@/lib/tournament/bracket';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { formatMatchDateShort } from '@/lib/utils/matchDate';
 import type { Database } from '@/types/database.types';
+import { formatSlotLabel as formatTournamentSlotLabel } from '@/lib/tournament/slotLabels';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -106,7 +107,7 @@ export default function ParticipantPredictionBracketMatchCard({
     score?: number;
     slot?: string;
   }) => {
-    const slotLabel = formatSlotLabel(slot);
+    const slotLabel = formatTournamentSlotLabel(slot);
     const displayName = getTeamDisplay(team, undefined, slotLabel);
     const isWinner = Boolean(winnerTeamId && teamId && winnerTeamId === teamId);
 

@@ -4,20 +4,7 @@ import { useState, useMemo } from 'react';
 import MatchCard from './MatchCard';
 import type { MatchWithNormalizedResult } from '@/app/groups/[groupId]/matches/page';
 import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate';
-
-const ROUND_ORDER = ['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'] as const;
-
-const ROUND_LABELS: Record<string, string> = {
-    group: 'Fase de Grupos',
-    round_of_32: 'Dieciseisavos',
-    round_of_16: 'Octavos',
-    quarter_final: 'Cuartos de final',
-    semi_final: 'Semifinales',
-    third_place: 'Tercer puesto',
-    final: 'Final'
-};
-
-const GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+import { GROUP_ORDER, MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 
 interface MatchesCalendarClientProps {
     matches: MatchWithNormalizedResult[];
@@ -62,8 +49,8 @@ export default function MatchesCalendarClient({ matches }: MatchesCalendarClient
 
         // Sort by phase, then date, then time
         const sorted = filtered.sort((a, b) => {
-            const roundOrderA = ROUND_ORDER.indexOf(a.round);
-            const roundOrderB = ROUND_ORDER.indexOf(b.round);
+            const roundOrderA = MATCH_ROUND_ORDER.indexOf(a.round);
+            const roundOrderB = MATCH_ROUND_ORDER.indexOf(b.round);
             if (roundOrderA !== roundOrderB) return roundOrderA - roundOrderB;
 
             return compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time);
@@ -109,9 +96,9 @@ export default function MatchesCalendarClient({ matches }: MatchesCalendarClient
                             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                         >
                             <option value="all">Todas las fases</option>
-                            {ROUND_ORDER.map(round => (
+                            {MATCH_ROUND_ORDER.map(round => (
                                 <option key={round} value={round}>
-                                    {ROUND_LABELS[round]}
+                                    {getRoundLabel(round)}
                                 </option>
                             ))}
                         </select>
@@ -130,7 +117,7 @@ export default function MatchesCalendarClient({ matches }: MatchesCalendarClient
                                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                             >
                                 <option value="all">Todos los grupos</option>
-                                {GROUPS.map(group => (
+                                {GROUP_ORDER.map(group => (
                                     <option key={group} value={group}>
                                         Grupo {group}
                                     </option>
@@ -167,7 +154,7 @@ export default function MatchesCalendarClient({ matches }: MatchesCalendarClient
                 Object.entries(groupedMatches).map(([round, dates]) => (
                     <div key={round} className="space-y-4">
                         <h2 className="text-2xl font-bold tracking-tight">
-                            {ROUND_LABELS[round]}
+                            {getRoundLabel(round)}
                         </h2>
                         {Object.entries(dates).map(([date, matchesByDate]) => (
                             <div key={date} className="space-y-3">

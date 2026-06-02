@@ -12,9 +12,7 @@ import { useRouter } from 'next/navigation';
 import { calculateTiebreakData } from '@/lib/tournament/tiebreaksHelper';
 import { saveManualTiebreak } from '@/server/actions/saveManualTiebreak';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
-
-// Group order constant for consistent A-L display
-const GROUP_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+import { GROUP_ORDER } from '@/lib/tournament/display';
 
 interface TeamData {
   id: string;

@@ -14,15 +14,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchOfficialBracketData } from '@/lib/tournament/officialBracket';
 import GlobalResultsClient from '@/components/admin/GlobalResultsClient';
 import HelpButton from '@/components/help/HelpButton';
-
-const KNOCKOUT_ROUNDS = new Set([
-  'round_of_32',
-  'round_of_16',
-  'quarter_final',
-  'semi_final',
-  'third_place',
-  'final',
-]);
+import { isKnockoutRound } from '@/lib/tournament/display';
 
 export default async function GlobalAdminResultsPage() {
   const supabase = await createClient();
@@ -88,7 +80,7 @@ export default async function GlobalAdminResultsPage() {
       }
       : null;
 
-    if (KNOCKOUT_ROUNDS.has(match.round)) {
+    if (isKnockoutRound(match.round)) {
       // Usar teams resueltos por el motor de bracket
       const resolved = resolvedMatchMap.get(match.id);
       const resolvedTeam1 = resolved?.team1_id ? (teamsMap.get(resolved.team1_id) ?? null) : null;

@@ -1,50 +1,21 @@
 import { BracketOutput, ResolvedMatch, Round } from '@/lib/tournament/bracket';
 import BracketMatchCard from './BracketMatchCard';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
+import {
+  BRACKET_LEFT_DISPLAY_ROUNDS,
+  BRACKET_RIGHT_DISPLAY_ROUNDS,
+  BRACKET_ROUND_ORDER,
+  BRACKET_SIDE_MATCH_NUMBERS,
+  BRACKET_SIDE_ROUNDS,
+  getRoundLabel,
+  type BracketSide,
+} from '@/lib/tournament/display';
+import { formatSlotLabel, getSlotMatchNumber } from '@/lib/tournament/slotLabels';
 
 interface BracketViewProps {
   bracket: BracketOutput;
   teams: Map<string, { name: string; display_name_es?: string | null; code: string }>;
 }
-
-const ROUND_ORDER: Round[] = [
-  'round_of_32',
-  'round_of_16',
-  'quarter_final',
-  'semi_final',
-  'final',
-  'third_place',
-];
-
-type BracketSide = 'left' | 'right';
-
-const SIDE_ROUNDS: Round[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final'];
-const LEFT_DISPLAY_ROUNDS = SIDE_ROUNDS;
-const RIGHT_DISPLAY_ROUNDS = [...SIDE_ROUNDS].reverse();
-
-const SIDE_MATCH_NUMBERS: Record<BracketSide, Partial<Record<Round, number[]>>> = {
-  left: {
-    round_of_32: [74, 77, 73, 75, 83, 84, 81, 82],
-    round_of_16: [89, 90, 93, 94],
-    quarter_final: [97, 98],
-    semi_final: [101],
-  },
-  right: {
-    round_of_32: [76, 78, 79, 80, 86, 88, 85, 87],
-    round_of_16: [91, 92, 95, 96],
-    quarter_final: [99, 100],
-    semi_final: [102],
-  },
-};
-
-const COLUMN_LABELS: Record<string, string> = {
-  round_of_32: 'Dieciseisavos',
-  round_of_16: 'Octavos',
-  quarter_final: 'Cuartos de final',
-  semi_final: 'Semifinales',
-  final: 'Final',
-  third_place: 'Tercer puesto',
-};
 
 type PositionedMatch = {
   match: ResolvedMatch;
@@ -68,15 +39,6 @@ const FIRST_ROUND_GAP_REM = 2.2;
 const FIRST_ROUND_PITCH_REM = BRACKET_CARD_HEIGHT_REM + FIRST_ROUND_GAP_REM;
 const MIN_COLUMN_HEIGHT_REM = BRACKET_CARD_HEIGHT_REM;
 
-const getSlotMatchNumber = (slot?: string) => {
-  if (!slot) return undefined;
-
-  const previousMatchSlot = slot.match(/^[WL](\d+)$/);
-  if (!previousMatchSlot) return undefined;
-
-  return Number(previousMatchSlot[1]);
-};
-
 const getSourceMatchNumbers = (match: ResolvedMatch) =>
   [match.match.team1_slot, match.match.team2_slot]
     .map((slot) => getSlotMatchNumber(slot))
@@ -89,9 +51,9 @@ const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
   const layouts = new Map<Round, RoundLayout>();
   const matchCentersByNumber = new Map<number, number>();
 
-  for (const round of SIDE_ROUNDS) {
+  for (const round of BRACKET_SIDE_ROUNDS) {
     const roundMatches = matchesByRound.get(round) ?? [];
-    const isFirstRound = round === SIDE_ROUNDS[0];
+    const isFirstRound = round === BRACKET_SIDE_ROUNDS[0];
 
     const positionedMatches = roundMatches.map((match, index) => {
       const sourceCenters = getSourceMatchNumbers(match)
@@ -128,13 +90,13 @@ const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
 };
 
 const getNextSideRound = (round: Round) => {
-  const roundIndex = SIDE_ROUNDS.indexOf(round);
+  const roundIndex = BRACKET_SIDE_ROUNDS.indexOf(round);
 
-  if (roundIndex === -1 || roundIndex === SIDE_ROUNDS.length - 1) {
+  if (roundIndex === -1 || roundIndex === BRACKET_SIDE_ROUNDS.length - 1) {
     return undefined;
   }
 
-  return SIDE_ROUNDS[roundIndex + 1];
+  return BRACKET_SIDE_ROUNDS[roundIndex + 1];
 };
 
 const createConnectorGroups = (
@@ -194,7 +156,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   const { matches, champion, thirdPlace } = bracket;
 
   const matchesByRound = new Map<Round, ResolvedMatch[]>();
-  for (const round of ROUND_ORDER) {
+  for (const round of BRACKET_ROUND_ORDER) {
     matchesByRound.set(round, []);
   }
 
@@ -222,8 +184,8 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   const renderMatchCard = (match: ResolvedMatch) => {
     const team1Info = getTeamInfo(match.team1_id);
     const team2Info = getTeamInfo(match.team2_id);
-    const team1SourceLabel = getSlotSourceLabel(match.team1_slot ?? match.match.team1_slot);
-    const team2SourceLabel = getSlotSourceLabel(match.team2_slot ?? match.match.team2_slot);
+    const team1SourceLabel = formatSlotLabel(match.team1_slot ?? match.match.team1_slot);
+    const team2SourceLabel = formatSlotLabel(match.team2_slot ?? match.match.team2_slot);
 
     return (
       <BracketMatchCard
@@ -241,9 +203,9 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   const sideMatchesByRound = (side: BracketSide) => {
     const sideMap = new Map<Round, ResolvedMatch[]>();
 
-    for (const round of SIDE_ROUNDS) {
+    for (const round of BRACKET_SIDE_ROUNDS) {
       const matchesForRound = matchesByRound.get(round) ?? [];
-      const orderedMatchNumbers = SIDE_MATCH_NUMBERS[side][round] ?? [];
+      const orderedMatchNumbers = BRACKET_SIDE_MATCH_NUMBERS[side][round] ?? [];
       const matchesByNumber = new Map(
         matchesForRound.map((match) => [match.match.num, match] as const),
       );
@@ -264,7 +226,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   const leftLayouts = createRoundLayouts(leftMatchesByRound);
   const rightLayouts = createRoundLayouts(rightMatchesByRound);
   const bracketHeightRem = Math.max(
-    ...SIDE_ROUNDS.flatMap((round) => [
+    ...BRACKET_SIDE_ROUNDS.flatMap((round) => [
       leftLayouts.get(round)?.heightRem ?? 0,
       rightLayouts.get(round)?.heightRem ?? 0,
     ]),
@@ -283,7 +245,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
   const renderRoundHeader = (round: Round, count: number) => (
     <div className="rounded-md bg-slate-950 px-3 py-2 text-center text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-950">
       <h2 className="text-[11px] font-black uppercase tracking-[0.18em]">
-        {COLUMN_LABELS[round]}
+        {getRoundLabel(round)}
       </h2>
       <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-300 dark:text-zinc-600">
         {count} partidos
@@ -415,7 +377,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
       >
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
           <div className="flex min-w-max items-start gap-8">
-            {LEFT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, leftLayouts, 'left'))}
+            {BRACKET_LEFT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, leftLayouts, 'left'))}
 
             <section className="w-60 shrink-0 space-y-5">
               <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-center dark:border-zinc-700 dark:bg-zinc-900/60">
@@ -457,7 +419,7 @@ export default function BracketView({ bracket, teams }: BracketViewProps) {
               </div>
             </section>
 
-            {RIGHT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, rightLayouts, 'right'))}
+            {BRACKET_RIGHT_DISPLAY_ROUNDS.map((round) => renderPositionedRound(round, rightLayouts, 'right'))}
           </div>
         </div>
       </div>

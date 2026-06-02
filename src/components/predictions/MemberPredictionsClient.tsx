@@ -7,6 +7,7 @@ import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
 import ParticipantPredictionBracketView from './ParticipantPredictionBracketView';
 import type { ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
+import { MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -31,26 +32,6 @@ interface MemberPredictionsClientProps {
   editHref?: string;
 }
 
-const ROUND_ORDER = [
-  'group',
-  'round_of_32',
-  'round_of_16',
-  'quarter_final',
-  'semi_final',
-  'third_place',
-  'final',
-] as const;
-
-const ROUND_LABELS: Record<string, string> = {
-  group: 'Fase de Grupos',
-  round_of_32: 'Dieciseisavos',
-  round_of_16: 'Octavos',
-  quarter_final: 'Cuartos de final',
-  semi_final: 'Semifinales',
-  third_place: 'Tercer puesto',
-  final: 'Final',
-};
-
 export default function MemberPredictionsClient({
   matches,
   predictionsMap,
@@ -67,8 +48,8 @@ export default function MemberPredictionsClient({
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
-      const roundOrderA = ROUND_ORDER.indexOf(a.round);
-      const roundOrderB = ROUND_ORDER.indexOf(b.round);
+      const roundOrderA = MATCH_ROUND_ORDER.indexOf(a.round);
+      const roundOrderB = MATCH_ROUND_ORDER.indexOf(b.round);
       if (roundOrderA !== roundOrderB) return roundOrderA - roundOrderB;
 
       return compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time);
@@ -232,7 +213,7 @@ export default function MemberPredictionsClient({
 
                 return (
                   <div key={round} className="space-y-4">
-                    <h2 className="text-2xl font-bold tracking-tight">{ROUND_LABELS[round]}</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{getRoundLabel(round)}</h2>
                     {Object.entries(dates).map(([date, matchesByDate]) => {
                       const hasPredictionsInDate = matchesByDate.some((match) => predictionsMap.has(match.id));
                       if (!hasPredictionsInDate) return null;
