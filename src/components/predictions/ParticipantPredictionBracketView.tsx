@@ -95,9 +95,13 @@ const createRoundLayouts = (matchesByRound: Map<Round, ResolvedMatch[]>) => {
 };
 
 const getNextSideRound = (round: Round) => {
-  const roundIndex = BRACKET_SIDE_ROUNDS.indexOf(round);
+  if (!BRACKET_SIDE_ROUNDS.includes(round as any)) {
+    return undefined;
+  }
 
-  if (roundIndex === -1 || roundIndex === BRACKET_SIDE_ROUNDS.length - 1) {
+  const roundIndex = BRACKET_SIDE_ROUNDS.indexOf(round as any);
+
+  if (roundIndex === BRACKET_SIDE_ROUNDS.length - 1) {
     return undefined;
   }
 
