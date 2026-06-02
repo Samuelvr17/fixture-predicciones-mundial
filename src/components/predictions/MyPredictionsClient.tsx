@@ -44,17 +44,20 @@ export default function MyPredictionsClient({
   manualTiebreaks,
 }: MyPredictionsClientProps) {
   const supabase = createClient();
-  const [predictions, setPredictions] = useState<Record<string, { team1: number; team2: number }>>(() => {
-    const initial: Record<string, { team1: number; team2: number }> = {};
+  const [predictions, setPredictions] = useState<Record<string, { team1: string; team2: string }>>(() => {
+    const initial: Record<string, { team1: string; team2: string }> = {};
+
     matches.forEach((match) => {
       const pred = predictionsMap.get(match.id);
+
       initial[match.id] = pred
         ? {
-          team1: pred.predicted_team1_score,
-          team2: pred.predicted_team2_score,
+          team1: pred.predicted_team1_score.toString(),
+          team2: pred.predicted_team2_score.toString(),
         }
-        : { team1: 0, team2: 0 };
+        : { team1: '0', team2: '0' };
     });
+
     return initial;
   });
   const [predictedWinners, setPredictedWinners] = useState<Record<string, string | null>>(() => {
@@ -112,14 +115,32 @@ export default function MyPredictionsClient({
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
 
 
+  const isValidScoreInput = (value: string) => /^\d*$/.test(value);
+
+  const parseScoreInput = (value: string) => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+      return 0;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+
+    if (Number.isNaN(parsed) || parsed < 0) {
+      return 0;
+    }
+
+    return parsed;
+  };
+
   const automaticPredictedTournament = useMemo(() => {
     return buildPredictedTournamentFromScores(
       teams,
       matches,
       matches.map((match) => ({
         match_id: match.id,
-        predicted_team1_score: predictions[match.id]?.team1 ?? 0,
-        predicted_team2_score: predictions[match.id]?.team2 ?? 0,
+        predicted_team1_score: parseScoreInput(predictions[match.id]?.team1 ?? '0'),
+        predicted_team2_score: parseScoreInput(predictions[match.id]?.team2 ?? '0'),
         predicted_winner_team_id: predictedWinners[match.id] ?? null,
       }))
     );
@@ -131,8 +152,8 @@ export default function MyPredictionsClient({
       matches,
       matches.map((match) => ({
         match_id: match.id,
-        predicted_team1_score: predictions[match.id]?.team1 ?? 0,
-        predicted_team2_score: predictions[match.id]?.team2 ?? 0,
+        predicted_team1_score: parseScoreInput(predictions[match.id]?.team1 ?? '0'),
+        predicted_team2_score: parseScoreInput(predictions[match.id]?.team2 ?? '0'),
         predicted_winner_team_id: predictedWinners[match.id] ?? null,
       })),
       Object.entries(manualTiebreakOrders).map(([reference, orderedTeamIds]) => ({
@@ -165,13 +186,7 @@ export default function MyPredictionsClient({
   };
 
   const handlePredictionChange = (matchId: string, team: 'team1' | 'team2', value: string) => {
-    const numValue = parseInt(value, 10);
-
-    if (Number.isNaN(numValue) || numValue < 0) {
-      setErrors((prev) => ({
-        ...prev,
-        [matchId]: 'Los goles deben ser un numero entero >= 0',
-      }));
+    if (!isValidScoreInput(value)) {
       return;
     }
 
@@ -185,8 +200,13 @@ export default function MyPredictionsClient({
       ...prev,
       [matchId]: {
         ...prev[matchId],
-        [team]: numValue,
+        [team]: value,
       },
+    }));
+
+    setSuccess((prev) => ({
+      ...prev,
+      [matchId]: false,
     }));
   };
 
@@ -210,8 +230,10 @@ export default function MyPredictionsClient({
         return;
       }
 
+      const team1Score = parseScoreInput(pred.team1);
+      const team2Score = parseScoreInput(pred.team2);
       const isKnockout = KNOCKOUT_ROUNDS.has(match.round);
-      const isDraw = pred.team1 === pred.team2;
+      const isDraw = team1Score === team2Score;
       const resolved = resolvedMatchMap.get(matchId);
       const winnerTeamId = isKnockout && isDraw ? predictedWinners[matchId] ?? null : null;
 
@@ -228,8 +250,8 @@ export default function MyPredictionsClient({
         const { error } = await supabase
           .from('predictions_scores')
           .update({
-            predicted_team1_score: pred.team1,
-            predicted_team2_score: pred.team2,
+            predicted_team1_score: team1Score,
+            predicted_team2_score: team2Score,
             predicted_winner_team_id: winnerTeamId,
           })
           .eq('id', existingPrediction.id);
@@ -240,8 +262,8 @@ export default function MyPredictionsClient({
           setSuccess((prev) => ({ ...prev, [matchId]: true }));
           predictionsMap.set(matchId, {
             ...existingPrediction,
-            predicted_team1_score: pred.team1,
-            predicted_team2_score: pred.team2,
+            predicted_team1_score: team1Score,
+            predicted_team2_score: team2Score,
             predicted_winner_team_id: winnerTeamId,
           });
         }
@@ -252,8 +274,8 @@ export default function MyPredictionsClient({
             group_id: groupId,
             user_id: user.id,
             match_id: matchId,
-            predicted_team1_score: pred.team1,
-            predicted_team2_score: pred.team2,
+            predicted_team1_score: team1Score,
+            predicted_team2_score: team2Score,
             predicted_winner_team_id: winnerTeamId,
           });
 
@@ -579,18 +601,20 @@ export default function MyPredictionsClient({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {matchesByDate.map((match) => {
-                  const pred = predictions[match.id] || { team1: 0, team2: 0 };
+                  const pred = predictions[match.id] || { team1: '0', team2: '0' };
+                  const team1Score = parseScoreInput(pred.team1);
+                  const team2Score = parseScoreInput(pred.team2);
                   const isSaved = predictionsMap.has(match.id);
                   const savedPrediction = predictionsMap.get(match.id);
-                  const isDraw = pred.team1 === pred.team2;
+                  const isDraw = team1Score === team2Score;
                   const isKnockout = KNOCKOUT_ROUNDS.has(match.round);
                   const team1 = getDisplayTeam(match, 'team1');
                   const team2 = getDisplayTeam(match, 'team2');
                   const team1Slot = getDisplaySlot(match, 'team1');
                   const team2Slot = getDisplaySlot(match, 'team2');
                   const hasChanges = isSaved && (
-                    savedPrediction!.predicted_team1_score !== pred.team1 ||
-                    savedPrediction!.predicted_team2_score !== pred.team2 ||
+                    savedPrediction!.predicted_team1_score !== team1Score ||
+                    savedPrediction!.predicted_team2_score !== team2Score ||
                     (savedPrediction!.predicted_winner_team_id ?? null) !== (isKnockout && isDraw ? predictedWinners[match.id] ?? null : null)
                   );
 
@@ -675,7 +699,7 @@ function TeamScoreRow({
 }: {
   team: Team | null;
   fallbackSlot: string | null | undefined;
-  score: number;
+  score: string;
   editable: boolean;
   onChange: (value: string) => void;
 }) {
@@ -697,10 +721,12 @@ function TeamScoreRow({
       </div>
       {editable ? (
         <input
-          type="number"
-          min="0"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={score}
           onChange={(event) => onChange(event.target.value)}
+          onFocus={(event) => event.currentTarget.select()}
           className="w-16 px-2 py-1 border border-zinc-300 dark:border-zinc-700 rounded text-center bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
         />
       ) : (
