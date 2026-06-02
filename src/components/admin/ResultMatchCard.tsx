@@ -68,8 +68,12 @@ export default function ResultMatchCard({
   resolvedTeam2,
 }: ResultMatchCardProps) {
   const [editing, setEditing] = useState(false);
-  const [team1Score, setTeam1Score] = useState(match.match_results?.team1_score ?? 0);
-  const [team2Score, setTeam2Score] = useState(match.match_results?.team2_score ?? 0);
+  const [team1ScoreInput, setTeam1ScoreInput] = useState(
+    match.match_results?.team1_score?.toString() ?? ''
+  );
+  const [team2ScoreInput, setTeam2ScoreInput] = useState(
+    match.match_results?.team2_score?.toString() ?? ''
+  );
   const [winnerTeamId, setWinnerTeamId] = useState(match.match_results?.winner_team_id ?? null);
 
   const hasResult = !!match.match_results;
@@ -82,14 +86,23 @@ export default function ResultMatchCard({
   const team2Resolved = !!effectiveTeam2;
   const bothTeamsResolved = team1Resolved && team2Resolved;
 
+  const parseScoreInput = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed === '') return 0;
+    const parsed = Number.parseInt(trimmed, 10);
+    return Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  };
+
   const handleSave = () => {
+    const team1Score = parseScoreInput(team1ScoreInput);
+    const team2Score = parseScoreInput(team2ScoreInput);
     onSave(match.id, team1Score, team2Score, winnerTeamId);
     setEditing(false);
   };
 
   const handleCancel = () => {
-    setTeam1Score(match.match_results?.team1_score ?? 0);
-    setTeam2Score(match.match_results?.team2_score ?? 0);
+    setTeam1ScoreInput(match.match_results?.team1_score?.toString() ?? '');
+    setTeam2ScoreInput(match.match_results?.team2_score?.toString() ?? '');
     setWinnerTeamId(match.match_results?.winner_team_id ?? null);
     setEditing(false);
   };
@@ -153,19 +166,29 @@ export default function ResultMatchCard({
         {editing ? (
           <div className="flex items-center gap-2 mx-4">
             <input
-              type="number"
-              min="0"
-              value={team1Score}
-              onChange={(e) => setTeam1Score(parseInt(e.target.value) || 0)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={team1ScoreInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*$/.test(value)) setTeam1ScoreInput(value);
+              }}
+              onFocus={(e) => e.currentTarget.select()}
               className="w-16 px-2 py-1 border rounded text-center"
               disabled={saving}
             />
             <span className="text-gray-400">-</span>
             <input
-              type="number"
-              min="0"
-              value={team2Score}
-              onChange={(e) => setTeam2Score(parseInt(e.target.value) || 0)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={team2ScoreInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*$/.test(value)) setTeam2ScoreInput(value);
+              }}
+              onFocus={(e) => e.currentTarget.select()}
               className="w-16 px-2 py-1 border rounded text-center"
               disabled={saving}
             />
