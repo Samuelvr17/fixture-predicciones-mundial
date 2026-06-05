@@ -11,6 +11,7 @@ import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTo
 import type { GroupStandings, TeamStats } from '@/lib/tournament/groupStandings';
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { KNOCKOUT_ROUNDS, MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
+import AwardCandidateSelect, { type AwardCandidate } from '@/components/awards/AwardCandidateSelect';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -31,6 +32,7 @@ interface MyPredictionsClientProps {
   teams: Team[];
   specialPrediction: SpecialPrediction | null;
   manualTiebreaks: PredictionManualTiebreak[];
+  awardCandidates: AwardCandidate[];
 }
 
 export default function MyPredictionsClient({
@@ -42,6 +44,7 @@ export default function MyPredictionsClient({
   teams,
   specialPrediction,
   manualTiebreaks,
+  awardCandidates,
 }: MyPredictionsClientProps) {
   const supabase = createClient();
   const [predictions, setPredictions] = useState<Record<string, { team1: string; team2: string }>>(() => {
@@ -70,7 +73,14 @@ export default function MyPredictionsClient({
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<Record<string, boolean>>({});
+  const [topScorerCandidateId, setTopScorerCandidateId] = useState<string | null>(specialPrediction?.top_scorer_candidate_id ?? null);
   const [topScorerName, setTopScorerName] = useState(specialPrediction?.top_scorer_name || '');
+  const [topScorerOtherName, setTopScorerOtherName] = useState(specialPrediction?.top_scorer_other_name || (!specialPrediction?.top_scorer_candidate_id ? specialPrediction?.top_scorer_name || '' : ''));
+  const [topScorerOtherTeamId, setTopScorerOtherTeamId] = useState<string | null>(specialPrediction?.top_scorer_other_team_id ?? null);
+  const [bestGoalkeeperCandidateId, setBestGoalkeeperCandidateId] = useState<string | null>(specialPrediction?.best_goalkeeper_candidate_id ?? null);
+  const [bestGoalkeeperName, setBestGoalkeeperName] = useState(specialPrediction?.best_goalkeeper_name || '');
+  const [bestGoalkeeperOtherName, setBestGoalkeeperOtherName] = useState(specialPrediction?.best_goalkeeper_other_name || (!specialPrediction?.best_goalkeeper_candidate_id ? specialPrediction?.best_goalkeeper_name || '' : ''));
+  const [bestGoalkeeperOtherTeamId, setBestGoalkeeperOtherTeamId] = useState<string | null>(specialPrediction?.best_goalkeeper_other_team_id ?? null);
   const [savingSpecials, setSavingSpecials] = useState(false);
   const [specialsError, setSpecialsError] = useState<string | null>(null);
   const [specialsSuccess, setSpecialsSuccess] = useState(false);
@@ -315,6 +325,12 @@ export default function MyPredictionsClient({
         return;
       }
 
+      const normalizedTopScorerOtherName = topScorerOtherName.trim();
+      const normalizedBestGoalkeeperOtherName = bestGoalkeeperOtherName.trim();
+
+      const topScorerCandidate = awardCandidates.find((candidate) => candidate.id === topScorerCandidateId);
+      const bestGoalkeeperCandidate = awardCandidates.find((candidate) => candidate.id === bestGoalkeeperCandidateId);
+
       const { error } = await supabase
         .from('predictions_specials')
         .upsert({
@@ -322,7 +338,14 @@ export default function MyPredictionsClient({
           user_id: user.id,
           champion_team_id: null,
           third_place_team_id: null,
-          top_scorer_name: topScorerName.trim() || null,
+          top_scorer_candidate_id: topScorerCandidateId,
+          top_scorer_name: topScorerCandidate?.display_name || normalizedTopScorerOtherName || topScorerName.trim() || null,
+          top_scorer_other_name: topScorerCandidateId ? null : normalizedTopScorerOtherName || null,
+          top_scorer_other_team_id: topScorerCandidateId ? null : topScorerOtherTeamId,
+          best_goalkeeper_candidate_id: bestGoalkeeperCandidateId,
+          best_goalkeeper_name: bestGoalkeeperCandidate?.display_name || normalizedBestGoalkeeperOtherName || bestGoalkeeperName.trim() || null,
+          best_goalkeeper_other_name: bestGoalkeeperCandidateId ? null : normalizedBestGoalkeeperOtherName || null,
+          best_goalkeeper_other_team_id: bestGoalkeeperCandidateId ? null : bestGoalkeeperOtherTeamId,
         }, {
           onConflict: 'group_id,user_id',
         });
@@ -561,26 +584,76 @@ export default function MyPredictionsClient({
         </Card>
       )}
 
-      <Card className="space-y-3 sm:space-y-4">
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Prediccion especial</h2>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Goleador del Torneo</label>
-          <input
-            type="text"
-            value={topScorerName}
-            onChange={(event) => setTopScorerName(event.target.value)}
-            disabled={!isBeforeDeadline}
-            placeholder="Nombre del jugador goleador"
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
-          />
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Predicciones especiales</h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Estas predicciones especiales se califican al final del torneo. Selecciona los jugadores desde la lista para evitar errores de escritura. Si tu jugador no aparece, usa la opción Otro jugador.
+          </p>
         </div>
+
+        <AwardCandidateSelect
+          candidates={awardCandidates}
+          teams={teams}
+          value={topScorerCandidateId}
+          onChange={(candidateId, candidate) => {
+            setTopScorerCandidateId(candidateId);
+            setTopScorerName(candidate?.display_name || '');
+            if (candidateId) {
+              setTopScorerOtherName('');
+              setTopScorerOtherTeamId(null);
+            }
+          }}
+          awardCategory="top_scorer"
+          label="Goleador del torneo"
+          placeholder="Busca jugador por nombre, apellido o selección"
+          helpText="Selecciona un jugador de la lista para evitar errores de escritura. Si no aparece, usa Otro jugador."
+          allowOther
+          otherName={topScorerOtherName}
+          otherTeamId={topScorerOtherTeamId}
+          onOtherChange={({ name, teamId }) => {
+            setTopScorerCandidateId(null);
+            setTopScorerOtherName(name);
+            setTopScorerOtherTeamId(teamId);
+            setTopScorerName(name);
+          }}
+          disabled={!isBeforeDeadline}
+        />
+
+        <AwardCandidateSelect
+          candidates={awardCandidates}
+          teams={teams}
+          value={bestGoalkeeperCandidateId}
+          onChange={(candidateId, candidate) => {
+            setBestGoalkeeperCandidateId(candidateId);
+            setBestGoalkeeperName(candidate?.display_name || '');
+            if (candidateId) {
+              setBestGoalkeeperOtherName('');
+              setBestGoalkeeperOtherTeamId(null);
+            }
+          }}
+          awardCategory="best_goalkeeper"
+          label="Mejor arquero del torneo"
+          placeholder="Busca arquero por nombre, apellido o selección"
+          helpText="Selecciona el arquero desde la lista. Si no aparece, usa Otro jugador."
+          allowOther
+          otherName={bestGoalkeeperOtherName}
+          otherTeamId={bestGoalkeeperOtherTeamId}
+          onOtherChange={({ name, teamId }) => {
+            setBestGoalkeeperCandidateId(null);
+            setBestGoalkeeperOtherName(name);
+            setBestGoalkeeperOtherTeamId(teamId);
+            setBestGoalkeeperName(name);
+          }}
+          disabled={!isBeforeDeadline}
+        />
 
         {specialsError && <Alert variant="error">{specialsError}</Alert>}
         {specialsSuccess && <Alert variant="success">Guardado</Alert>}
 
         {isBeforeDeadline && (
           <Button onClick={handleSaveSpecials} disabled={savingSpecials} className="w-full">
-            {savingSpecials ? 'Guardando...' : 'Guardar goleador'}
+            {savingSpecials ? 'Guardando...' : 'Guardar predicciones especiales'}
           </Button>
         )}
       </Card>

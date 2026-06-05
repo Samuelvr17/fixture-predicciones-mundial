@@ -36,6 +36,7 @@ describe('calculateScore', () => {
       champion_team_id: null,
       third_place_team_id: null,
       official_top_scorer: null,
+      official_best_goalkeeper: null,
       team_advances: {},
     },
   });
@@ -378,6 +379,101 @@ describe('calculateScore', () => {
     expect(result.topScorerPoints).toBe(0);
   });
 
+
+  it('should award 60 top scorer points for matching candidate IDs', () => {
+    const input = createBaseInput();
+    input.predictions_specials.top_scorer_candidate_id = 'candidate-1';
+    input.resolvedBracket.official_top_scorer_candidate_id = 'candidate-1';
+
+    const result = calculateScore(input);
+
+    expect(result.topScorerPoints).toBe(60);
+  });
+
+  it('should award 0 top scorer points for different candidate IDs', () => {
+    const input = createBaseInput();
+    input.predictions_specials.top_scorer_candidate_id = 'candidate-1';
+    input.resolvedBracket.official_top_scorer_candidate_id = 'candidate-2';
+
+    const result = calculateScore(input);
+
+    expect(result.topScorerPoints).toBe(0);
+  });
+
+  it('should use normalized text fallback for top scorer when IDs are missing', () => {
+    const input = createBaseInput();
+    input.predictions_specials.top_scorer_name = 'Kylian Mbappe';
+    input.resolvedBracket.official_top_scorer = 'Kylian Mbappé';
+
+    const result = calculateScore(input);
+
+    expect(result.topScorerPoints).toBe(60);
+  });
+
+  it('should award 0 top scorer points for different text fallback names', () => {
+    const input = createBaseInput();
+    input.predictions_specials.top_scorer_name = 'Harry Kane';
+    input.resolvedBracket.official_top_scorer = 'Kylian Mbappé';
+
+    const result = calculateScore(input);
+
+    expect(result.topScorerPoints).toBe(0);
+  });
+
+  it('should award 60 best goalkeeper points for matching candidate IDs', () => {
+    const input = createBaseInput();
+    input.predictions_specials.best_goalkeeper_candidate_id = 'keeper-1';
+    input.resolvedBracket.official_best_goalkeeper_candidate_id = 'keeper-1';
+
+    const result = calculateScore(input);
+
+    expect(result.bestGoalkeeperPoints).toBe(60);
+  });
+
+  it('should award 0 best goalkeeper points for different candidate IDs', () => {
+    const input = createBaseInput();
+    input.predictions_specials.best_goalkeeper_candidate_id = 'keeper-1';
+    input.resolvedBracket.official_best_goalkeeper_candidate_id = 'keeper-2';
+
+    const result = calculateScore(input);
+
+    expect(result.bestGoalkeeperPoints).toBe(0);
+  });
+
+  it('should use normalized text fallback for best goalkeeper when IDs are missing', () => {
+    const input = createBaseInput();
+    input.predictions_specials.best_goalkeeper_name = 'Dibu Martinez';
+    input.resolvedBracket.official_best_goalkeeper = 'Dibu Martínez';
+
+    const result = calculateScore(input);
+
+    expect(result.bestGoalkeeperPoints).toBe(60);
+  });
+
+  it('should award 0 best goalkeeper points for different text fallback names', () => {
+    const input = createBaseInput();
+    input.predictions_specials.best_goalkeeper_name = 'Alisson';
+    input.resolvedBracket.official_best_goalkeeper = 'Dibu Martínez';
+
+    const result = calculateScore(input);
+
+    expect(result.bestGoalkeeperPoints).toBe(0);
+  });
+
+  it('should include top scorer and best goalkeeper points in total', () => {
+    const input = createBaseInput();
+    input.predictions_specials.top_scorer_candidate_id = 'candidate-1';
+    input.predictions_specials.best_goalkeeper_candidate_id = 'keeper-1';
+    input.resolvedBracket.official_top_scorer_candidate_id = 'candidate-1';
+    input.resolvedBracket.official_best_goalkeeper_candidate_id = 'keeper-1';
+
+    const result = calculateScore(input);
+
+    expect(result.topScorerPoints).toBe(60);
+    expect(result.bestGoalkeeperPoints).toBe(60);
+    expect(result.total).toBe(120);
+  });
+
   // Additional test: null special predictions
   it('should handle null special predictions', () => {
     const input = createBaseInput();
@@ -390,6 +486,7 @@ describe('calculateScore', () => {
       champion_team_id: 'team-1',
       third_place_team_id: 'team-2',
       official_top_scorer: 'Lionel Messi',
+      official_best_goalkeeper: null,
       team_advances: {},
     };
 
@@ -422,6 +519,7 @@ describe('calculateScore', () => {
       champion_team_id: 'team-1',
       third_place_team_id: 'team-2',
       official_top_scorer: 'Lionel Messi',
+      official_best_goalkeeper: 'Dibu Martínez',
       team_advances: {
         'team-1': 'champion',
       },
@@ -430,6 +528,7 @@ describe('calculateScore', () => {
       champion_team_id: 'team-1',
       third_place_team_id: 'team-2',
       top_scorer_name: 'Lionel Messi',
+      best_goalkeeper_name: 'Dibu Martinez',
     };
 
     const result = calculateScore(input);
@@ -440,13 +539,15 @@ describe('calculateScore', () => {
     // Champion: 150
     // Third place: 80
     // Top scorer: 60
-    // Total: 5+10+300+150+80+60 = 605
+    // Best goalkeeper: 60
+    // Total: 5+10+300+150+80+60+60 = 665
     expect(result.groupStageExactPoints).toBe(5);
     expect(result.knockoutExactPoints).toBe(10);
     expect(result.advancementPoints).toBe(300);
     expect(result.championPoints).toBe(150);
     expect(result.thirdPlacePoints).toBe(80);
     expect(result.topScorerPoints).toBe(60);
-    expect(result.total).toBe(605);
+    expect(result.bestGoalkeeperPoints).toBe(60);
+    expect(result.total).toBe(665);
   });
 });

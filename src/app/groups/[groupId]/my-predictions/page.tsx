@@ -19,6 +19,7 @@ type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
 type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
+type AwardCandidate = Database['public']['Tables']['award_player_candidates']['Row'] & { team?: Pick<Team, 'id' | 'name' | 'display_name_es' | 'code'> | null };
 
 export default async function MyPredictionsPage(props: Params) {
     const params = await props.params;
@@ -117,6 +118,12 @@ export default async function MyPredictionsPage(props: Params) {
         .select('*')
         .order('name');
 
+    const { data: awardCandidates } = await supabase
+        .from('award_player_candidates')
+        .select('*, team:teams(id, name, display_name_es, code)')
+        .eq('is_active', true)
+        .order('display_name');
+
     // Fetch existing manual tiebreaks for this user's predictions in this group
     const { data: predictionManualTiebreaks } = await supabase
         .from('prediction_manual_tiebreaks')
@@ -158,6 +165,7 @@ export default async function MyPredictionsPage(props: Params) {
                     teams={teams as Team[] || []}
                     specialPrediction={specialPredictions as SpecialPrediction | null}
                     manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
+                    awardCandidates={(awardCandidates || []) as AwardCandidate[]}
                 />
         </AppShell>
     );

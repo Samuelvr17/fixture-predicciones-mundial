@@ -8,6 +8,7 @@ import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTo
 import ParticipantPredictionBracketView from './ParticipantPredictionBracketView';
 import type { ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
 import { MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
+import type { AwardCandidate } from '@/components/awards/AwardCandidateSelect';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -25,6 +26,7 @@ interface MemberPredictionsClientProps {
   groupId: string;
   teams: Team[];
   specialPrediction: SpecialPrediction | null;
+  awardCandidates: AwardCandidate[];
   manualTiebreaks?: PredictionManualTiebreak[];
   memberName: string;
   isOwnPredictions: boolean;
@@ -38,6 +40,7 @@ export default function MemberPredictionsClient({
   groupId,
   teams,
   specialPrediction,
+  awardCandidates,
   manualTiebreaks = [],
   memberName,
   isOwnPredictions,
@@ -138,7 +141,43 @@ export default function MemberPredictionsClient({
     return null;
   };
 
-  const hasPredictions = predictionsMap.size > 0 || !!specialPrediction?.top_scorer_name;
+  const candidateMap = new Map(awardCandidates.map((candidate) => [candidate.id, candidate]));
+  const teamMapForSpecials = new Map(teams.map((team) => [team.id, team]));
+
+  const formatSpecialPrediction = (category: 'top_scorer' | 'best_goalkeeper') => {
+    if (!specialPrediction) return null;
+    const candidateId = category === 'top_scorer'
+      ? specialPrediction.top_scorer_candidate_id
+      : specialPrediction.best_goalkeeper_candidate_id;
+    const otherName = category === 'top_scorer'
+      ? specialPrediction.top_scorer_other_name
+      : specialPrediction.best_goalkeeper_other_name;
+    const otherTeamId = category === 'top_scorer'
+      ? specialPrediction.top_scorer_other_team_id
+      : specialPrediction.best_goalkeeper_other_team_id;
+    const fallbackName = category === 'top_scorer'
+      ? specialPrediction.top_scorer_name
+      : specialPrediction.best_goalkeeper_name;
+
+    if (candidateId) {
+      const candidate = candidateMap.get(candidateId);
+      if (candidate) {
+        const teamLabel = candidate.team ? getTeamDisplayName(candidate.team as Team) : candidate.team_code;
+        return teamLabel ? `${candidate.display_name} · ${teamLabel}` : candidate.display_name;
+      }
+    }
+
+    if (otherName) {
+      const team = otherTeamId ? teamMapForSpecials.get(otherTeamId) : null;
+      return team ? `${otherName} · ${getTeamDisplayName(team)}` : otherName;
+    }
+
+    return fallbackName || null;
+  };
+
+  const topScorerDisplay = formatSpecialPrediction('top_scorer');
+  const bestGoalkeeperDisplay = formatSpecialPrediction('best_goalkeeper');
+  const hasPredictions = predictionsMap.size > 0 || !!topScorerDisplay || !!bestGoalkeeperDisplay;
 
   return (
     <div className="space-y-6">
@@ -170,13 +209,21 @@ export default function MemberPredictionsClient({
         </div>
       )}
 
-      {specialPrediction?.top_scorer_name && (
+      {(topScorerDisplay || bestGoalkeeperDisplay) && (
         <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 space-y-4">
-          <h2 className="text-2xl font-bold tracking-tight">Prediccion especial</h2>
-          <div>
-            <label className="block text-sm font-medium mb-2">Goleador del Torneo</label>
-            <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-md">
-              {specialPrediction.top_scorer_name}
+          <h2 className="text-2xl font-bold tracking-tight">Predicciones especiales</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-2">Goleador del torneo</label>
+              <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-md">
+                {topScorerDisplay || 'Pendiente'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Mejor arquero del torneo</label>
+              <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-md">
+                {bestGoalkeeperDisplay || 'Pendiente'}
+              </div>
             </div>
           </div>
         </div>

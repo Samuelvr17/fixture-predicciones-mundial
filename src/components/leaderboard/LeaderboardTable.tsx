@@ -12,6 +12,7 @@ interface ScoreBreakdown {
     third_place_points: number;
     champion_points: number;
     top_scorer_points: number;
+    best_goalkeeper_points: number;
     total_points: number;
     last_calculated_at: string;
     details: any;
@@ -53,6 +54,7 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                 third_place_points: 0,
                 champion_points: 0,
                 top_scorer_points: 0,
+                best_goalkeeper_points: 0,
                 total_points: 0,
                 last_calculated_at: '',
                 details: null,
@@ -122,6 +124,9 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Goleador
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                    Mejor arquero
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Última Actualización
@@ -227,6 +232,11 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                                         <td className="px-4 py-4 whitespace-nowrap text-right">
                                             <span className="text-sm text-zinc-600 dark:text-zinc-400">
                                                 {member.score_breakdowns.top_scorer_points}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                                                {member.score_breakdowns.best_goalkeeper_points}
                                             </span>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap text-left">
