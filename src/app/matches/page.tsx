@@ -24,9 +24,35 @@ type MatchWithNormalizedResult = Omit<MatchWithResult, 'match_results'> & {
 function matchesHelpButton() {
     return (
         <HelpButton title="¿Cómo funciona la sección de partidos?" buttonLabel="¿Cómo funciona?">
-            <p>
-                Aquí puedes consultar el calendario del Mundial, las fechas, horarios y resultados oficiales registrados. Cuando el administrador registra un resultado, esta sección se actualiza automáticamente si estás conectado.
-            </p>
+            <div className="space-y-4">
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Calendario de partidos</h3>
+                    <p className="mt-2">
+                        Muestra el calendario completo del torneo con fecha, hora en Colombia, sede, grupo o ronda, y equipos participantes.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resultados oficiales</h3>
+                    <p className="mt-2">
+                        Cuando el administrador registra un resultado oficial, se muestra en esta sección.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Equipos pendientes</h3>
+                    <p className="mt-2">
+                        En partidos de eliminatorias, algunos equipos pueden aparecer como pendientes hasta que se definan los clasificados.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Consulta</h3>
+                    <p className="mt-2">
+                        Esta pantalla es de consulta. Los usuarios normales no registran resultados aquí; solo el administrador puede hacerlo.
+                    </p>
+                </section>
+            </div>
         </HelpButton>
     );
 }

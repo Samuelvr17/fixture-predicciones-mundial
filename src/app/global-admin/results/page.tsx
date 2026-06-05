@@ -126,9 +126,49 @@ export default async function GlobalAdminResultsPage() {
           </Link>
         </div>
         <HelpButton title="¿Cómo funciona el registro de resultados?" buttonLabel="¿Cómo funciona?">
-          <p>
-            Esta sección es solo para administradores. Aquí se registran los resultados oficiales de los partidos. En eliminatorias, si el marcador queda empatado, debes seleccionar qué equipo avanza. Al guardar resultados, la app actualiza tablas, llaves y puntajes.
-          </p>
+          <div className="space-y-4">
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Solo para administradores</h3>
+              <p className="mt-2">
+                Esta sección es exclusiva para administradores. Aquí se registran los resultados oficiales de los partidos.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Fase de grupos</h3>
+              <p className="mt-2">
+                En esta fase se guarda el marcador final del partido.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Eliminatorias</h3>
+              <p className="mt-2">
+                En esta fase, si el marcador queda empatado, debes definir el ganador o el equipo que clasifica a la siguiente ronda.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Impacto de guardar</h3>
+              <p className="mt-2">
+                Guardar un resultado puede recalcular la tabla general, las llaves y los puntajes de todos los participantes.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Precaución</h3>
+              <p className="mt-2">
+                Revisa bien antes de guardar porque cada cambio afecta a todos los participantes. Si se corrige un resultado, la app recalcula los puntajes automáticamente.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
+              <p className="mt-2">
+                Usa esta pantalla solo con resultados oficiales confirmados. Cada cambio puede modificar la tabla general.
+              </p>
+            </section>
+          </div>
         </HelpButton>
       </div>
       <p className="text-gray-600 mb-6">

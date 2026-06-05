@@ -20,9 +20,74 @@ type AwardCandidate = Database['public']['Tables']['award_player_candidates']['R
 function predictionsHelpButton() {
     return (
         <HelpButton title="¿Cómo funcionan las predicciones?" buttonLabel="¿Cómo funciona?">
-            <p>
-                En esta sección registras tus marcadores para cada partido antes del cierre de predicciones. En fase de grupos solo indicas el marcador. En eliminatorias, si predices un empate, debes elegir qué selección avanza. La app usa tus marcadores para calcular automáticamente clasificados, llaves y posibles desempates. Si una tabla queda empatada después de todos los criterios automáticos, podrás ordenar manualmente los equipos empatados.
-            </p>
+            <div className="space-y-4">
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Registro de marcadores</h3>
+                    <p className="mt-2">
+                        Aquí registras tus marcadores para cada partido. Debes guardar cada predicción individualmente.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Fase de grupos</h3>
+                    <p className="mt-2">
+                        En esta fase solo escribes el marcador final que esperas.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Eliminatorias</h3>
+                    <p className="mt-2">
+                        En esta fase, si predices un empate en el marcador, debes indicar qué equipo clasifica a la siguiente ronda.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Construcción automática</h3>
+                    <p className="mt-2">
+                        El sistema usa tus marcadores para construir automáticamente tus tablas de grupo y tu llave predicha.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Desempate manual</h3>
+                    <p className="mt-2">
+                        Si hay empates en la tabla de grupo que el sistema no puede resolver automáticamente, aparecerá la opción de desempate manual para que ordenes los equipos empatados.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Predicciones especiales</h3>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                        <li>Goleador del torneo</li>
+                        <li>Mejor arquero del torneo</li>
+                    </ul>
+                    <p className="mt-2">
+                        Es mejor seleccionar jugadores desde la lista controlada para evitar errores de escritura. Si el jugador no aparece, puedes usar la opción "Otro jugador".
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Cierre de predicciones</h3>
+                    <p className="mt-2">
+                        Después del cierre de predicciones ya no se puede editar nada.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Puntos</h3>
+                    <p className="mt-2">
+                        Los puntos se calculan cuando el administrador registre resultados oficiales.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Ejemplo</h3>
+                    <p className="mt-2">
+                        Si pones Francia 2 - 1 Brasil, estás prediciendo que Francia gana ese partido. Si en una eliminatoria pones 1 - 1, debes indicar quién avanza a la siguiente ronda.
+                    </p>
+                </section>
+            </div>
         </HelpButton>
     );
 }

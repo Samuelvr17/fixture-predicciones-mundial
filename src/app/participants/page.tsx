@@ -10,7 +10,7 @@ function participantsHelpButton() {
     return (
         <HelpButton title="¿Cómo funciona Participantes?" buttonLabel="¿Cómo funciona?">
             <p>
-                En esta sección puedes ver todos los participantes de la quiniela global. Desde cada participante puedes abrir sus predicciones para comparar marcadores y revisar cómo va su quiniela. Las predicciones visibles corresponden al grupo global de la app.
+                Esta sección sirve para consultar las predicciones de otros participantes. No puedes editar predicciones ajenas; solo revisarlas y compararlas.
             </p>
         </HelpButton>
     );

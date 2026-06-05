@@ -70,7 +70,7 @@ export default async function DashboardPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <HelpButton title="¿Cómo funciona el panel principal?" buttonLabel="¿Cómo funciona?">
                         <p>
-                            Desde aquí puedes entrar a las secciones principales de la quiniela. Usa Mis predicciones para registrar tus marcadores, Tabla general para ver el ranking, Partidos para consultar calendario y resultados, Llaves para ver eliminatorias y Tabla de posiciones para revisar los grupos. Si eres administrador, también verás opciones para registrar resultados oficiales y resolver desempates.
+                            El panel principal es el punto de entrada de la quiniela. Desde aquí puedes ir a tus predicciones, revisar la tabla general, consultar participantes, ver partidos, llaves y posiciones. Cada tarjeta te lleva a una sección específica.
                         </p>
                     </HelpButton>
                     <form action={logout}>

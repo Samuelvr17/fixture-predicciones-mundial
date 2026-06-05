@@ -10,9 +10,49 @@ import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globa
 function bracketHelpButton() {
     return (
         <HelpButton title="¿Cómo funcionan las llaves?" buttonLabel="¿Cómo funciona?">
-            <p>
-                Aquí se muestran las eliminatorias del torneo. Los equipos aparecen cuando la fase de grupos y los desempates necesarios ya permiten resolver los clasificados. Las llaves se actualizan según los resultados oficiales registrados por el administrador.
-            </p>
+            <div className="space-y-4">
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Cuadro de eliminatorias</h3>
+                    <p className="mt-2">
+                        Muestra el cuadro oficial de eliminatorias del torneo.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Equipos pendientes</h3>
+                    <p className="mt-2">
+                        Algunos equipos pueden aparecer como "pendiente" si aún no están definidos por clasificaciones o resultados anteriores.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resultados oficiales</h3>
+                    <p className="mt-2">
+                        En la llave oficial se muestran resultados oficiales cuando existan.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Dependencia</h3>
+                    <p className="mt-2">
+                        La llave depende de los clasificados y resultados oficiales registrados por el administrador.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Visualización</h3>
+                    <p className="mt-2">
+                        En celulares puede requerir desplazamiento horizontal para ver todo el cuadro. Los conectores muestran cómo avanza cada ganador hacia la siguiente ronda.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
+                    <p className="mt-2">
+                        La llave permite ver visualmente el camino de los equipos en eliminatorias. Si ves "pendiente", significa que ese cupo aún depende de resultados o clasificaciones.
+                    </p>
+                </section>
+            </div>
         </HelpButton>
     );
 }

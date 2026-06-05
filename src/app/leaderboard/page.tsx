@@ -55,9 +55,45 @@ export default async function GlobalLeaderboardPage() {
                 title="Tabla general"
                 headerActions={
                     <HelpButton title="¿Cómo funciona la tabla general?" buttonLabel="¿Cómo funciona?">
-                        <p>
-                            Esta sección muestra el ranking de participantes. Los puntos se calculan con base en tus predicciones y los resultados oficiales registrados por el administrador. La tabla puede tardar unos segundos en actualizarse después de que se registre un resultado, porque la app recalcula los puntajes.
-                        </p>
+                        <div className="space-y-4">
+                            <section>
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Ranking de participantes</h3>
+                                <p className="mt-2">
+                                    La tabla general muestra el ranking de todos los participantes ordenado por puntos acumulados.
+                                </p>
+                            </section>
+
+                            <section>
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Actualización de puntos</h3>
+                                <p className="mt-2">
+                                    Los puntos se actualizan cuando el administrador registra resultados oficiales o premios del torneo.
+                                </p>
+                            </section>
+
+                            <section>
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Desglose de puntos</h3>
+                                <p className="mt-2">
+                                    Puedes abrir el detalle de cada participante para ver de dónde salen sus puntos, que incluye:
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5">
+                                    <li>Marcadores exactos en fase de grupos</li>
+                                    <li>Resultados correctos en fase de grupos</li>
+                                    <li>Marcadores exactos en eliminatorias</li>
+                                    <li>Puntos por equipos que avanzan</li>
+                                    <li>Campeón del torneo</li>
+                                    <li>Tercer puesto</li>
+                                    <li>Goleador del torneo</li>
+                                    <li>Mejor arquero del torneo</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
+                                <p className="mt-2">
+                                    La tabla general resume el rendimiento de cada participante. Puedes abrir el detalle para ver de dónde salen sus puntos.
+                                </p>
+                            </section>
+                        </div>
                     </HelpButton>
                 }
             >

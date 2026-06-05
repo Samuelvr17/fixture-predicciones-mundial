@@ -121,9 +121,56 @@ export default async function StandingsPage() {
       maxWidthClassName="max-w-7xl"
       headerActions={
         <HelpButton title="¿Cómo funciona la tabla de posiciones?" buttonLabel="¿Cómo funciona?">
-          <p>
-            Aquí ves las tablas de cada grupo con puntos, partidos jugados, goles a favor, goles en contra y diferencia de gol. Si hay empates, la app aplica criterios automáticos: puntos entre empatados, diferencia de gol entre empatados, goles entre empatados, diferencia de gol total y goles totales. Si aún sigue el empate, se requiere desempate manual.
-          </p>
+          <div className="space-y-4">
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Columnas de la tabla</h3>
+              <dl className="mt-2 grid gap-2">
+                <div><dt className="inline font-semibold">PJ:</dt> <dd className="inline">Partidos jugados.</dd></div>
+                <div><dt className="inline font-semibold">PG:</dt> <dd className="inline">Partidos ganados.</dd></div>
+                <div><dt className="inline font-semibold">PE:</dt> <dd className="inline">Partidos empatados.</dd></div>
+                <div><dt className="inline font-semibold">PP:</dt> <dd className="inline">Partidos perdidos.</dd></div>
+                <div><dt className="inline font-semibold">GF:</dt> <dd className="inline">Goles a favor.</dd></div>
+                <div><dt className="inline font-semibold">GC:</dt> <dd className="inline">Goles en contra.</dd></div>
+                <div><dt className="inline font-semibold">DG:</dt> <dd className="inline">Diferencia de gol (GF - GC).</dd></div>
+                <div><dt className="inline font-semibold">Pts:</dt> <dd className="inline">Puntos obtenidos.</dd></div>
+              </dl>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Cálculo de tablas</h3>
+              <p className="mt-2">
+                Las tablas se calculan con resultados oficiales registrados por el administrador. Si faltan partidos, las posiciones pueden cambiar.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Criterios de desempate automáticos</h3>
+              <p className="mt-2">
+                Si dos o más equipos quedan empatados, la app aplica estos criterios en orden:
+              </p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                <li>Puntos obtenidos en partidos entre los equipos empatados.</li>
+                <li>Diferencia de gol en partidos entre los equipos empatados.</li>
+                <li>Goles marcados en partidos entre los equipos empatados.</li>
+                <li>Diferencia de gol en todos los partidos del grupo.</li>
+                <li>Goles marcados en todos los partidos del grupo.</li>
+              </ol>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Desempate manual</h3>
+              <p className="mt-2">
+                Si después de aplicar los criterios automáticos el empate persiste, se requiere desempate manual por el administrador para resultados oficiales. Para predicciones de usuarios, si el sistema no puede ordenar automáticamente equipos empatados, aparece la opción de desempate manual.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
+              <p className="mt-2">
+                Si dos o más equipos quedan iguales después de los criterios automáticos, puede ser necesario un desempate manual en predicciones.
+              </p>
+            </section>
+          </div>
         </HelpButton>
       }
       headerNotice={

@@ -25,10 +25,29 @@ type AwardCandidate = Database['public']['Tables']['award_player_candidates']['R
 
 function participantsHelpButton() {
     return (
-        <HelpButton title="¿Cómo funciona Participantes?" buttonLabel="¿Cómo funciona?">
-            <p>
-                En esta sección puedes ver todos los participantes de la quiniela global. Desde cada participante puedes abrir sus predicciones para comparar marcadores y revisar cómo va su quiniela. Las predicciones visibles corresponden al grupo global de la app.
-            </p>
+        <HelpButton title="¿Cómo funciona la vista de predicciones?" buttonLabel="¿Cómo funciona?">
+            <div className="space-y-4">
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Solo lectura</h3>
+                    <p className="mt-2">
+                        Esta sección permite ver las predicciones de otro participante. No puedes editar predicciones ajenas; solo revisarlas y compararlas.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Comparación</h3>
+                    <p className="mt-2">
+                        Puedes comparar los marcadores predichos por este participante con los tuyos o con los resultados oficiales.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Sin datos</h3>
+                    <p className="mt-2">
+                        Si un participante no ha guardado predicciones, puede aparecer sin datos o con predicciones pendientes.
+                    </p>
+                </section>
+            </div>
         </HelpButton>
     );
 }
