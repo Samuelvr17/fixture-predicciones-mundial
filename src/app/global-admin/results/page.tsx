@@ -10,6 +10,7 @@
  */
 
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { fetchOfficialBracketData } from '@/lib/tournament/officialBracket';
 import GlobalResultsClient from '@/components/admin/GlobalResultsClient';
@@ -118,7 +119,12 @@ export default async function GlobalAdminResultsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-3xl font-bold">Panel de Admin Global - Resultados</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Panel de Admin Global - Resultados</h1>
+          <Link href="/global-admin/tournament-results" className="mt-3 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700">
+            Premios del torneo
+          </Link>
+        </div>
         <HelpButton title="¿Cómo funciona el registro de resultados?" buttonLabel="¿Cómo funciona?">
           <p>
             Esta sección es solo para administradores. Aquí se registran los resultados oficiales de los partidos. En eliminatorias, si el marcador queda empatado, debes seleccionar qué equipo avanza. Al guardar resultados, la app actualiza tablas, llaves y puntajes.

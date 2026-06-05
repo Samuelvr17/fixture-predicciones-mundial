@@ -9,6 +9,7 @@ interface ScoreBreakdown {
     third_place_points: number;
     champion_points: number;
     top_scorer_points: number;
+    best_goalkeeper_points: number;
     total_points: number;
     last_calculated_at: string;
     details: any;
@@ -158,6 +159,14 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.top_scorer_points} pts
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                        Mejor arquero:
+                                    </span>
+                                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                        {member.score_breakdowns.best_goalkeeper_points} pts
                                     </span>
                                 </div>
                             </div>

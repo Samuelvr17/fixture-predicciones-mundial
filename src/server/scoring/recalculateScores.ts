@@ -87,6 +87,9 @@ function dbPredictionToPredictionSpecial(dbPrediction: Database['public']['Table
     champion_team_id: dbPrediction.champion_team_id,
     third_place_team_id: dbPrediction.third_place_team_id,
     top_scorer_name: dbPrediction.top_scorer_name,
+    top_scorer_candidate_id: dbPrediction.top_scorer_candidate_id,
+    best_goalkeeper_candidate_id: dbPrediction.best_goalkeeper_candidate_id,
+    best_goalkeeper_name: dbPrediction.best_goalkeeper_name,
   };
 }
 
@@ -191,7 +194,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
     if (matchResultsData.error) throw matchResultsData.error;
     if (manualTiebreaksData.error) throw manualTiebreaksData.error;
     // tournament_results might not exist yet, that's ok
-    const tournamentResults = tournamentResultsData.data || { champion_team_id: null, third_place_team_id: null, top_scorer_name: null };
+    const tournamentResults = tournamentResultsData.data || { champion_team_id: null, third_place_team_id: null, top_scorer_name: null, top_scorer_candidate_id: null, best_goalkeeper_candidate_id: null, best_goalkeeper_name: null };
 
     // Convert to tournament engine formats
     const tournamentTeams = teamsData.data.map(dbTeamToTournamentTeam);
@@ -246,6 +249,9 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
       champion_team_id: bracketOutput.champion || tournamentResults.champion_team_id,
       third_place_team_id: bracketOutput.thirdPlace || tournamentResults.third_place_team_id,
       official_top_scorer: tournamentResults.top_scorer_name,
+      official_top_scorer_candidate_id: tournamentResults.top_scorer_candidate_id,
+      official_best_goalkeeper_candidate_id: tournamentResults.best_goalkeeper_candidate_id,
+      official_best_goalkeeper: tournamentResults.best_goalkeeper_name,
       team_advances: teamAdvances,
     };
 
@@ -310,6 +316,13 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
           champion_team_id: null,
           third_place_team_id: null,
           top_scorer_name: null,
+          top_scorer_candidate_id: null,
+          top_scorer_other_name: null,
+          top_scorer_other_team_id: null,
+          best_goalkeeper_candidate_id: null,
+          best_goalkeeper_name: null,
+          best_goalkeeper_other_name: null,
+          best_goalkeeper_other_team_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -380,6 +393,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
           champion_points: scoreBreakdown.championPoints,
           third_place_points: scoreBreakdown.thirdPlacePoints,
           top_scorer_points: scoreBreakdown.topScorerPoints,
+          best_goalkeeper_points: scoreBreakdown.bestGoalkeeperPoints,
           total_points: scoreBreakdown.total,
           details: scoreBreakdown.details || {},
           last_calculated_at: new Date().toISOString(),

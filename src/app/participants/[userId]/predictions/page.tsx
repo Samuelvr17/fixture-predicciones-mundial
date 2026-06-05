@@ -21,6 +21,7 @@ type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
 type PredictionManualTiebreak = Database['public']['Tables']['prediction_manual_tiebreaks']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
+type AwardCandidate = Database['public']['Tables']['award_player_candidates']['Row'] & { team?: Pick<Team, 'id' | 'name' | 'display_name_es' | 'code'> | null };
 
 function participantsHelpButton() {
     return (
@@ -137,6 +138,12 @@ export default async function ParticipantPredictionsPage(props: Params) {
         .eq('group_id', GLOBAL_GROUP_ID)
         .eq('user_id', userId);
 
+    const { data: awardCandidates } = await supabase
+        .from('award_player_candidates')
+        .select('*, team:teams(id, name, display_name_es, code)')
+        .eq('is_active', true)
+        .order('display_name');
+
     const { data: specialPredictions } = await supabase
         .from('predictions_specials')
         .select('*')
@@ -154,6 +161,7 @@ export default async function ParticipantPredictionsPage(props: Params) {
                 groupId={GLOBAL_GROUP_ID}
                 teams={(teams as Team[]) || []}
                 specialPrediction={specialPredictions as SpecialPrediction | null}
+                awardCandidates={(awardCandidates || []) as AwardCandidate[]}
                 manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
                 memberName={memberName}
                 isOwnPredictions={isOwnPredictions}

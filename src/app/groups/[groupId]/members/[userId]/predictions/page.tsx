@@ -18,6 +18,7 @@ type MatchWithTeam = Database['public']['Tables']['matches']['Row'] & {
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
 type SpecialPrediction = Database['public']['Tables']['predictions_specials']['Row'];
 type Team = Database['public']['Tables']['teams']['Row'];
+type AwardCandidate = Database['public']['Tables']['award_player_candidates']['Row'] & { team?: Pick<Team, 'id' | 'name' | 'display_name_es' | 'code'> | null };
 
 export default async function MemberPredictionsPage(props: Params) {
     const params = await props.params;
@@ -146,6 +147,12 @@ export default async function MemberPredictionsPage(props: Params) {
         .select('*')
         .order('name');
 
+    const { data: awardCandidates } = await supabase
+        .from('award_player_candidates')
+        .select('*, team:teams(id, name, display_name_es, code)')
+        .eq('is_active', true)
+        .order('display_name');
+
     // Fetch special predictions for the target user in this group
     const { data: specialPredictions } = await supabase
         .from('predictions_specials')
@@ -165,6 +172,7 @@ export default async function MemberPredictionsPage(props: Params) {
                     groupId={params.groupId}
                     teams={teams as Team[] || []}
                     specialPrediction={specialPredictions as SpecialPrediction | null}
+                    awardCandidates={(awardCandidates || []) as AwardCandidate[]}
                     memberName={memberName}
                     isOwnPredictions={isOwnPredictions}
                 />

@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      award_player_candidates: {
+        Row: {
+          aliases: string[]
+          award_categories: string[]
+          created_at: string
+          display_name: string
+          full_name: string
+          id: string
+          is_active: boolean
+          position: string | null
+          team_code: string | null
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          award_categories?: string[]
+          created_at?: string
+          display_name: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          position?: string | null
+          team_code?: string | null
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          award_categories?: string[]
+          created_at?: string
+          display_name?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          position?: string | null
+          team_code?: string | null
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "award_player_candidates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       global_admins: {
         Row: {
           created_at: string
@@ -491,6 +541,13 @@ export type Database = {
           id: string
           third_place_team_id: string | null
           top_scorer_name: string | null
+          top_scorer_candidate_id: string | null
+          top_scorer_other_name: string | null
+          top_scorer_other_team_id: string | null
+          best_goalkeeper_candidate_id: string | null
+          best_goalkeeper_name: string | null
+          best_goalkeeper_other_name: string | null
+          best_goalkeeper_other_team_id: string | null
           updated_at: string
           user_id: string
         }
@@ -501,6 +558,13 @@ export type Database = {
           id?: string
           third_place_team_id?: string | null
           top_scorer_name?: string | null
+          top_scorer_candidate_id?: string | null
+          top_scorer_other_name?: string | null
+          top_scorer_other_team_id?: string | null
+          best_goalkeeper_candidate_id?: string | null
+          best_goalkeeper_name?: string | null
+          best_goalkeeper_other_name?: string | null
+          best_goalkeeper_other_team_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -511,6 +575,13 @@ export type Database = {
           id?: string
           third_place_team_id?: string | null
           top_scorer_name?: string | null
+          top_scorer_candidate_id?: string | null
+          top_scorer_other_name?: string | null
+          top_scorer_other_team_id?: string | null
+          best_goalkeeper_candidate_id?: string | null
+          best_goalkeeper_name?: string | null
+          best_goalkeeper_other_name?: string | null
+          best_goalkeeper_other_team_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -583,6 +654,7 @@ export type Database = {
           last_calculated_at: string
           third_place_points: number
           top_scorer_points: number
+          best_goalkeeper_points: number
           total_points: number
           updated_at: string
           user_id: string
@@ -600,6 +672,7 @@ export type Database = {
           last_calculated_at?: string
           third_place_points?: number
           top_scorer_points?: number
+          best_goalkeeper_points?: number
           total_points?: number
           updated_at?: string
           user_id: string
@@ -617,6 +690,7 @@ export type Database = {
           last_calculated_at?: string
           third_place_points?: number
           top_scorer_points?: number
+          best_goalkeeper_points?: number
           total_points?: number
           updated_at?: string
           user_id?: string
@@ -676,6 +750,9 @@ export type Database = {
           id: string
           third_place_team_id: string | null
           top_scorer_name: string | null
+          top_scorer_candidate_id: string | null
+          best_goalkeeper_candidate_id: string | null
+          best_goalkeeper_name: string | null
           updated_at: string
         }
         Insert: {
@@ -685,6 +762,9 @@ export type Database = {
           id?: string
           third_place_team_id?: string | null
           top_scorer_name?: string | null
+          top_scorer_candidate_id?: string | null
+          best_goalkeeper_candidate_id?: string | null
+          best_goalkeeper_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -694,6 +774,9 @@ export type Database = {
           id?: string
           third_place_team_id?: string | null
           top_scorer_name?: string | null
+          top_scorer_candidate_id?: string | null
+          best_goalkeeper_candidate_id?: string | null
+          best_goalkeeper_name?: string | null
           updated_at?: string
         }
         Relationships: [

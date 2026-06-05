@@ -43,6 +43,9 @@ export interface PredictionSpecial {
   champion_team_id: string | null;
   third_place_team_id: string | null;
   top_scorer_name: string | null;
+  top_scorer_candidate_id?: string | null;
+  best_goalkeeper_candidate_id?: string | null;
+  best_goalkeeper_name?: string | null;
 }
 
 export interface Match {
@@ -63,6 +66,9 @@ export interface ResolvedBracket {
   champion_team_id: string | null;
   third_place_team_id: string | null;
   official_top_scorer: string | null;
+  official_top_scorer_candidate_id?: string | null;
+  official_best_goalkeeper_candidate_id?: string | null;
+  official_best_goalkeeper?: string | null;
   team_advances: Record<string, TournamentRound>; // team_id -> actual round reached
 }
 
@@ -74,6 +80,7 @@ export interface ScoreBreakdown {
   championPoints: number;
   thirdPlacePoints: number;
   topScorerPoints: number;
+  bestGoalkeeperPoints: number;
   total: number;
   details?: {
     groupStageExact: Array<{ match_id: string; points: number }>;
@@ -113,6 +120,7 @@ const POINTS = {
   CHAMPION: 150,
   THIRD_PLACE: 80,
   TOP_SCORER: 60,
+  BEST_GOALKEEPER: 60,
 } as const;
 
 // Round order for advancement points calculation
@@ -293,15 +301,51 @@ function calculateThirdPlacePoints(
 /**
  * Calculate top scorer points
  */
-function calculateTopScorerPoints(
-  predictedScorer: string | null,
-  actualScorer: string | null
-): number {
-  if (!predictedScorer || !actualScorer) {
+export function calculateTopScorerPoints({
+  predictedCandidateId,
+  officialCandidateId,
+  predictedName,
+  officialName,
+}: {
+  predictedCandidateId?: string | null;
+  officialCandidateId?: string | null;
+  predictedName?: string | null;
+  officialName?: string | null;
+}): number {
+  if (predictedCandidateId && officialCandidateId) {
+    return predictedCandidateId === officialCandidateId ? POINTS.TOP_SCORER : 0;
+  }
+
+  if (!predictedName || !officialName) {
     return 0;
   }
-  return normalizeString(predictedScorer) === normalizeString(actualScorer)
+
+  return normalizeString(predictedName) === normalizeString(officialName)
     ? POINTS.TOP_SCORER
+    : 0;
+}
+
+export function calculateBestGoalkeeperPoints({
+  predictedCandidateId,
+  officialCandidateId,
+  predictedName,
+  officialName,
+}: {
+  predictedCandidateId?: string | null;
+  officialCandidateId?: string | null;
+  predictedName?: string | null;
+  officialName?: string | null;
+}): number {
+  if (predictedCandidateId && officialCandidateId) {
+    return predictedCandidateId === officialCandidateId ? POINTS.BEST_GOALKEEPER : 0;
+  }
+
+  if (!predictedName || !officialName) {
+    return 0;
+  }
+
+  return normalizeString(predictedName) === normalizeString(officialName)
+    ? POINTS.BEST_GOALKEEPER
     : 0;
 }
 
@@ -340,6 +384,7 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
     championPoints: 0,
     thirdPlacePoints: 0,
     topScorerPoints: 0,
+    bestGoalkeeperPoints: 0,
     total: 0,
     details: {
       groupStageExact: [],
@@ -411,10 +456,19 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
     resolvedBracket.third_place_team_id
   );
 
-  breakdown.topScorerPoints = calculateTopScorerPoints(
-    predictions_specials.top_scorer_name,
-    resolvedBracket.official_top_scorer
-  );
+  breakdown.topScorerPoints = calculateTopScorerPoints({
+    predictedCandidateId: predictions_specials.top_scorer_candidate_id,
+    officialCandidateId: resolvedBracket.official_top_scorer_candidate_id,
+    predictedName: predictions_specials.top_scorer_name,
+    officialName: resolvedBracket.official_top_scorer,
+  });
+
+  breakdown.bestGoalkeeperPoints = calculateBestGoalkeeperPoints({
+    predictedCandidateId: predictions_specials.best_goalkeeper_candidate_id,
+    officialCandidateId: resolvedBracket.official_best_goalkeeper_candidate_id,
+    predictedName: predictions_specials.best_goalkeeper_name,
+    officialName: resolvedBracket.official_best_goalkeeper,
+  });
 
   // Calculate total
   breakdown.total =
@@ -424,7 +478,8 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
     breakdown.advancementPoints +
     breakdown.championPoints +
     breakdown.thirdPlacePoints +
-    breakdown.topScorerPoints;
+    breakdown.topScorerPoints +
+    breakdown.bestGoalkeeperPoints;
 
   return breakdown;
 }
