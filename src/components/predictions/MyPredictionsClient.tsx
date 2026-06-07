@@ -71,6 +71,8 @@ export default function MyPredictionsClient({
     });
     return initial;
   });
+  const [touchedPredictions, setTouchedPredictions] = useState<Record<string, boolean>>({});
+  const [predictionSaveVersion, setPredictionSaveVersion] = useState(0);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<Record<string, boolean>>({});
@@ -111,6 +113,26 @@ export default function MyPredictionsClient({
     });
   }, [matches]);
 
+  const groupStageMatches = useMemo(() => matches.filter((m) => m.round === 'group'), [matches]);
+
+  const groupedGroupMatches = useMemo(() => {
+    const groups: Record<string, MatchWithTeam[]> = {};
+
+    groupStageMatches.forEach((match) => {
+      if (!match.group_code) return;
+      groups[match.group_code] ??= [];
+      groups[match.group_code].push(match);
+    });
+
+    Object.values(groups).forEach((groupMatches) => {
+      groupMatches.sort((a, b) => compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time));
+    });
+
+    return Object.entries(groups)
+      .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
+      .map(([groupCode, groupMatches]) => ({ groupCode, matches: groupMatches }));
+  }, [groupStageMatches]);
+
   const groupedMatches = useMemo(() => {
     const groups: Record<string, Record<string, MatchWithTeam[]>> = {};
 
@@ -126,10 +148,9 @@ export default function MyPredictionsClient({
   const matchById = useMemo(() => new Map(matches.map((match) => [match.id, match])), [matches]);
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
 
-  const groupStageMatches = useMemo(() => matches.filter((m) => m.round === 'group'), [matches]);
   const isGroupStageComplete = useMemo(() => {
     return groupStageMatches.every((match) => predictionsMap.has(match.id));
-  }, [groupStageMatches, predictionsMap]);
+  }, [groupStageMatches, predictionSaveVersion, predictionsMap]);
 
 
   const isValidScoreInput = (value: string) => /^\d*$/.test(value);
@@ -149,6 +170,37 @@ export default function MyPredictionsClient({
 
     return parsed;
   };
+
+  const isCompletePredictionInput = (matchId: string) => {
+    const prediction = predictions[matchId];
+    return Boolean(prediction && prediction.team1.trim() !== '' && prediction.team2.trim() !== '');
+  };
+
+  const shouldUsePredictionForGroupTable = (matchId: string) => {
+    return isCompletePredictionInput(matchId) && (predictionsMap.has(matchId) || touchedPredictions[matchId]);
+  };
+
+  const predictedTournamentForGroupTables = useMemo(() => {
+    const completeGroupPredictions = groupStageMatches
+      .filter((match) => shouldUsePredictionForGroupTable(match.id))
+      .map((match) => ({
+        match_id: match.id,
+        predicted_team1_score: parseScoreInput(predictions[match.id]?.team1 ?? '0'),
+        predicted_team2_score: parseScoreInput(predictions[match.id]?.team2 ?? '0'),
+        predicted_winner_team_id: null,
+      }));
+
+    return buildPredictedTournamentFromScores(
+      teams,
+      groupStageMatches,
+      completeGroupPredictions,
+      Object.entries(manualTiebreakOrders).map(([reference, orderedTeamIds]) => ({
+        type: 'group' as const,
+        reference,
+        ordered_team_ids: orderedTeamIds,
+      }))
+    );
+  }, [groupStageMatches, manualTiebreakOrders, predictionSaveVersion, predictions, predictionsMap, teams, touchedPredictions]);
 
   const automaticPredictedTournament = useMemo(() => {
     return buildPredictedTournamentFromScores(
@@ -221,6 +273,11 @@ export default function MyPredictionsClient({
       },
     }));
 
+    setTouchedPredictions((prev) => ({
+      ...prev,
+      [matchId]: true,
+    }));
+
     setSuccess((prev) => ({
       ...prev,
       [matchId]: false,
@@ -283,6 +340,7 @@ export default function MyPredictionsClient({
             predicted_team2_score: team2Score,
             predicted_winner_team_id: winnerTeamId,
           });
+          setPredictionSaveVersion((version) => version + 1);
           setTimeout(() => {
             setSuccess((prev) => ({ ...prev, [matchId]: false }));
           }, 2000);
@@ -314,6 +372,7 @@ export default function MyPredictionsClient({
           if (newPred) {
             predictionsMap.set(matchId, newPred);
           }
+          setPredictionSaveVersion((version) => version + 1);
           setTimeout(() => {
             setSuccess((prev) => ({ ...prev, [matchId]: false }));
           }, 2000);
@@ -503,6 +562,37 @@ export default function MyPredictionsClient({
           </div>
         )}
       </Card>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Fase de grupos</h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Captura tus marcadores por grupo. Cada tabla se recalcula con los partidos guardados o editados en esa tarjeta.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {groupedGroupMatches.map(({ groupCode, matches: groupMatches }) => (
+            <GroupPredictionCard
+              key={groupCode}
+              groupCode={groupCode}
+              matches={groupMatches}
+              groupStanding={predictedTournamentForGroupTables.groupStandings.standings[groupCode]}
+              teamsMap={teamsMap}
+              predictions={predictions}
+              predictionsMap={predictionsMap}
+              touchedPredictions={touchedPredictions}
+              saving={saving}
+              errors={errors}
+              success={success}
+              isBeforeDeadline={isBeforeDeadline}
+              onPredictionChange={handlePredictionChange}
+              onSavePrediction={handleSavePrediction}
+              parseScoreInput={parseScoreInput}
+              isCompletePredictionInput={isCompletePredictionInput}
+            />
+          ))}
+        </div>
+      </section>
 
       {unresolvedGroupTiebreaks.length > 0 && (
         <Card className="space-y-3 border-amber-200 bg-amber-50 sm:space-y-4 dark:border-amber-800 dark:bg-amber-900/20">
@@ -703,6 +793,10 @@ export default function MyPredictionsClient({
       {Object.entries(groupedMatches).map(([round, dates]) => {
         const isKnockoutRound = KNOCKOUT_ROUNDS.has(round as any);
 
+        if (round === 'group') {
+          return null;
+        }
+
         if (isKnockoutRound && knockoutViewMode === 'bracket' && isGroupStageComplete) {
           return null;
         }
@@ -878,6 +972,283 @@ export default function MyPredictionsClient({
   );
 }
 
+
+function GroupPredictionCard({
+  groupCode,
+  matches,
+  groupStanding,
+  teamsMap,
+  predictions,
+  predictionsMap,
+  touchedPredictions,
+  saving,
+  errors,
+  success,
+  isBeforeDeadline,
+  onPredictionChange,
+  onSavePrediction,
+  parseScoreInput,
+  isCompletePredictionInput,
+}: {
+  groupCode: string;
+  matches: MatchWithTeam[];
+  groupStanding: GroupStandings | undefined;
+  teamsMap: Map<string, Team>;
+  predictions: Record<string, { team1: string; team2: string }>;
+  predictionsMap: Map<string, Prediction>;
+  touchedPredictions: Record<string, boolean>;
+  saving: Record<string, boolean>;
+  errors: Record<string, string>;
+  success: Record<string, boolean>;
+  isBeforeDeadline: boolean;
+  onPredictionChange: (matchId: string, team: 'team1' | 'team2', value: string) => void;
+  onSavePrediction: (matchId: string) => void;
+  parseScoreInput: (value: string) => number;
+  isCompletePredictionInput: (matchId: string) => boolean;
+}) {
+  const completedMatches = matches.filter((match) => {
+    return isCompletePredictionInput(match.id) && (predictionsMap.has(match.id) || touchedPredictions[match.id]);
+  }).length;
+
+  return (
+    <Card as="article" padding="compact" className="min-w-0 space-y-4 overflow-hidden">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold tracking-tight">Grupo {groupCode}</h3>
+        <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
+          {completedMatches}/{matches.length}
+        </span>
+      </div>
+
+      <GroupPredictionTable groupStanding={groupStanding} teamsMap={teamsMap} />
+
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Partidos</h4>
+        <div className="space-y-2">
+          {matches.map((match) => {
+            const pred = predictions[match.id] || { team1: '0', team2: '0' };
+            const team1Score = parseScoreInput(pred.team1);
+            const team2Score = parseScoreInput(pred.team2);
+            const isSaved = predictionsMap.has(match.id);
+            const savedPrediction = predictionsMap.get(match.id);
+            const hasChanges = isSaved && (
+              savedPrediction!.predicted_team1_score !== team1Score ||
+              savedPrediction!.predicted_team2_score !== team2Score
+            );
+
+            return (
+              <GroupMatchPredictionRow
+                key={match.id}
+                match={match}
+                prediction={pred}
+                team1={match.team1}
+                team2={match.team2}
+                editable={isBeforeDeadline}
+                saving={saving[match.id]}
+                error={errors[match.id]}
+                success={success[match.id]}
+                saveLabel={saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
+                onTeam1Change={(value) => onPredictionChange(match.id, 'team1', value)}
+                onTeam2Change={(value) => onPredictionChange(match.id, 'team2', value)}
+                onSave={() => onSavePrediction(match.id)}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function GroupPredictionTable({
+  groupStanding,
+  teamsMap,
+}: {
+  groupStanding: GroupStandings | undefined;
+  teamsMap: Map<string, Team>;
+}) {
+  if (!groupStanding) {
+    return (
+      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-400">
+        Tabla pendiente
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-100 dark:border-zinc-800">
+      <div className="overflow-x-auto">
+        <table className="min-w-[560px] w-full text-xs sm:text-sm">
+          <thead className="bg-zinc-50 dark:bg-zinc-950/70">
+            <tr>
+              <th className="px-2 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">#</th>
+              <th className="px-2 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">Equipo</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">PTS</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">PJ</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">G</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">E</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">P</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">GF</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">GC</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">DG</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupStanding.standings.map((stats, index) => (
+              <GroupPredictionTableRow
+                key={stats.team_id}
+                stats={stats}
+                position={index + 1}
+                team={teamsMap.get(stats.team_id) ?? null}
+                isTied={groupStanding.tiedTeams.includes(stats.team_id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GroupPredictionTableRow({
+  stats,
+  position,
+  team,
+  isTied,
+}: {
+  stats: TeamStats;
+  position: number;
+  team: Team | null;
+  isTied: boolean;
+}) {
+  const positionClassName = position <= 2
+    ? 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300'
+    : position === 3
+      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300';
+
+  return (
+    <tr className="border-t border-zinc-100 dark:border-zinc-800">
+      <td className="px-2 py-2 whitespace-nowrap">
+        <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-xs font-bold ${positionClassName}`}>
+          {position}
+        </span>
+      </td>
+      <td className="min-w-44 px-2 py-2">
+        <div className="flex items-center gap-2">
+          {team?.flag_url && <img src={team.flag_url} alt={getTeamDisplayName(team)} className="h-4 w-6 object-cover" />}
+          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{team ? getTeamDisplayName(team) : 'Desconocido'}</span>
+          {isTied && <span className="text-xs text-amber-600 dark:text-amber-400">*</span>}
+        </div>
+      </td>
+      <td className="px-2 py-2 text-center font-bold">{stats.points}</td>
+      <td className="px-2 py-2 text-center">{stats.played}</td>
+      <td className="px-2 py-2 text-center">{stats.wins}</td>
+      <td className="px-2 py-2 text-center">{stats.draws}</td>
+      <td className="px-2 py-2 text-center">{stats.losses}</td>
+      <td className="px-2 py-2 text-center">{stats.goalsFor}</td>
+      <td className="px-2 py-2 text-center">{stats.goalsAgainst}</td>
+      <td className="px-2 py-2 text-center">{stats.goalDifference}</td>
+    </tr>
+  );
+}
+
+function GroupMatchPredictionRow({
+  match,
+  prediction,
+  team1,
+  team2,
+  editable,
+  saving,
+  error,
+  success,
+  saveLabel,
+  onTeam1Change,
+  onTeam2Change,
+  onSave,
+}: {
+  match: MatchWithTeam;
+  prediction: { team1: string; team2: string };
+  team1: Team | null;
+  team2: Team | null;
+  editable: boolean;
+  saving?: boolean;
+  error?: string;
+  success?: boolean;
+  saveLabel: string;
+  onTeam1Change: (value: string) => void;
+  onTeam2Change: (value: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-2.5 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <div className="flex items-center justify-between gap-2">
+        <CompactTeam team={team1} align="right" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <CompactScoreInput value={prediction.team1} editable={editable} onChange={onTeam1Change} ariaLabel={`Goles de ${team1 ? getTeamDisplayName(team1) : 'equipo 1'} en partido ${match.match_number ?? match.id}`} />
+          <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">-</span>
+          <CompactScoreInput value={prediction.team2} editable={editable} onChange={onTeam2Change} ariaLabel={`Goles de ${team2 ? getTeamDisplayName(team2) : 'equipo 2'} en partido ${match.match_number ?? match.id}`} />
+        </div>
+        <CompactTeam team={team2} align="left" />
+      </div>
+
+      {error && <Alert variant="error" className="mt-2 py-2">{error}</Alert>}
+      {success && <Alert variant="success" className="mt-2 py-2">Guardado</Alert>}
+
+      {editable && (
+        <Button onClick={onSave} disabled={saving} variant="secondary" className="mt-2 min-h-8 w-full px-3 py-1.5 text-xs">
+          {saveLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function CompactTeam({ team, align }: { team: Team | null; align: 'left' | 'right' }) {
+  const content = team ? (
+    <>
+      {align === 'right' && <span className="truncate">{team.code}</span>}
+      {team.flag_url && <img src={team.flag_url} alt={getTeamDisplayName(team)} className="h-4 w-6 shrink-0 object-cover" />}
+      {align === 'left' && <span className="truncate">{team.code}</span>}
+    </>
+  ) : (
+    <span className="truncate text-zinc-400 dark:text-zinc-500">PEN</span>
+  );
+
+  return (
+    <div className={`flex min-w-0 flex-1 items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+      {content}
+    </div>
+  );
+}
+
+function CompactScoreInput({
+  value,
+  editable,
+  onChange,
+  ariaLabel,
+}: {
+  value: string;
+  editable: boolean;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+}) {
+  if (!editable) {
+    return <span className="inline-flex h-10 w-11 items-center justify-center rounded-md bg-white text-center font-bold dark:bg-zinc-900">{value}</span>;
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={value}
+      aria-label={ariaLabel}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-10 w-11 rounded-md border border-zinc-300 bg-white px-1 text-center font-semibold text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+    />
+  );
+}
+
 function TeamScoreRow({
   team,
   fallbackSlot,
@@ -956,10 +1327,13 @@ function PredictedGroupTable({
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 dark:bg-zinc-950">
             <tr>
-              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Posición</th>
-              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Selección</th>
+              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">#</th>
+              <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">Equipo</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">PTS</th>
               <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">PJ</th>
-              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">Puntos</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">G</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">E</th>
+              <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">P</th>
               <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">GF</th>
               <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">GC</th>
               <th className="px-3 py-3 text-center font-medium text-zinc-500 dark:text-zinc-400">DG</th>
@@ -1029,8 +1403,11 @@ function PredictedGroupRow({
           {team?.code && <span className="text-xs text-zinc-500 dark:text-zinc-400">({team.code})</span>}
         </div>
       </td>
-      <td className="px-3 py-3 text-center">{stats.played}</td>
       <td className="px-3 py-3 text-center font-bold">{stats.points}</td>
+      <td className="px-3 py-3 text-center">{stats.played}</td>
+      <td className="px-3 py-3 text-center">{stats.wins}</td>
+      <td className="px-3 py-3 text-center">{stats.draws}</td>
+      <td className="px-3 py-3 text-center">{stats.losses}</td>
       <td className="px-3 py-3 text-center">{stats.goalsFor}</td>
       <td className="px-3 py-3 text-center">{stats.goalsAgainst}</td>
       <td className="px-3 py-3 text-center">{stats.goalDifference}</td>
