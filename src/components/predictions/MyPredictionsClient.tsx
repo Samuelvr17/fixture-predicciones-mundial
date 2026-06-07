@@ -434,7 +434,7 @@ export default function MyPredictionsClient({
     }
   };
 
-  const unresolvedGroupTiebreaks = Object.values(automaticPredictedTournament.groupStandings.standings)
+  const unresolvedGroupTiebreaks = Object.values(predictedTournamentForGroupTables.groupStandings.standings)
     .filter((groupStanding) => groupStanding.requiresManualTiebreak && groupStanding.tiedTeams.length > 0);
 
   const getManualOrderForGroup = (groupCode: string, tiedTeamIds: string[]) => {
@@ -533,33 +533,77 @@ export default function MyPredictionsClient({
         </div>
       </Card>
 
-      <Card as="section" className="space-y-3 sm:space-y-4">
-        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Mis tablas predichas</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Estas posiciones se recalculan automaticamente con tus marcadores de fase de grupos. Los puestos 1 y 2 clasifican directo; el 3 queda en pelea.
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowPredictedTables((current) => !current)}
-            aria-expanded={showPredictedTables}
-            className="shrink-0"
-          >
-            {showPredictedTables ? 'Ocultar tablas' : 'Ver tablas'}
-          </Button>
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Predicciones especiales</h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Estas predicciones especiales se califican al final del torneo. Selecciona los jugadores desde la lista para evitar errores de escritura. Si tu jugador no aparece, usa la opción Otro jugador.
+          </p>
         </div>
 
-        {showPredictedTables && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
-            {predictedGroupStandings.map((groupStanding) => (
-              <PredictedGroupTable
-                key={groupStanding.group_code}
-                groupStanding={groupStanding}
-                teamsMap={teamsMap}
-              />
-            ))}
-          </div>
+        <AwardCandidateSelect
+          candidates={awardCandidates}
+          teams={teams}
+          value={topScorerCandidateId}
+          onChange={(candidateId, candidate) => {
+            setTopScorerCandidateId(candidateId);
+            setTopScorerName(candidate?.display_name || '');
+            if (candidateId) {
+              setTopScorerOtherName('');
+              setTopScorerOtherTeamId(null);
+            }
+          }}
+          awardCategory="top_scorer"
+          label="Goleador del torneo"
+          placeholder="Busca jugador por nombre, apellido o selección"
+          helpText="Selecciona un jugador de la lista para evitar errores de escritura. Si no aparece, usa Otro jugador."
+          allowOther
+          otherName={topScorerOtherName}
+          otherTeamId={topScorerOtherTeamId}
+          onOtherChange={({ name, teamId }) => {
+            setTopScorerCandidateId(null);
+            setTopScorerOtherName(name);
+            setTopScorerOtherTeamId(teamId);
+            setTopScorerName(name);
+          }}
+          disabled={!isBeforeDeadline}
+        />
+
+        <AwardCandidateSelect
+          candidates={awardCandidates}
+          teams={teams}
+          value={bestGoalkeeperCandidateId}
+          onChange={(candidateId, candidate) => {
+            setBestGoalkeeperCandidateId(candidateId);
+            setBestGoalkeeperName(candidate?.display_name || '');
+            if (candidateId) {
+              setBestGoalkeeperOtherName('');
+              setBestGoalkeeperOtherTeamId(null);
+            }
+          }}
+          awardCategory="best_goalkeeper"
+          label="Mejor arquero del torneo"
+          placeholder="Busca arquero por nombre, apellido o selección"
+          helpText="Selecciona el arquero desde la lista. Si no aparece, usa Otro jugador."
+          allowOther
+          otherName={bestGoalkeeperOtherName}
+          otherTeamId={bestGoalkeeperOtherTeamId}
+          onOtherChange={({ name, teamId }) => {
+            setBestGoalkeeperCandidateId(null);
+            setBestGoalkeeperOtherName(name);
+            setBestGoalkeeperOtherTeamId(teamId);
+            setBestGoalkeeperName(name);
+          }}
+          disabled={!isBeforeDeadline}
+        />
+
+        {specialsError && <Alert variant="error">{specialsError}</Alert>}
+        {specialsSuccess && <Alert variant="success">Guardado</Alert>}
+
+        {isBeforeDeadline && (
+          <Button onClick={handleSaveSpecials} disabled={savingSpecials} className="w-full">
+            {savingSpecials ? 'Guardando...' : 'Guardar predicciones especiales'}
+          </Button>
         )}
       </Card>
 
@@ -715,80 +759,6 @@ export default function MyPredictionsClient({
           </div>
         </Card>
       )}
-
-      <Card className="space-y-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Predicciones especiales</h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Estas predicciones especiales se califican al final del torneo. Selecciona los jugadores desde la lista para evitar errores de escritura. Si tu jugador no aparece, usa la opción Otro jugador.
-          </p>
-        </div>
-
-        <AwardCandidateSelect
-          candidates={awardCandidates}
-          teams={teams}
-          value={topScorerCandidateId}
-          onChange={(candidateId, candidate) => {
-            setTopScorerCandidateId(candidateId);
-            setTopScorerName(candidate?.display_name || '');
-            if (candidateId) {
-              setTopScorerOtherName('');
-              setTopScorerOtherTeamId(null);
-            }
-          }}
-          awardCategory="top_scorer"
-          label="Goleador del torneo"
-          placeholder="Busca jugador por nombre, apellido o selección"
-          helpText="Selecciona un jugador de la lista para evitar errores de escritura. Si no aparece, usa Otro jugador."
-          allowOther
-          otherName={topScorerOtherName}
-          otherTeamId={topScorerOtherTeamId}
-          onOtherChange={({ name, teamId }) => {
-            setTopScorerCandidateId(null);
-            setTopScorerOtherName(name);
-            setTopScorerOtherTeamId(teamId);
-            setTopScorerName(name);
-          }}
-          disabled={!isBeforeDeadline}
-        />
-
-        <AwardCandidateSelect
-          candidates={awardCandidates}
-          teams={teams}
-          value={bestGoalkeeperCandidateId}
-          onChange={(candidateId, candidate) => {
-            setBestGoalkeeperCandidateId(candidateId);
-            setBestGoalkeeperName(candidate?.display_name || '');
-            if (candidateId) {
-              setBestGoalkeeperOtherName('');
-              setBestGoalkeeperOtherTeamId(null);
-            }
-          }}
-          awardCategory="best_goalkeeper"
-          label="Mejor arquero del torneo"
-          placeholder="Busca arquero por nombre, apellido o selección"
-          helpText="Selecciona el arquero desde la lista. Si no aparece, usa Otro jugador."
-          allowOther
-          otherName={bestGoalkeeperOtherName}
-          otherTeamId={bestGoalkeeperOtherTeamId}
-          onOtherChange={({ name, teamId }) => {
-            setBestGoalkeeperCandidateId(null);
-            setBestGoalkeeperOtherName(name);
-            setBestGoalkeeperOtherTeamId(teamId);
-            setBestGoalkeeperName(name);
-          }}
-          disabled={!isBeforeDeadline}
-        />
-
-        {specialsError && <Alert variant="error">{specialsError}</Alert>}
-        {specialsSuccess && <Alert variant="success">Guardado</Alert>}
-
-        {isBeforeDeadline && (
-          <Button onClick={handleSaveSpecials} disabled={savingSpecials} className="w-full">
-            {savingSpecials ? 'Guardando...' : 'Guardar predicciones especiales'}
-          </Button>
-        )}
-      </Card>
 
       {Object.entries(groupedMatches).map(([round, dates]) => {
         const isKnockoutRound = KNOCKOUT_ROUNDS.has(round as any);
