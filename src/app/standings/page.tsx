@@ -116,11 +116,11 @@ export default async function StandingsPage() {
         channelName="realtime-standings"
       />
       <AppShell
-      title="Tabla de posiciones global"
+      title="Tabla de grupos"
       subtitle="Tablas de posiciones de la fase de grupos del Mundial 2026"
       maxWidthClassName="max-w-7xl"
       headerActions={
-        <HelpButton title="¿Cómo funciona la tabla de posiciones?" buttonLabel="¿Cómo funciona?">
+        <HelpButton title="¿Cómo funciona la tabla de grupos?" buttonLabel="¿Cómo funciona?">
           <div className="space-y-4">
             <section>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Columnas de la tabla</h3>

@@ -9,32 +9,32 @@ const dashboardLinks = [
     {
         href: "/predictions",
         title: "Mis predicciones",
-        description: "Completa y revisa tus marcadores para la quiniela global.",
-    },
-    {
-        href: "/leaderboard",
-        title: "Tabla general",
-        description: "Consulta el ranking global de participantes.",
+        description: "Registra y revisa tus marcadores, clasificados, goleador y mejor arquero.",
     },
     {
         href: "/participants",
         title: "Participantes",
-        description: "Consulta los participantes y revisa sus predicciones.",
+        description: "Consulta quiénes participan y revisa sus predicciones.",
     },
     {
-        href: "/matches",
-        title: "Partidos",
-        description: "Revisa el calendario completo y resultados oficiales.",
+        href: "/leaderboard",
+        title: "Tabla de puntuaciones",
+        description: "Revisa el ranking de participantes y el acumulado de puntos.",
     },
     {
         href: "/bracket",
         title: "Llaves",
-        description: "Sigue el cuadro oficial de eliminatorias.",
+        description: "Consulta el cuadro de eliminatorias y el avance de los equipos.",
     },
     {
         href: "/standings",
-        title: "Tabla de posiciones",
-        description: "Mira las tablas globales de fase de grupos.",
+        title: "Tabla de grupos",
+        description: "Revisa las posiciones por grupo, puntos, goles y diferencia de gol.",
+    },
+    {
+        href: "/matches",
+        title: "Partidos",
+        description: "Consulta calendario, sedes y resultados oficiales.",
     },
 ];
 
@@ -63,14 +63,14 @@ export default async function DashboardPage() {
 
     return (
         <AppShell
-            title="Panel principal"
+            title="Inicio"
             subtitle={<>Bienvenido, {profile?.username || user?.email}</>}
             maxWidthClassName="max-w-4xl"
             headerActions={
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <HelpButton title="¿Cómo funciona el panel principal?" buttonLabel="¿Cómo funciona?">
+                    <HelpButton title="¿Cómo funciona Inicio?" buttonLabel="¿Cómo funciona?">
                         <p>
-                            El panel principal es el punto de entrada de la quiniela. Desde aquí puedes ir a tus predicciones, revisar la tabla general, consultar participantes, ver partidos, llaves y posiciones. Cada tarjeta te lleva a una sección específica.
+                            Inicio es el punto de entrada de la quiniela. Desde aquí puedes ir a tus predicciones, revisar la tabla de puntuaciones, consultar participantes, ver partidos, llaves y tabla de grupos. Cada tarjeta te lleva a una sección específica.
                         </p>
                     </HelpButton>
                     <form action={logout}>

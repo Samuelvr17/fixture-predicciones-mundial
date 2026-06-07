@@ -103,7 +103,7 @@ export default async function GlobalAdminTiebreaksPage() {
             <section>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Recálculo</h3>
               <p className="mt-2">
-                Guardar cambios puede recalcular la tabla general y las posiciones.
+                Guardar cambios puede recalcular la tabla de puntuaciones y las posiciones.
               </p>
             </section>
 

@@ -38,7 +38,7 @@ export default async function GlobalAdminTournamentResultsPage() {
         <div>
           <h1 className="text-3xl font-bold">Resultados oficiales del torneo</h1>
           <p className="mt-2 text-gray-600">
-            Configura los premios individuales oficiales que afectan la tabla general.
+            Configura los premios individuales oficiales que afectan la tabla de puntuaciones.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

@@ -4,6 +4,7 @@ import LeaderboardTable from '@/components/leaderboard/LeaderboardTable';
 import RealtimeRefresh from '@/components/realtime/RealtimeRefresh';
 import AppShell from '@/components/layout/AppShell';
 import HelpButton from '@/components/help/HelpButton';
+import { Alert } from '@/components/ui/Alert';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
 
 export default async function GlobalLeaderboardPage() {
@@ -52,14 +53,14 @@ export default async function GlobalLeaderboardPage() {
                 filters={[{ table: 'score_breakdowns', filter: `group_id=eq.${GLOBAL_GROUP_ID}` }]}
             />
             <AppShell
-                title="Tabla general"
+                title="Tabla de puntuaciones"
                 headerActions={
-                    <HelpButton title="¿Cómo funciona la tabla general?" buttonLabel="¿Cómo funciona?">
+                    <HelpButton title="¿Cómo funciona la tabla de puntuaciones?" buttonLabel="¿Cómo funciona?">
                         <div className="space-y-4">
                             <section>
                                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Ranking de participantes</h3>
                                 <p className="mt-2">
-                                    La tabla general muestra el ranking de todos los participantes ordenado por puntos acumulados.
+                                    La tabla de puntuaciones muestra el ranking de todos los participantes ordenado por puntos acumulados.
                                 </p>
                             </section>
 
@@ -90,15 +91,22 @@ export default async function GlobalLeaderboardPage() {
                             <section>
                                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
                                 <p className="mt-2">
-                                    La tabla general resume el rendimiento de cada participante. Puedes abrir el detalle para ver de dónde salen sus puntos.
+                                    La tabla de puntuaciones resume el rendimiento de cada participante. Puedes abrir el detalle para ver de dónde salen sus puntos.
                                 </p>
                             </section>
                         </div>
                     </HelpButton>
                 }
             >
+                <Alert variant="info" className="mb-6">
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-base">Premios de la quiniela</h3>
+                        <p className="font-normal">1.º puesto — Mayor puntuación: 70% del premio total</p>
+                        <p className="font-normal">2.º puesto — Segunda mayor puntuación: 30% del premio total</p>
+                    </div>
+                </Alert>
                 {membersWithScores.length === 0 ? (
-                    <p className="text-zinc-500 dark:text-zinc-400">No hay participantes en la tabla general.</p>
+                    <p className="text-zinc-500 dark:text-zinc-400">No hay participantes en la tabla de puntuaciones.</p>
                 ) : (
                     <LeaderboardTable
                         members={membersWithScores}

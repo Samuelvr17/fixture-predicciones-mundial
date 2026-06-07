@@ -88,7 +88,7 @@ export default async function GroupLeaderboardPage(props: Params) {
         return (
             <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
                 <div className="max-w-6xl w-full mx-auto">
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">Tabla de Posiciones</h1>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Tabla de Puntuaciones</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 mb-6">
                         Grupo: {group.name}
                     </p>
@@ -109,7 +109,7 @@ export default async function GroupLeaderboardPage(props: Params) {
             />
             <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 p-8">
             <div className="max-w-6xl w-full mx-auto">
-                <h1 className="text-3xl font-bold tracking-tight mb-2">Tabla de Posiciones</h1>
+                <h1 className="text-3xl font-bold tracking-tight mb-2">Tabla de Puntuaciones</h1>
                 <p className="text-zinc-500 dark:text-zinc-400 mb-6">
                     Grupo: {group.name}
                 </p>

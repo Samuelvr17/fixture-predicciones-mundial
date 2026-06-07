@@ -216,7 +216,7 @@ export default async function GroupDetailPage(props: Params) {
                         </p>
                     </Link>
 
-                    {/* Tabla general */}
+                    {/* Tabla de puntuaciones */}
                     <Link
                         href={`/groups/${params.groupId}/leaderboard`}
                         className="group bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-yellow-300 dark:hover:border-yellow-700 hover:shadow-md transition-all"
@@ -231,9 +231,9 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla general</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla de puntuaciones</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Ver tabla de posiciones del grupo
+                            Ver tabla de puntuaciones del grupo
                         </p>
                     </Link>
 
@@ -252,9 +252,9 @@ export default async function GroupDetailPage(props: Params) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla de posiciones global</h3>
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Tabla de grupos</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Ver tabla de posiciones oficial del torneo
+                            Ver tabla de grupos oficial del torneo
                         </p>
                     </Link>
                 </div>

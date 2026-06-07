@@ -21,13 +21,13 @@ type NavItem = {
 
 function getNavItems(): NavItem[] {
     return [
-        { href: '/dashboard', label: 'Panel principal' },
+        { href: '/dashboard', label: 'Inicio' },
         { href: '/predictions', label: 'Mis predicciones', shortLabel: 'Predicciones' },
-        { href: '/leaderboard', label: 'Tabla general', shortLabel: 'Tabla' },
         { href: '/participants', label: 'Participantes' },
-        { href: '/matches', label: 'Partidos' },
+        { href: '/leaderboard', label: 'Tabla de puntuaciones', shortLabel: 'Tabla' },
         { href: '/bracket', label: 'Llaves' },
-        { href: '/standings', label: 'Tabla de posiciones', shortLabel: 'Posiciones' },
+        { href: '/standings', label: 'Tabla de grupos', shortLabel: 'Grupos' },
+        { href: '/matches', label: 'Partidos' },
     ];
 }
 

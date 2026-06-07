@@ -151,7 +151,7 @@ export default async function GlobalAdminResultsPage() {
             <section>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Impacto de guardar</h3>
               <p className="mt-2">
-                Guardar un resultado puede recalcular la tabla general, las llaves y los puntajes de todos los participantes.
+                Guardar un resultado puede recalcular la tabla de puntuaciones, las llaves y los puntajes de todos los participantes.
               </p>
             </section>
 
@@ -165,7 +165,7 @@ export default async function GlobalAdminResultsPage() {
             <section>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Resumen</h3>
               <p className="mt-2">
-                Usa esta pantalla solo con resultados oficiales confirmados. Cada cambio puede modificar la tabla general.
+                Usa esta pantalla solo con resultados oficiales confirmados. Cada cambio puede modificar la tabla de puntuaciones.
               </p>
             </section>
           </div>
