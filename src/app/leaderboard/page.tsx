@@ -112,8 +112,9 @@ export default async function GlobalLeaderboardPage() {
                 <Alert variant="info" className="mb-6">
                     <div className="space-y-2">
                         <h3 className="font-semibold text-base">Premios de la quiniela</h3>
-                        <p className="font-normal">1.º puesto — Mayor puntuación: 70% del premio total</p>
-                        <p className="font-normal">2.º puesto — Segunda mayor puntuación: 30% del premio total</p>
+                        <p className="font-normal">1.º puesto — Mayor puntuación: 70% del premio neto</p>
+                        <p className="font-normal">2.º puesto — Segunda mayor puntuación: 30% del premio neto</p>
+                        <p className="font-normal text-sm">(después de deducir 10% para la organización, administración y gestión de la quiniela)</p>
                     </div>
                 </Alert>
 
