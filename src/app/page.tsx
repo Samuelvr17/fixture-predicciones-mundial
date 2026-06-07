@@ -4,12 +4,9 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
       <main className="flex w-full flex-col items-center justify-center py-20 px-4 text-center">
-        <h1 className="text-5xl font-bold tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
+        <h1 className="text-5xl font-bold tracking-tighter mb-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
           Quiniela Mundial 2026
         </h1>
-        <p className="max-w-xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400 mb-10">
-          Únete a la emoción del Mundial. Juega con tus amigos, predice los resultados de los partidos, arma tu bracket y demuestra quién sabe más de fútbol en un grupo privado.
-        </p>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Link
