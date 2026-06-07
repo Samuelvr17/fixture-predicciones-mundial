@@ -179,7 +179,17 @@ export default async function GlobalPredictionsPage() {
         .single();
 
     return (
-        <AppShell title="Mis predicciones" headerActions={predictionsHelpButton()}>
+        <AppShell 
+            title="Mis predicciones" 
+            headerActions={predictionsHelpButton()}
+            headerNotice={
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                        Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747
+                    </p>
+                </div>
+            }
+        >
             {!isBeforeDeadline && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                     <p className="text-yellow-800 dark:text-yellow-200 font-medium">

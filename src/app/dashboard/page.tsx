@@ -83,6 +83,13 @@ export default async function DashboardPage() {
                     </form>
                 </div>
             }
+            headerNotice={
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                        Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747
+                    </p>
+                </div>
+            }
         >
             {globalAdmin && (
                 <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-6 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900">

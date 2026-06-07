@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ScoringRulesHelpButton from "@/components/help/ScoringRulesHelpButton";
 
 export default function Home() {
   return (
@@ -7,6 +8,18 @@ export default function Home() {
         <h1 className="text-5xl font-bold tracking-tighter mb-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
           Quiniela Mundial 2026
         </h1>
+
+        <div className="mb-8 w-full max-w-md">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+              Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <ScoringRulesHelpButton />
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Link
