@@ -9,14 +9,6 @@ export default function Home() {
           Quiniela Mundial 2026
         </h1>
 
-        <div className="mb-8 w-full max-w-md">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-              Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747
-            </p>
-          </div>
-        </div>
-
         <div className="mb-8">
           <ScoringRulesHelpButton />
         </div>

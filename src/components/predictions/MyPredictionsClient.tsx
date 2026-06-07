@@ -12,6 +12,7 @@ import type { GroupStandings, TeamStats } from '@/lib/tournament/groupStandings'
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { KNOCKOUT_ROUNDS, MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 import AwardCandidateSelect, { type AwardCandidate } from '@/components/awards/AwardCandidateSelect';
+import EditablePredictionBracketView from './EditablePredictionBracketView';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 type Prediction = Database['public']['Tables']['predictions_scores']['Row'];
@@ -98,6 +99,7 @@ export default function MyPredictionsClient({
   const [tiebreakSuccess, setTiebreakSuccess] = useState<Record<string, boolean>>({});
   const [showPredictedTables, setShowPredictedTables] = useState(false);
   const [showManualTiebreaks, setShowManualTiebreaks] = useState(false);
+  const [knockoutViewMode, setKnockoutViewMode] = useState<'list' | 'bracket'>('list');
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -123,6 +125,11 @@ export default function MyPredictionsClient({
 
   const matchById = useMemo(() => new Map(matches.map((match) => [match.id, match])), [matches]);
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
+
+  const groupStageMatches = useMemo(() => matches.filter((m) => m.round === 'group'), [matches]);
+  const isGroupStageComplete = useMemo(() => {
+    return groupStageMatches.every((match) => predictionsMap.has(match.id));
+  }, [groupStageMatches, predictionsMap]);
 
 
   const isValidScoreInput = (value: string) => /^\d*$/.test(value);
@@ -276,6 +283,9 @@ export default function MyPredictionsClient({
             predicted_team2_score: team2Score,
             predicted_winner_team_id: winnerTeamId,
           });
+          setTimeout(() => {
+            setSuccess((prev) => ({ ...prev, [matchId]: false }));
+          }, 2000);
         }
       } else {
         const { error } = await supabase
@@ -304,6 +314,9 @@ export default function MyPredictionsClient({
           if (newPred) {
             predictionsMap.set(matchId, newPred);
           }
+          setTimeout(() => {
+            setSuccess((prev) => ({ ...prev, [matchId]: false }));
+          }, 2000);
         }
       }
     } catch {
@@ -584,6 +597,35 @@ export default function MyPredictionsClient({
         </Card>
       )}
 
+      {isGroupStageComplete && (
+        <Card className="space-y-4 border-green-200 bg-green-50 sm:space-y-4 dark:border-green-800 dark:bg-green-900/20">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-green-950 sm:text-2xl dark:text-green-100">
+              Fase de grupos completada
+            </h2>
+            <p className="mt-1 text-sm text-green-800 dark:text-green-200">
+              Tus clasificados ya fueron calculados con tus marcadores. Ahora puedes predecir las eliminatorias en lista o usando una vista de llave.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setKnockoutViewMode('list')}
+              variant={knockoutViewMode === 'list' ? 'primary' : 'secondary'}
+              className="flex-1"
+            >
+              Seguir en lista
+            </Button>
+            <Button
+              onClick={() => setKnockoutViewMode('bracket')}
+              variant={knockoutViewMode === 'bracket' ? 'primary' : 'secondary'}
+              className="flex-1"
+            >
+              Usar vista de llave
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card className="space-y-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Predicciones especiales</h2>
@@ -658,107 +700,180 @@ export default function MyPredictionsClient({
         )}
       </Card>
 
-      {Object.entries(groupedMatches).map(([round, dates]) => (
-        <div key={round} className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{getRoundLabel(round)}</h2>
-          {round !== 'group' && (
-            <Alert variant="warning" className="p-3">
-              En eliminatorias, el marcador corresponde a los 90 minutos. Si predices empate, selecciona quien clasifica.
-            </Alert>
-          )}
+      {Object.entries(groupedMatches).map(([round, dates]) => {
+        const isKnockoutRound = KNOCKOUT_ROUNDS.has(round as any);
 
-          {Object.entries(dates).map(([date, matchesByDate]) => (
-            <div key={date} className="space-y-3">
-              <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
-                {formatMatchDateLong(date)}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {matchesByDate.map((match) => {
-                  const pred = predictions[match.id] || { team1: '0', team2: '0' };
-                  const team1Score = parseScoreInput(pred.team1);
-                  const team2Score = parseScoreInput(pred.team2);
-                  const isSaved = predictionsMap.has(match.id);
-                  const savedPrediction = predictionsMap.get(match.id);
-                  const isDraw = team1Score === team2Score;
-                  const isKnockout = KNOCKOUT_ROUNDS.has(match.round);
-                  const team1 = getDisplayTeam(match, 'team1');
-                  const team2 = getDisplayTeam(match, 'team2');
-                  const team1Slot = getDisplaySlot(match, 'team1');
-                  const team2Slot = getDisplaySlot(match, 'team2');
-                  const hasChanges = isSaved && (
-                    savedPrediction!.predicted_team1_score !== team1Score ||
-                    savedPrediction!.predicted_team2_score !== team2Score ||
-                    (savedPrediction!.predicted_winner_team_id ?? null) !== (isKnockout && isDraw ? predictedWinners[match.id] ?? null : null)
-                  );
+        if (isKnockoutRound && knockoutViewMode === 'bracket' && isGroupStageComplete) {
+          return null;
+        }
 
-                  return (
-                    <Card key={match.id} padding="compact" className="space-y-3">
-                      {match.match_number && (
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Partido #{match.match_number}
-                        </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <TeamScoreRow
-                          team={team1}
-                          fallbackSlot={team1Slot}
-                          score={pred.team1}
-                          editable={isBeforeDeadline}
-                          onChange={(value) => handlePredictionChange(match.id, 'team1', value)}
-                        />
-                        <TeamScoreRow
-                          team={team2}
-                          fallbackSlot={team2Slot}
-                          score={pred.team2}
-                          editable={isBeforeDeadline}
-                          onChange={(value) => handlePredictionChange(match.id, 'team2', value)}
-                        />
-                      </div>
-
-                      {isKnockout && isDraw && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                            Clasifica
-                          </label>
-                          <select
-                            value={predictedWinners[match.id] ?? ''}
-                            onChange={(event) => setPredictedWinners((prev) => ({
-                              ...prev,
-                              [match.id]: event.target.value || null,
-                            }))}
-                            disabled={!isBeforeDeadline || !team1 || !team2}
-                            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
-                          >
-                            <option value="">Seleccionar clasificado</option>
-                            {team1 && <option value={team1.id}>{getTeamDisplayName(team1)}</option>}
-                            {team2 && <option value={team2.id}>{getTeamDisplayName(team2)}</option>}
-                          </select>
-                        </div>
-                      )}
-
-                      {errors[match.id] && <Alert variant="error" className="py-2">{errors[match.id]}</Alert>}
-                      {success[match.id] && <Alert variant="success" className="py-2">Guardado</Alert>}
-
-                      {isBeforeDeadline && (
-                        <Button onClick={() => handleSavePrediction(match.id)} disabled={saving[match.id]} className="w-full">
-                          {saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
-                        </Button>
-                      )}
-
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-                        <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
-                        <div>{match.venue}</div>
-                        {match.group_code && <div>Grupo {match.group_code}</div>}
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+        return (
+          <div key={round} className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{getRoundLabel(round)}</h2>
+              {isKnockoutRound && isGroupStageComplete && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setKnockoutViewMode('list')}
+                    variant={knockoutViewMode === 'list' ? 'primary' : 'secondary'}
+                    className="text-xs px-3 py-1.5"
+                  >
+                    Lista
+                  </Button>
+                  <Button
+                    onClick={() => setKnockoutViewMode('bracket')}
+                    variant={knockoutViewMode === 'bracket' ? 'primary' : 'secondary'}
+                    className="text-xs px-3 py-1.5"
+                  >
+                    Llave
+                  </Button>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      ))}
+            {isKnockoutRound && (
+              <Alert variant="warning" className="p-3">
+                En eliminatorias, el marcador corresponde a los 90 minutos. Si predices empate, selecciona quien clasifica.
+              </Alert>
+            )}
+            {!isGroupStageComplete && isKnockoutRound && (
+              <Alert variant="info" className="p-3">
+                Completa primero todos los partidos de fase de grupos para calcular tus clasificados y activar la vista de llave.
+              </Alert>
+            )}
+
+            {Object.entries(dates).map(([date, matchesByDate]) => (
+              <div key={date} className="space-y-3">
+                <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
+                  {formatMatchDateLong(date)}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {matchesByDate.map((match) => {
+                    const pred = predictions[match.id] || { team1: '0', team2: '0' };
+                    const team1Score = parseScoreInput(pred.team1);
+                    const team2Score = parseScoreInput(pred.team2);
+                    const isSaved = predictionsMap.has(match.id);
+                    const savedPrediction = predictionsMap.get(match.id);
+                    const isDraw = team1Score === team2Score;
+                    const isKnockout = KNOCKOUT_ROUNDS.has(match.round);
+                    const team1 = getDisplayTeam(match, 'team1');
+                    const team2 = getDisplayTeam(match, 'team2');
+                    const team1Slot = getDisplaySlot(match, 'team1');
+                    const team2Slot = getDisplaySlot(match, 'team2');
+                    const hasChanges = isSaved && (
+                      savedPrediction!.predicted_team1_score !== team1Score ||
+                      savedPrediction!.predicted_team2_score !== team2Score ||
+                      (savedPrediction!.predicted_winner_team_id ?? null) !== (isKnockout && isDraw ? predictedWinners[match.id] ?? null : null)
+                    );
+
+                    return (
+                      <Card key={match.id} padding="compact" className="space-y-3">
+                        {match.match_number && (
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Partido #{match.match_number}
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <TeamScoreRow
+                            team={team1}
+                            fallbackSlot={team1Slot}
+                            score={pred.team1}
+                            editable={isBeforeDeadline}
+                            onChange={(value) => handlePredictionChange(match.id, 'team1', value)}
+                          />
+                          <TeamScoreRow
+                              team={team2}
+                              fallbackSlot={team2Slot}
+                              score={pred.team2}
+                              editable={isBeforeDeadline}
+                              onChange={(value) => handlePredictionChange(match.id, 'team2', value)}
+                            />
+                          </div>
+
+                          {isKnockout && isDraw && (
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                Clasifica
+                              </label>
+                              <select
+                                value={predictedWinners[match.id] ?? ''}
+                                onChange={(event) => setPredictedWinners((prev) => ({
+                                  ...prev,
+                                  [match.id]: event.target.value || null,
+                                }))}
+                                disabled={!isBeforeDeadline || !team1 || !team2}
+                                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
+                              >
+                                <option value="">Seleccionar clasificado</option>
+                                {team1 && <option value={team1.id}>{getTeamDisplayName(team1)}</option>}
+                                {team2 && <option value={team2.id}>{getTeamDisplayName(team2)}</option>}
+                              </select>
+                            </div>
+                          )}
+
+                          {errors[match.id] && <Alert variant="error" className="py-2">{errors[match.id]}</Alert>}
+                          {success[match.id] && <Alert variant="success" className="py-2">Guardado</Alert>}
+
+                          {isBeforeDeadline && (
+                            <Button onClick={() => handleSavePrediction(match.id)} disabled={saving[match.id]} className="w-full">
+                              {saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
+                            </Button>
+                          )}
+
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                            <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
+                            <div>{match.venue}</div>
+                            {match.group_code && <div>Grupo {match.group_code}</div>}
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+          </div>
+        );
+      })}
+
+      {isGroupStageComplete && knockoutViewMode === 'bracket' && (
+        <Card className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Eliminatorias</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Vista de llave editable con desplazamiento horizontal
+              </p>
+            </div>
+            <Button
+              onClick={() => setKnockoutViewMode('list')}
+              variant="secondary"
+              className="shrink-0"
+            >
+              Ver en lista
+            </Button>
+          </div>
+          <EditablePredictionBracketView
+            bracket={{
+              matches: predictedTournament.bracket.matches,
+              champion: predictedTournament.championTeamId,
+              thirdPlace: predictedTournament.thirdPlaceTeamId,
+            }}
+            teams={teamsMap}
+            predictions={predictions}
+            predictedWinners={predictedWinners}
+            isBeforeDeadline={isBeforeDeadline}
+            saving={saving}
+            errors={errors}
+            success={success}
+            onPredictionChange={handlePredictionChange}
+            onWinnerChange={(matchId, winnerId) => setPredictedWinners((prev) => ({
+              ...prev,
+              [matchId]: winnerId,
+            }))}
+            onSavePrediction={handleSavePrediction}
+          />
+        </Card>
+      )}
     </div>
   );
 }
