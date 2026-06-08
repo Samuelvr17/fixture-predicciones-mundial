@@ -102,9 +102,9 @@ export default async function GlobalLeaderboardPage() {
                     </div>
                 }
                 headerNotice={
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
-                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                            Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747. Puedes participar gratis, pero el premio es solo para quienes pagan.
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/40">
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                            La confirmación de participación se gestiona por fuera de la app. Revisa la sección Participación confirmada para ver los registros visibles.
                         </p>
                     </div>
                 }

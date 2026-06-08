@@ -22,6 +22,11 @@ const dashboardLinks = [
         description: "Revisa el ranking de participantes y el acumulado de puntos.",
     },
     {
+        href: "/participation",
+        title: "Participación confirmada",
+        description: "Consulta las personas cuya participación ya fue confirmada por fuera de la app.",
+    },
+    {
         href: "/bracket",
         title: "Llaves",
         description: "Consulta el cuadro de eliminatorias y el avance de los equipos.",
@@ -84,9 +89,9 @@ export default async function DashboardPage() {
                 </div>
             }
             headerNotice={
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
-                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                        Pagar 120.000 COP de la inscripción a Bancolombia 91249281994 o llave 3214076747. Puedes participar gratis, pero el premio es solo para quienes pagan.
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/40">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        La confirmación de participación se gestiona por fuera de la app. Esta app no procesa pagos ni guarda datos sensibles de pago.
                     </p>
                 </div>
             }
@@ -106,6 +111,12 @@ export default async function DashboardPage() {
                             className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
                         >
                             Resolver desempates
+                        </a>
+                        <a
+                            href="/global-admin/participation"
+                            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                        >
+                            Pagos/participación confirmados
                         </a>
                     </div>
                 </section>
