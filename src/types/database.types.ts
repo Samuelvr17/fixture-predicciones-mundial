@@ -87,6 +87,42 @@ export type Database = {
           },
         ]
       }
+      participation_confirmations: {
+        Row: {
+          confirmed_at: string
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          is_visible: boolean
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          is_visible?: boolean
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          is_visible?: boolean
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
