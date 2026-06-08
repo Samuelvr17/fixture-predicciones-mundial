@@ -13,18 +13,15 @@ import {
 import type { Database } from '@/types/database.types';
 
 type ParticipationConfirmation = Database['public']['Tables']['participation_confirmations']['Row'];
+type ParticipationConfirmationForClient = ParticipationConfirmation & {
+  confirmed_at_display: string;
+};
 type ParticipationStatus = 'confirmed' | 'pending' | 'cancelled';
 
 type ParticipationConfirmationsClientProps = {
-  confirmations: ParticipationConfirmation[];
+  confirmations: ParticipationConfirmationForClient[];
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('es-CO', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
 
 export default function ParticipationConfirmationsClient({ confirmations }: ParticipationConfirmationsClientProps) {
   const router = useRouter();
@@ -271,7 +268,7 @@ export default function ParticipationConfirmationsClient({ confirmations }: Part
                         </span>
                       </td>
                       <td className="min-w-44 px-3 py-3 text-zinc-600 dark:text-zinc-300">
-                        {formatDate(confirmation.confirmed_at)}
+                        {confirmation.confirmed_at_display}
                       </td>
                       <td className="min-w-72 px-3 py-3">
                         <div className="flex flex-wrap gap-2">

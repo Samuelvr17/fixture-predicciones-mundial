@@ -3,6 +3,17 @@ import { redirect } from 'next/navigation';
 import ParticipationConfirmationsClient from '@/components/admin/ParticipationConfirmationsClient';
 import { Alert } from '@/components/ui/Alert';
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/types/database.types';
+
+type ParticipationConfirmation = Database['public']['Tables']['participation_confirmations']['Row'];
+
+function formatDateTimeColombia(value: string) {
+  return new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Bogota',
+  }).format(new Date(value));
+}
 
 export default async function GlobalAdminParticipationPage() {
   const supabase = await createClient();
@@ -26,6 +37,11 @@ export default async function GlobalAdminParticipationPage() {
     .from('participation_confirmations')
     .select('id, display_name, status, is_visible, notes, confirmed_at, created_by, created_at, updated_at')
     .order('confirmed_at', { ascending: false });
+
+  const confirmationsForClient = (confirmations ?? []).map((confirmation) => ({
+    ...confirmation,
+    confirmed_at_display: formatDateTimeColombia(confirmation.confirmed_at),
+  }));
 
   return (
     <div className="min-h-screen bg-zinc-50 p-4 text-zinc-900 sm:p-6 lg:p-8 dark:bg-zinc-950 dark:text-zinc-100">
@@ -57,7 +73,7 @@ export default async function GlobalAdminParticipationPage() {
         {error ? (
           <Alert variant="error">No se pudieron cargar los registros de participación.</Alert>
         ) : (
-          <ParticipationConfirmationsClient confirmations={confirmations ?? []} />
+          <ParticipationConfirmationsClient confirmations={confirmationsForClient} />
         )}
       </div>
     </div>

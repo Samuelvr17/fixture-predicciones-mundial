@@ -9,6 +9,7 @@ import { ensureGlobalGroupMembership } from '@/lib/groups/globalGroup';
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('es-CO', {
     dateStyle: 'medium',
+    timeZone: 'America/Bogota',
   }).format(new Date(value));
 }
 
