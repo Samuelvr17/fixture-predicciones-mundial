@@ -37,7 +37,7 @@ export default async function ParticipationPage() {
       maxWidthClassName="max-w-4xl"
     >
       <Alert variant="info">
-        La confirmación de participación se gestiona por fuera de la app. Esta sección solo muestra las participaciones confirmadas.
+        Para participar y poder ganar premios, paga la inscripción de $120.000 COP a la cuenta Bancolombia 91249281994 o llave 3214076747. Las predicciones se pueden hacer gratis, pero solo los participantes que hicieron el pago de inscripción ganan premio.
       </Alert>
 
       <Card className="space-y-4">

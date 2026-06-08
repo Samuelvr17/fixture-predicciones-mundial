@@ -104,7 +104,7 @@ export default async function GlobalLeaderboardPage() {
                 headerNotice={
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/40">
                         <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                            La confirmación de participación se gestiona por fuera de la app. Revisa la sección Participación confirmada para ver los registros visibles.
+                            Para participar y poder ganar premios, paga la inscripción de $120.000 COP a la cuenta Bancolombia 91249281994 o llave 3214076747. Las predicciones se pueden hacer gratis, pero solo los participantes que hicieron el pago de inscripción ganan premio.
                         </p>
                     </div>
                 }
