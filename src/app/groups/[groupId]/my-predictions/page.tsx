@@ -152,7 +152,11 @@ export default async function MyPredictionsPage(props: Params) {
                             ⚠️ El cierre de predicciones ha pasado. No puedes editar tus predicciones.
                         </p>
                         <p className="text-yellow-700 dark:text-yellow-300 text-sm mt-1">
-                            Cierre de predicciones: {new Date(group.prediction_deadline).toLocaleString('es-ES')}
+                            Cierre de predicciones: {new Intl.DateTimeFormat('es-CO', {
+                                dateStyle: 'short',
+                                timeStyle: 'short',
+                                timeZone: 'America/Bogota',
+                            }).format(new Date(group.prediction_deadline))}
                         </p>
                     </div>
                 )}

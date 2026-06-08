@@ -512,7 +512,11 @@ export default function MyPredictionsClient({
     <div className="space-y-6">
       {isBeforeDeadline && (
         <Alert variant="info">
-          Puedes editar tus predicciones hasta: {new Date(deadline).toLocaleString('es-ES')}
+          Puedes editar tus predicciones hasta: {new Intl.DateTimeFormat('es-CO', {
+            dateStyle: 'short',
+            timeStyle: 'short',
+            timeZone: 'America/Bogota',
+          }).format(new Date(deadline))}
         </Alert>
       )}
 
