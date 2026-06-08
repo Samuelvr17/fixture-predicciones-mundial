@@ -6,7 +6,7 @@ import { compareMatchDateTime, formatMatchDateLong } from '@/lib/utils/matchDate
 import { getTeamDisplayName } from '@/lib/i18n/teamNames';
 import { buildPredictedTournamentFromScores } from '@/lib/tournament/predictedTournament';
 import ParticipantPredictionBracketView from './ParticipantPredictionBracketView';
-import type { ManualTiebreak as GroupManualTiebreak } from '@/lib/tournament/groupStandings';
+import type { ManualTiebreak as GroupManualTiebreak, GroupStandings } from '@/lib/tournament/groupStandings';
 import { MATCH_ROUND_ORDER, getRoundLabel } from '@/lib/tournament/display';
 import type { AwardCandidate } from '@/components/awards/AwardCandidateSelect';
 
@@ -47,7 +47,7 @@ export default function MemberPredictionsClient({
   pageTitle,
   editHref,
 }: MemberPredictionsClientProps) {
-  const [viewMode, setViewMode] = useState<'list' | 'bracket'>('list');
+  const [viewMode, setViewMode] = useState<'groups' | 'knockout'>('groups');
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -58,6 +58,26 @@ export default function MemberPredictionsClient({
       return compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time);
     });
   }, [matches]);
+
+  const groupStageMatches = useMemo(() => matches.filter((m) => m.round === 'group'), [matches]);
+
+  const groupedGroupMatches = useMemo(() => {
+    const groups: Record<string, MatchWithTeam[]> = {};
+
+    groupStageMatches.forEach((match) => {
+      if (!match.group_code) return;
+      groups[match.group_code] ??= [];
+      groups[match.group_code].push(match);
+    });
+
+    Object.values(groups).forEach((groupMatches) => {
+      groupMatches.sort((a, b) => compareMatchDateTime(a.match_date, a.match_time, b.match_date, b.match_time));
+    });
+
+    return Object.entries(groups)
+      .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
+      .map(([groupCode, groupMatches]) => ({ groupCode, matches: groupMatches }));
+  }, [groupStageMatches]);
 
   const groupedMatches = useMemo(() => {
     const groups: Record<string, Record<string, MatchWithTeam[]>> = {};
@@ -232,7 +252,7 @@ export default function MemberPredictionsClient({
       {predictionsMap.size > 0 && (
         <div className="space-y-4">
           <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-900" role="tablist" aria-label="Vista de predicciones">
-            {(['list', 'bracket'] as const).map((mode) => (
+            {(['groups', 'knockout'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -245,77 +265,28 @@ export default function MemberPredictionsClient({
                     : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white'
                 }`}
               >
-                {mode === 'list' ? 'Lista' : 'Llave'}
+                {mode === 'groups' ? 'Grupos' : 'Eliminatorias'}
               </button>
             ))}
           </div>
 
-          {viewMode === 'list' ? (
+          {viewMode === 'groups' ? (
             <div className="space-y-4">
-              {Object.entries(groupedMatches).map(([round, dates]) => {
-                const hasPredictionsInRound = Object.values(dates).some((matchesByDate) =>
-                  matchesByDate.some((match) => predictionsMap.has(match.id))
-                );
-                if (!hasPredictionsInRound) return null;
-
-                return (
-                  <div key={round} className="space-y-4">
-                    <h2 className="text-2xl font-bold tracking-tight">{getRoundLabel(round)}</h2>
-                    {Object.entries(dates).map(([date, matchesByDate]) => {
-                      const hasPredictionsInDate = matchesByDate.some((match) => predictionsMap.has(match.id));
-                      if (!hasPredictionsInDate) return null;
-
-                      return (
-                        <div key={date} className="space-y-3">
-                          <h3 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
-                            {formatMatchDateLong(date)}
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {matchesByDate.map((match) => {
-                              const pred = predictionsMap.get(match.id);
-                              if (!pred) return null;
-
-                              const team1 = getDisplayTeam(match, 'team1');
-                              const team2 = getDisplayTeam(match, 'team2');
-                              const qualifier = match.round === 'group' ? null : getQualifierTeam(match, pred);
-
-                              return (
-                                <div key={match.id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-3">
-                                  {match.match_number && (
-                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                      Partido #{match.match_number}
-                                    </div>
-                                  )}
-                                  <ReadOnlyTeamRow
-                                    team={team1}
-                                    fallbackSlot={getDisplaySlot(match, 'team1')}
-                                    score={pred.predicted_team1_score}
-                                  />
-                                  <ReadOnlyTeamRow
-                                    team={team2}
-                                    fallbackSlot={getDisplaySlot(match, 'team2')}
-                                    score={pred.predicted_team2_score}
-                                  />
-                                  {qualifier && (
-                                    <div className="text-sm text-zinc-600 dark:text-zinc-300">
-                                      Clasifica: {getTeamDisplayName(qualifier)}
-                                    </div>
-                                  )}
-                                  <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-                                    <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
-                                    <div>{match.venue}</div>
-                                    {match.group_code && <div>Grupo {match.group_code}</div>}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {groupedGroupMatches.map(({ groupCode, matches: groupMatches }) => {
+                  const groupStanding = predictedTournament.groupStandings.standings[groupCode];
+                  return (
+                    <ReadOnlyGroupPredictionCard
+                      key={groupCode}
+                      groupCode={groupCode}
+                      matches={groupMatches}
+                      groupStanding={groupStanding}
+                      teamsMap={teamsMap}
+                      predictionsMap={predictionsMap}
+                    />
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <ParticipantPredictionBracketView
@@ -354,6 +325,189 @@ function ReadOnlyTeamRow({
         )}
       </div>
       <span className="font-bold text-lg">{score}</span>
+    </div>
+  );
+}
+
+function TeamFlag({ team, className }: { team: Team | null; className?: string }) {
+  if (!team?.flag_url) return null;
+  return <img src={team.flag_url} alt={getTeamDisplayName(team)} className={`h-4 w-6 object-cover ${className || ''}`} />;
+}
+
+function ReadOnlyGroupPredictionTable({
+  groupStanding,
+  teamsMap,
+}: {
+  groupStanding: GroupStandings | undefined;
+  teamsMap: Map<string, Team>;
+}) {
+  if (!groupStanding) {
+    return (
+      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-400">
+        Tabla pendiente
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-100 dark:border-zinc-800">
+      <div className="overflow-x-auto">
+        <table className="min-w-[560px] w-full text-xs sm:text-sm">
+          <thead className="bg-zinc-50 dark:bg-zinc-950/70">
+            <tr>
+              <th className="px-2 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">#</th>
+              <th className="px-2 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">Equipo</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">PTS</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">PJ</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">G</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">E</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">P</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">GF</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">GC</th>
+              <th className="px-2 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">DG</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupStanding.standings.map((stats, index) => (
+              <ReadOnlyGroupPredictionTableRow
+                key={stats.team_id}
+                stats={stats}
+                position={index + 1}
+                team={teamsMap.get(stats.team_id) ?? null}
+                isTied={groupStanding.tiedTeams.includes(stats.team_id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ReadOnlyGroupPredictionTableRow({
+  stats,
+  position,
+  team,
+  isTied,
+}: {
+  stats: any;
+  position: number;
+  team: Team | null;
+  isTied: boolean;
+}) {
+  const positionClassName = position <= 2
+    ? 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300'
+    : position === 3
+      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300';
+
+  return (
+    <tr className="border-t border-zinc-100 dark:border-zinc-800">
+      <td className="px-2 py-2 whitespace-nowrap">
+        <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-xs font-bold ${positionClassName}`}>
+          {position}
+        </span>
+      </td>
+      <td className="min-w-44 px-2 py-2">
+        <div className="flex items-center gap-2">
+          <TeamFlag team={team} />
+          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{team ? getTeamDisplayName(team) : 'Desconocido'}</span>
+          {isTied && <span className="text-xs text-amber-600 dark:text-amber-400">*</span>}
+        </div>
+      </td>
+      <td className="px-2 py-2 text-center font-bold">{stats.points}</td>
+      <td className="px-2 py-2 text-center">{stats.played}</td>
+      <td className="px-2 py-2 text-center">{stats.wins}</td>
+      <td className="px-2 py-2 text-center">{stats.draws}</td>
+      <td className="px-2 py-2 text-center">{stats.losses}</td>
+      <td className="px-2 py-2 text-center">{stats.goalsFor}</td>
+      <td className="px-2 py-2 text-center">{stats.goalsAgainst}</td>
+      <td className="px-2 py-2 text-center">{stats.goalDifference}</td>
+    </tr>
+  );
+}
+
+function ReadOnlyGroupMatchRow({
+  match,
+  prediction,
+  team1,
+  team2,
+}: {
+  match: MatchWithTeam;
+  prediction: Prediction;
+  team1: Team | null;
+  team2: Team | null;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50/70 p-2.5 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200 justify-end">
+          {team1?.code && <span className="truncate">{team1.code}</span>}
+          <TeamFlag team={team1} />
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="inline-flex h-10 w-11 items-center justify-center rounded-md bg-white text-center font-bold dark:bg-zinc-900">
+            {prediction.predicted_team1_score}
+          </span>
+          <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">-</span>
+          <span className="inline-flex h-10 w-11 items-center justify-center rounded-md bg-white text-center font-bold dark:bg-zinc-900">
+            {prediction.predicted_team2_score}
+          </span>
+        </div>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200 justify-start">
+          <TeamFlag team={team2} />
+          {team2?.code && <span className="truncate">{team2.code}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReadOnlyGroupPredictionCard({
+  groupCode,
+  matches,
+  groupStanding,
+  teamsMap,
+  predictionsMap,
+}: {
+  groupCode: string;
+  matches: MatchWithTeam[];
+  groupStanding: GroupStandings | undefined;
+  teamsMap: Map<string, Team>;
+  predictionsMap: Map<string, Prediction>;
+}) {
+  const completedMatches = matches.filter((match) => predictionsMap.has(match.id)).length;
+
+  return (
+    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-4 min-w-0 overflow-hidden">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold tracking-tight">Grupo {groupCode}</h3>
+        <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
+          {completedMatches}/{matches.length}
+        </span>
+      </div>
+
+      <ReadOnlyGroupPredictionTable groupStanding={groupStanding} teamsMap={teamsMap} />
+
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Partidos</h4>
+        <div className="space-y-2">
+          {matches.map((match) => {
+            const pred = predictionsMap.get(match.id);
+            if (!pred) return null;
+
+            return (
+              <ReadOnlyGroupMatchRow
+                key={match.id}
+                match={match}
+                prediction={pred}
+                team1={match.team1}
+                team2={match.team2}
+              />
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
