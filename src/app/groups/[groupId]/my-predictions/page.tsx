@@ -146,7 +146,7 @@ export default async function MyPredictionsPage(props: Params) {
             groupId={params.groupId}
             groupName={group.name}
         >
-                {!isBeforeDeadline && (
+            {/* !isBeforeDeadline && (
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                         <p className="text-yellow-800 dark:text-yellow-200 font-medium">
                             ⚠️ El cierre de predicciones ha pasado. No puedes editar tus predicciones.
@@ -159,18 +159,18 @@ export default async function MyPredictionsPage(props: Params) {
                             }).format(new Date(group.prediction_deadline))}
                         </p>
                     </div>
-                )}
-                <MyPredictionsClient
-                    matches={matches as MatchWithTeam[]}
-                    predictionsMap={predictionsMap}
-                    groupId={params.groupId}
-                    isBeforeDeadline={isBeforeDeadline}
-                    deadline={group.prediction_deadline}
-                    teams={teams as Team[] || []}
-                    specialPrediction={specialPredictions as SpecialPrediction | null}
-                    manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
-                    awardCandidates={(awardCandidates || []) as AwardCandidate[]}
-                />
+                ) */}
+            <MyPredictionsClient
+                matches={matches as MatchWithTeam[]}
+                predictionsMap={predictionsMap}
+                groupId={params.groupId}
+                isBeforeDeadline={isBeforeDeadline}
+                deadline={group.prediction_deadline}
+                teams={teams as Team[] || []}
+                specialPrediction={specialPredictions as SpecialPrediction | null}
+                manualTiebreaks={(predictionManualTiebreaks || []) as PredictionManualTiebreak[]}
+                awardCandidates={(awardCandidates || []) as AwardCandidate[]}
+            />
         </AppShell>
     );
 }

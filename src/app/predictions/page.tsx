@@ -179,8 +179,8 @@ export default async function GlobalPredictionsPage() {
         .single();
 
     return (
-        <AppShell 
-            title="Mis predicciones" 
+        <AppShell
+            title="Mis predicciones"
             headerActions={predictionsHelpButton()}
             headerNotice={
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/40">
@@ -190,7 +190,7 @@ export default async function GlobalPredictionsPage() {
                 </div>
             }
         >
-            {!isBeforeDeadline && (
+            {/* !isBeforeDeadline && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                     <p className="text-yellow-800 dark:text-yellow-200 font-medium">
                         ⚠️ El cierre de predicciones ha pasado. No puedes editar tus predicciones.
@@ -203,7 +203,7 @@ export default async function GlobalPredictionsPage() {
                         }).format(new Date(group.prediction_deadline))}
                     </p>
                 </div>
-            )}
+            ) */}
             <MyPredictionsClient
                 matches={matches as MatchWithTeam[]}
                 predictionsMap={predictionsMap}
