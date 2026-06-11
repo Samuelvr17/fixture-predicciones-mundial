@@ -510,7 +510,7 @@ export default function MyPredictionsClient({
 
   return (
     <div className="space-y-6">
-      {isBeforeDeadline && (
+      {/* isBeforeDeadline && (
         <Alert variant="info">
           Puedes editar tus predicciones hasta: {new Intl.DateTimeFormat('es-CO', {
             dateStyle: 'short',
@@ -518,7 +518,7 @@ export default function MyPredictionsClient({
             timeZone: 'America/Bogota',
           }).format(new Date(deadline))}
         </Alert>
-      )}
+      ) */}
 
       <Card className="space-y-3 sm:space-y-4">
         <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Resumen derivado de tus marcadores</h2>
@@ -850,55 +850,55 @@ export default function MyPredictionsClient({
                             onChange={(value) => handlePredictionChange(match.id, 'team1', value)}
                           />
                           <TeamScoreRow
-                              team={team2}
-                              fallbackSlot={team2Slot}
-                              score={pred.team2}
-                              editable={isBeforeDeadline}
-                              onChange={(value) => handlePredictionChange(match.id, 'team2', value)}
-                            />
+                            team={team2}
+                            fallbackSlot={team2Slot}
+                            score={pred.team2}
+                            editable={isBeforeDeadline}
+                            onChange={(value) => handlePredictionChange(match.id, 'team2', value)}
+                          />
+                        </div>
+
+                        {isKnockout && isDraw && (
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                              Clasifica
+                            </label>
+                            <select
+                              value={predictedWinners[match.id] ?? ''}
+                              onChange={(event) => setPredictedWinners((prev) => ({
+                                ...prev,
+                                [match.id]: event.target.value || null,
+                              }))}
+                              disabled={!isBeforeDeadline || !team1 || !team2}
+                              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
+                            >
+                              <option value="">Seleccionar clasificado</option>
+                              {team1 && <option value={team1.id}>{getTeamDisplayName(team1)}</option>}
+                              {team2 && <option value={team2.id}>{getTeamDisplayName(team2)}</option>}
+                            </select>
                           </div>
+                        )}
 
-                          {isKnockout && isDraw && (
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                Clasifica
-                              </label>
-                              <select
-                                value={predictedWinners[match.id] ?? ''}
-                                onChange={(event) => setPredictedWinners((prev) => ({
-                                  ...prev,
-                                  [match.id]: event.target.value || null,
-                                }))}
-                                disabled={!isBeforeDeadline || !team1 || !team2}
-                                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 dark:disabled:bg-zinc-800"
-                              >
-                                <option value="">Seleccionar clasificado</option>
-                                {team1 && <option value={team1.id}>{getTeamDisplayName(team1)}</option>}
-                                {team2 && <option value={team2.id}>{getTeamDisplayName(team2)}</option>}
-                              </select>
-                            </div>
-                          )}
+                        {errors[match.id] && <Alert variant="error" className="py-2">{errors[match.id]}</Alert>}
+                        {success[match.id] && <Alert variant="success" className="py-2">Guardado</Alert>}
 
-                          {errors[match.id] && <Alert variant="error" className="py-2">{errors[match.id]}</Alert>}
-                          {success[match.id] && <Alert variant="success" className="py-2">Guardado</Alert>}
+                        {isBeforeDeadline && (
+                          <Button onClick={() => handleSavePrediction(match.id)} disabled={saving[match.id]} className="w-full">
+                            {saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
+                          </Button>
+                        )}
 
-                          {isBeforeDeadline && (
-                            <Button onClick={() => handleSavePrediction(match.id)} disabled={saving[match.id]} className="w-full">
-                              {saving[match.id] ? 'Guardando...' : hasChanges ? 'Guardar cambios' : 'Guardar'}
-                            </Button>
-                          )}
-
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-                            <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
-                            <div>{match.venue}</div>
-                            {match.group_code && <div>Grupo {match.group_code}</div>}
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                          <div>{match.match_time} <span className="text-zinc-400 dark:text-zinc-500">(Hora Colombia)</span></div>
+                          <div>{match.venue}</div>
+                          {match.group_code && <div>Grupo {match.group_code}</div>}
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         );
       })}
