@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import ScoreBreakdownDetails from './ScoreBreakdownDetails';
+import { toggleLeaderboardVisibility } from '@/server/actions/leaderboardVisibility';
 
 interface ScoreBreakdown {
     id: string;
@@ -26,9 +27,11 @@ interface Profile {
 
 interface Member {
     id: string;
+    group_id: string;
     user_id: string;
     role: 'member' | 'leader';
     joined_at: string;
+    hidden_from_leaderboard: boolean;
     profiles: Profile;
     score_breakdowns: ScoreBreakdown | null;
 }
@@ -36,10 +39,26 @@ interface Member {
 interface LeaderboardTableProps {
     members: Member[];
     currentUserId: string;
+    isGlobalAdmin?: boolean;
 }
 
-export default function LeaderboardTable({ members, currentUserId }: LeaderboardTableProps) {
+export default function LeaderboardTable({ members, currentUserId, isGlobalAdmin }: LeaderboardTableProps) {
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+    const [isPending, startTransition] = useTransition();
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
+    const handleToggleVisibility = (groupId: string, userId: string, currentHidden: boolean) => {
+        setUpdatingUserId(userId);
+        startTransition(async () => {
+            try {
+                await toggleLeaderboardVisibility(groupId, userId, !currentHidden);
+            } catch (error) {
+                console.error("Error toggling visibility:", error);
+            } finally {
+                setUpdatingUserId(null);
+            }
+        });
+    };
 
     // Process members to add ranking and handle missing score breakdowns
     const processedMembers = members
@@ -134,29 +153,32 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                                 <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Detalles
                                 </th>
+                                {isGlobalAdmin && (
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Admin
+                                    </th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
                             {processedMembers.map((member) => {
                                 const isCurrentUser = member.user_id === currentUserId;
                                 const roleLabel = member.role === 'leader' ? 'Líder' : 'Miembro';
-                                const hasDetails = member.score_breakdowns.details && 
+                                const hasDetails = member.score_breakdowns.details &&
                                     Object.keys(member.score_breakdowns.details).length > 0;
 
                                 return (
                                     <tr
                                         key={member.id}
-                                        className={`hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${
-                                            isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                                        }`}
+                                        className={`hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                                            }`}
                                     >
                                         <td className="px-4 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold ${
-                                                member.rank === 1 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                member.rank === 2 ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
-                                                member.rank === 3 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                                'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'
-                                            }`}>
+                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold ${member.rank === 1 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                    member.rank === 2 ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
+                                                        member.rank === 3 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                            'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'
+                                                }`}>
                                                 {member.rank}
                                             </span>
                                         </td>
@@ -263,6 +285,30 @@ export default function LeaderboardTable({ members, currentUserId }: Leaderboard
                                                 </span>
                                             )}
                                         </td>
+                                        {isGlobalAdmin && (
+                                            <td className="px-4 py-4 whitespace-nowrap text-left">
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <button
+                                                        onClick={() => handleToggleVisibility(member.group_id, member.user_id, member.hidden_from_leaderboard)}
+                                                        disabled={isPending && updatingUserId === member.user_id}
+                                                        className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${member.hidden_from_leaderboard
+                                                                ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-800/50'
+                                                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-800/50'
+                                                            }`}
+                                                    >
+                                                        {isPending && updatingUserId === member.user_id
+                                                            ? 'Guardando...'
+                                                            : member.hidden_from_leaderboard ? 'Mostrar' : 'Ocultar'
+                                                        }
+                                                    </button>
+                                                    {member.hidden_from_leaderboard && (
+                                                        <span className="text-[10px] font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/20">
+                                                            Oculto
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })}
