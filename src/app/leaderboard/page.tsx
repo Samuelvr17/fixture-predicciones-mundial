@@ -22,9 +22,13 @@ export default async function GlobalLeaderboardPage() {
         .from('group_members')
         .select(`
             id,
+            group_id,
             user_id,
             role,
             joined_at,
+            hidden_from_leaderboard,
+            hidden_from_leaderboard_at,
+            hidden_from_leaderboard_by,
             profiles!group_members_user_id_fkey (
                 id,
                 username,
@@ -39,7 +43,20 @@ export default async function GlobalLeaderboardPage() {
         .select('*')
         .eq('group_id', GLOBAL_GROUP_ID);
 
-    const membersWithScores = members?.map((member: any) => ({
+    const { data: globalAdmin } = await supabase
+        .from('global_admins')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single();
+
+    const isGlobalAdmin = !!globalAdmin;
+
+    let filteredMembers = members || [];
+    if (!isGlobalAdmin) {
+        filteredMembers = filteredMembers.filter(m => !m.hidden_from_leaderboard);
+    }
+
+    const membersWithScores = filteredMembers.map((member: any) => ({
         ...member,
         score_breakdowns: scoreBreakdowns?.find(
             (scoreBreakdown: any) => scoreBreakdown.user_id === member.user_id
@@ -130,6 +147,7 @@ export default async function GlobalLeaderboardPage() {
                     <LeaderboardTable
                         members={membersWithScores}
                         currentUserId={user.id}
+                        isGlobalAdmin={isGlobalAdmin}
                     />
                 )}
             </AppShell>
