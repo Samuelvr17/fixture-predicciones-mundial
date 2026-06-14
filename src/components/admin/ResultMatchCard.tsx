@@ -120,51 +120,51 @@ export default function ResultMatchCard({
   };
 
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm">
-      <div className="flex justify-between items-start mb-3">
-        <div>
+    <div className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-lg p-3 sm:p-4 shadow-sm mb-4">
+      <div className="flex flex-wrap justify-between items-start mb-3 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {match.match_number && (
-            <span className="text-sm text-gray-500 mr-2">#{match.match_number}</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">#{match.match_number}</span>
           )}
           {match.group_code && (
-            <span className="text-sm font-semibold text-gray-700 mr-2">Grupo {match.group_code}</span>
+            <span className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Grupo {match.group_code}</span>
           )}
-          <span className="text-sm text-gray-500">
-            {match.match_date} - {match.match_time} <span className="text-gray-400">(Hora Colombia)</span>
+          <span className="text-sm text-gray-500 dark:text-zinc-400">
+            {match.match_date} - {match.match_time} <span className="hidden sm:inline text-gray-400 dark:text-zinc-500">(Hora Colombia)</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
           {hasResult && !editing && (
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+            <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 text-xs rounded font-medium">
               Jugado
             </span>
           )}
           {!hasResult && (
-            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
+            <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100 text-xs rounded font-medium">
               Pendiente
             </span>
           )}
         </div>
       </div>
 
-      <div className="mb-3">
-        <p className="text-sm text-gray-600">{match.venue}</p>
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-1" title={match.venue}>{match.venue}</p>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex-1">
-          <p className="font-medium">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm leading-tight">
             {getTeamDisplay(effectiveTeam1, match.team1_slot)}
           </p>
           {!team1Resolved && isSlotReference(match.team1_slot) && (
-            <p className="text-xs text-orange-600 mt-1">
-              Slot pendiente de resolución
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              Slot pendiente
             </p>
           )}
         </div>
 
         {editing ? (
-          <div className="flex items-center gap-2 mx-4">
+          <div className="flex items-center justify-center gap-2 mx-2 shrink-0">
             <input
               type="text"
               inputMode="numeric"
@@ -175,10 +175,10 @@ export default function ResultMatchCard({
                 if (/^\d*$/.test(value)) setTeam1ScoreInput(value);
               }}
               onFocus={(e) => e.currentTarget.select()}
-              className="w-16 px-2 py-1 border rounded text-center"
+              className="w-12 px-2 py-1.5 border dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded text-center text-lg shadow-inner focus:ring-2 focus:ring-blue-500 focus:outline-none"
               disabled={saving}
             />
-            <span className="text-gray-400">-</span>
+            <span className="text-gray-400 dark:text-zinc-500 font-bold">-</span>
             <input
               type="text"
               inputMode="numeric"
@@ -189,25 +189,25 @@ export default function ResultMatchCard({
                 if (/^\d*$/.test(value)) setTeam2ScoreInput(value);
               }}
               onFocus={(e) => e.currentTarget.select()}
-              className="w-16 px-2 py-1 border rounded text-center"
+              className="w-12 px-2 py-1.5 border dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded text-center text-lg shadow-inner focus:ring-2 focus:ring-blue-500 focus:outline-none"
               disabled={saving}
             />
           </div>
         ) : (
-          <div className="flex items-center gap-2 mx-4">
-            <span className="text-2xl font-bold">{match.match_results?.team1_score ?? '-'}</span>
-            <span className="text-gray-400">-</span>
-            <span className="text-2xl font-bold">{match.match_results?.team2_score ?? '-'}</span>
+          <div className="flex items-center justify-center gap-2 mx-2 shrink-0 bg-gray-50 dark:bg-zinc-700/50 px-3 py-1.5 rounded-lg">
+            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{match.match_results?.team1_score ?? '-'}</span>
+            <span className="text-gray-300 dark:text-zinc-500 text-sm">-</span>
+            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{match.match_results?.team2_score ?? '-'}</span>
           </div>
         )}
 
-        <div className="flex-1 text-right">
-          <p className="font-medium">
+        <div className="flex-1 min-w-0 text-right">
+          <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm leading-tight">
             {getTeamDisplay(effectiveTeam2, match.team2_slot)}
           </p>
           {!team2Resolved && isSlotReference(match.team2_slot) && (
-            <p className="text-xs text-orange-600 mt-1">
-              Slot pendiente de resolución
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              Slot pendiente
             </p>
           )}
         </div>
@@ -215,17 +215,17 @@ export default function ResultMatchCard({
 
       {/* Selector de ganador para eliminatorias */}
       {isElimination && editing && bothTeamsResolved && (
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <p className="text-sm text-amber-700 mb-2">
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-zinc-700/50 rounded-lg border dark:border-zinc-600">
+          <p className="text-sm text-amber-700 dark:text-amber-400 mb-2">
             Ingresa el marcador de los 90 minutos. Si hay empate, selecciona manualmente el equipo clasificado.
           </p>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
             Equipo que avanza (obligatorio solo si hay empate):
           </label>
           <select
             value={winnerTeamId || ''}
             onChange={(e) => setWinnerTeamId(e.target.value || null)}
-            className="w-full px-3 py-2 border rounded"
+            className="w-full px-3 py-2 border dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
             disabled={saving}
           >
             <option value="">Auto (inferido del marcador)</option>
@@ -240,35 +240,35 @@ export default function ResultMatchCard({
       )}
 
       {isElimination && !editing && match.match_results?.winner && (
-        <div className="mb-4 p-3 bg-green-50 rounded">
-          <p className="text-sm font-medium text-green-800">
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border dark:border-green-800">
+          <p className="text-sm font-medium text-green-800 dark:text-green-300">
             Avanza: {getTeamDisplayName(match.match_results.winner)}
           </p>
         </div>
       )}
 
       {!bothTeamsResolved && isElimination && (
-        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
-          <p className="text-sm text-orange-800">
+        <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+          <p className="text-sm text-orange-800 dark:text-orange-300">
             ⚠️ Este partido tiene slots pendientes de resolución. Los equipos aún no pueden determinarse.
           </p>
         </div>
       )}
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 mt-4 pt-4 border-t dark:border-zinc-700">
         {editing ? (
           <>
             <button
               onClick={handleCancel}
               disabled={saving}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              className="px-4 py-2 text-gray-600 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 disabled:opacity-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
               disabled={saving || (isElimination && !bothTeamsResolved)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium transition-colors"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
@@ -277,7 +277,7 @@ export default function ResultMatchCard({
           <button
             onClick={() => setEditing(true)}
             disabled={saving}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+            className="px-6 py-2 bg-zinc-800 dark:bg-zinc-700 text-white rounded-md hover:bg-zinc-700 dark:hover:bg-zinc-600 disabled:opacity-50 shadow-sm font-medium transition-colors"
           >
             {hasResult ? 'Editar Resultado' : 'Ingresar Resultado'}
           </button>

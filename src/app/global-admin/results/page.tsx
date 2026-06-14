@@ -120,8 +120,8 @@ export default async function GlobalAdminResultsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Panel de Admin Global - Resultados</h1>
-          <Link href="/global-admin/tournament-results" className="mt-3 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Panel de Admin Global - Resultados</h1>
+          <Link href="/global-admin/tournament-results" className="mt-3 inline-flex rounded-md bg-zinc-900 dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:hover:bg-zinc-700 transition-colors">
             Premios del torneo
           </Link>
         </div>
@@ -171,7 +171,7 @@ export default async function GlobalAdminResultsPage() {
           </div>
         </HelpButton>
       </div>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 dark:text-zinc-400 mb-6">
         Ingrese los resultados oficiales de los partidos del Mundial 2026.
       </p>
       <GlobalResultsClient
