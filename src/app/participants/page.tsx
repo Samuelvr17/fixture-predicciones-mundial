@@ -5,6 +5,7 @@ import HelpButton from '@/components/help/HelpButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { createClient } from '@/lib/supabase/server';
 import { ensureGlobalGroupMembership, GLOBAL_GROUP_ID } from '@/lib/groups/globalGroup';
+import ParticipantVisibilityToggle from '@/components/admin/ParticipantVisibilityToggle';
 
 function participantsHelpButton() {
     return (
@@ -31,7 +32,9 @@ export default async function ParticipantsPage() {
         .select(`
             id,
             user_id,
+            group_id,
             joined_at,
+            hidden_from_leaderboard,
             profiles!group_members_user_id_fkey (
                 id,
                 username,
@@ -46,7 +49,21 @@ export default async function ParticipantsPage() {
         .select('user_id');
 
     const globalAdminIds = new Set((globalAdmins || []).map((admin) => admin.user_id));
-    const visibleMembers = (members || []).filter((member) => !globalAdminIds.has(member.user_id));
+    const isGlobalAdmin = globalAdminIds.has(user.id);
+
+    const visibleMembers = (members || []).filter((member) => {
+        // Omit global admins from list for everyone
+        if (globalAdminIds.has(member.user_id)) {
+            return false;
+        }
+
+        // If not global admin, hide disabled users
+        if (!isGlobalAdmin && member.hidden_from_leaderboard) {
+            return false;
+        }
+
+        return true;
+    });
 
     return (
         <AppShell
@@ -103,12 +120,21 @@ export default async function ParticipantsPage() {
                                         </div>
                                     </div>
 
-                                    <Link
-                                        href={`/participants/${member.user_id}/predictions`}
-                                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                    >
-                                        Ver predicciones
-                                    </Link>
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                                        {isGlobalAdmin && (
+                                            <ParticipantVisibilityToggle
+                                                groupId={member.group_id}
+                                                userId={member.user_id}
+                                                isHidden={member.hidden_from_leaderboard}
+                                            />
+                                        )}
+                                        <Link
+                                            href={`/participants/${member.user_id}/predictions`}
+                                            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 shrink-0"
+                                        >
+                                            Ver predicciones
+                                        </Link>
+                                    </div>
                                 </div>
                             );
                         })}

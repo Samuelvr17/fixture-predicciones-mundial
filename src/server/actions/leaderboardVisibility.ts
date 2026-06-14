@@ -40,6 +40,7 @@ export async function toggleLeaderboardVisibility(groupId: string, userId: strin
 
     revalidatePath('/leaderboard');
     revalidatePath('/dashboard');
+    revalidatePath('/participants');
 
     return { success: true };
 }
