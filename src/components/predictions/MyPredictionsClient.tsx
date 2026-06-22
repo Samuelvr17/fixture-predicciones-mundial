@@ -102,6 +102,30 @@ export default function MyPredictionsClient({
   const [showPredictedTables, setShowPredictedTables] = useState(false);
   const [showManualTiebreaks, setShowManualTiebreaks] = useState(false);
   const [knockoutViewMode, setKnockoutViewMode] = useState<'list' | 'bracket'>('list');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const normalizeSearchText = (value: string | null | undefined) => {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  };
+
+  const teamMatchesSearch = (team: Team | null | undefined, normalizedQuery: string) => {
+    if (!normalizedQuery) return true;
+    if (!team) return false;
+
+    const values = [
+      team.display_name_es,
+      team.name,
+      team.code,
+    ];
+
+    return values.some((value) =>
+      normalizeSearchText(value).includes(normalizedQuery)
+    );
+  };
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -132,6 +156,23 @@ export default function MyPredictionsClient({
       .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
       .map(([groupCode, groupMatches]) => ({ groupCode, matches: groupMatches }));
   }, [groupStageMatches]);
+
+  const groupedGroupMatchesFiltered = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchTerm);
+    if (!normalizedQuery) return groupedGroupMatches;
+
+    return groupedGroupMatches
+      .map((group) => {
+        const filteredMatches = group.matches.filter((match) => {
+          return (
+            teamMatchesSearch(match.team1, normalizedQuery) ||
+            teamMatchesSearch(match.team2, normalizedQuery)
+          );
+        });
+        return { ...group, matches: filteredMatches };
+      })
+      .filter((group) => group.matches.length > 0);
+  }, [groupedGroupMatches, searchTerm]);
 
   const groupedMatches = useMemo(() => {
     const groups: Record<string, Record<string, MatchWithTeam[]>> = {};
@@ -612,34 +653,75 @@ export default function MyPredictionsClient({
       </Card>
 
       <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Fase de grupos</h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Captura tus marcadores por grupo. Cada tabla se recalcula con los partidos guardados o editados en esa tarjeta.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Fase de grupos</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Captura tus marcadores por grupo. Cada tabla se recalcula con los partidos guardados o editados en esa tarjeta.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 shrink-0 w-full sm:max-w-md">
+            <label htmlFor="searchMatch" className="sr-only">
+              Filtrar partidos
+            </label>
+            <div className="relative flex-1">
+              <input
+                id="searchMatch"
+                type="text"
+                placeholder="Buscar país, selección o código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+              />
+            </div>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap px-1"
+              >
+                Limpiar
+              </button>
+            )}
+            {searchTerm && groupedGroupMatchesFiltered.length > 0 && (
+              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-auto hidden md:inline-block">
+                {groupedGroupMatchesFiltered.reduce((acc, g) => acc + g.matches.length, 0)} partidos
+              </span>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {groupedGroupMatches.map(({ groupCode, matches: groupMatches }) => (
-            <GroupPredictionCard
-              key={groupCode}
-              groupCode={groupCode}
-              matches={groupMatches}
-              groupStanding={predictedTournamentForGroupTables.groupStandings.standings[groupCode]}
-              teamsMap={teamsMap}
-              predictions={predictions}
-              predictionsMap={predictionsMap}
-              touchedPredictions={touchedPredictions}
-              saving={saving}
-              errors={errors}
-              success={success}
-              isBeforeDeadline={isBeforeDeadline}
-              onPredictionChange={handlePredictionChange}
-              onSavePrediction={handleSavePrediction}
-              parseScoreInput={parseScoreInput}
-              isCompletePredictionInput={isCompletePredictionInput}
-            />
-          ))}
-        </div>
+
+        {groupedGroupMatchesFiltered.length === 0 ? (
+          <div className="p-12 text-center bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-100 dark:border-zinc-800">
+            <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+              No se encontraron partidos para ese filtro.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {groupedGroupMatchesFiltered.map(({ groupCode, matches: groupMatches }) => (
+              <GroupPredictionCard
+                key={groupCode}
+                groupCode={groupCode}
+                matches={groupMatches}
+                groupStanding={predictedTournamentForGroupTables.groupStandings.standings[groupCode]}
+                teamsMap={teamsMap}
+                predictions={predictions}
+                predictionsMap={predictionsMap}
+                touchedPredictions={touchedPredictions}
+                saving={saving}
+                errors={errors}
+                success={success}
+                isBeforeDeadline={isBeforeDeadline}
+                onPredictionChange={handlePredictionChange}
+                onSavePrediction={handleSavePrediction}
+                parseScoreInput={parseScoreInput}
+                isCompletePredictionInput={isCompletePredictionInput}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {unresolvedGroupTiebreaks.length > 0 && (
