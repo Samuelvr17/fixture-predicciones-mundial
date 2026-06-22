@@ -1,7 +1,16 @@
 import Link from "next/link";
 import ScoringRulesHelpButton from "@/components/help/ScoringRulesHelpButton";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
       <main className="flex w-full flex-col items-center justify-center py-20 px-4 text-center">
