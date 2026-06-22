@@ -34,6 +34,29 @@ interface MemberPredictionsClientProps {
   editHref?: string;
 }
 
+export function normalizeSearchText(value: string | null | undefined) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+export function teamMatchesSearch(team: Team | null | undefined, normalizedQuery: string) {
+  if (!normalizedQuery) return true;
+  if (!team) return false;
+
+  const values = [
+    team.display_name_es,
+    team.name,
+    team.code,
+  ];
+
+  return values.some((value) =>
+    normalizeSearchText(value).includes(normalizedQuery)
+  );
+}
+
 export default function MemberPredictionsClient({
   matches,
   predictionsMap,
@@ -48,6 +71,7 @@ export default function MemberPredictionsClient({
   editHref,
 }: MemberPredictionsClientProps) {
   const [viewMode, setViewMode] = useState<'groups' | 'knockout'>('groups');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const sortedMatches = useMemo(() => {
     return [...matches].sort((a, b) => {
@@ -78,6 +102,23 @@ export default function MemberPredictionsClient({
       .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
       .map(([groupCode, groupMatches]) => ({ groupCode, matches: groupMatches }));
   }, [groupStageMatches]);
+
+  const groupedGroupMatchesFiltered = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchTerm);
+    if (!normalizedQuery) return groupedGroupMatches;
+
+    return groupedGroupMatches
+      .map((group) => {
+        const filteredMatches = group.matches.filter((match) => {
+          return (
+            teamMatchesSearch(match.team1, normalizedQuery) ||
+            teamMatchesSearch(match.team2, normalizedQuery)
+          );
+        });
+        return { ...group, matches: filteredMatches };
+      })
+      .filter((group) => group.matches.length > 0);
+  }, [groupedGroupMatches, searchTerm]);
 
   const groupedMatches = useMemo(() => {
     const groups: Record<string, Record<string, MatchWithTeam[]>> = {};
@@ -259,34 +300,76 @@ export default function MemberPredictionsClient({
                 role="tab"
                 aria-selected={viewMode === mode}
                 onClick={() => setViewMode(mode)}
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-                  viewMode === mode
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white'
-                }`}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${viewMode === mode
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white'
+                  }`}
               >
                 {mode === 'groups' ? 'Grupos' : 'Eliminatorias'}
               </button>
             ))}
           </div>
 
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+            <label htmlFor="searchMatch" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+              Filtrar partidos
+            </label>
+            <div className="relative flex-1 max-w-sm">
+              <input
+                id="searchMatch"
+                type="text"
+                placeholder="Buscar país, selección o código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+              />
+            </div>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
+              >
+                Limpiar
+              </button>
+            )}
+            {viewMode === 'groups' && searchTerm && groupedGroupMatchesFiltered.length > 0 && (
+              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-auto hidden sm:inline-block">
+                Mostrando {groupedGroupMatchesFiltered.reduce((acc, g) => acc + g.matches.length, 0)} partidos
+              </span>
+            )}
+            {viewMode === 'knockout' && searchTerm && (
+              <span className="text-sm text-amber-600 dark:text-amber-400 ml-auto">
+                El filtro aplica principalmente a Grupos.
+              </span>
+            )}
+          </div>
+
           {viewMode === 'groups' ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {groupedGroupMatches.map(({ groupCode, matches: groupMatches }) => {
-                  const groupStanding = predictedTournament.groupStandings.standings[groupCode];
-                  return (
-                    <ReadOnlyGroupPredictionCard
-                      key={groupCode}
-                      groupCode={groupCode}
-                      matches={groupMatches}
-                      groupStanding={groupStanding}
-                      teamsMap={teamsMap}
-                      predictionsMap={predictionsMap}
-                    />
-                  );
-                })}
-              </div>
+              {groupedGroupMatchesFiltered.length === 0 ? (
+                <div className="p-12 text-center bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-100 dark:border-zinc-800">
+                  <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+                    No se encontraron partidos para ese filtro.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {groupedGroupMatchesFiltered.map(({ groupCode, matches: groupMatches }) => {
+                    const groupStanding = predictedTournament.groupStandings.standings[groupCode];
+                    return (
+                      <ReadOnlyGroupPredictionCard
+                        key={groupCode}
+                        groupCode={groupCode}
+                        matches={groupMatches}
+                        groupStanding={groupStanding}
+                        teamsMap={teamsMap}
+                        predictionsMap={predictionsMap}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <ParticipantPredictionBracketView
