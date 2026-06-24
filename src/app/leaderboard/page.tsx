@@ -128,11 +128,7 @@ export default async function GlobalLeaderboardPage() {
                     </div>
                 </Alert>
 
-                <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/40">
-                    <p className="text-sm text-blue-900 dark:text-blue-100">
-                        Los participantes ganan puntos por acertar marcadores, resultados, clasificados, campeón, tercer puesto, goleador y mejor arquero.
-                    </p>
-                </div>
+
 
                 {membersWithScores.length === 0 ? (
                     <p className="text-zinc-500 dark:text-zinc-400">No hay participantes en la tabla de puntuaciones.</p>

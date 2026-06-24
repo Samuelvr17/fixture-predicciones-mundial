@@ -84,13 +84,13 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                             </h3>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Puntos Totales:</span>
+                                    <span className="text-zinc-600 dark:text-zinc-400">Puntos totales:</span>
                                     <span className="ml-2 font-bold text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.total_points}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Última Actualización:</span>
+                                    <span className="text-zinc-600 dark:text-zinc-400">Última actualización:</span>
                                     <span className="ml-2 text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.last_calculated_at
                                             ? new Date(member.score_breakdowns.last_calculated_at).toLocaleString('es-ES')
@@ -107,7 +107,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Marcadores Exactos (Fase de Grupos):
+                                        Marcador exacto fase de grupos:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.exact_scores_group_stage} pts
@@ -115,7 +115,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Resultados Correctos (Fase de Grupos):
+                                        Resultado acertado fase de grupos:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.correct_results_group_stage} pts
@@ -123,15 +123,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Marcadores Exactos (Eliminatorias):
-                                    </span>
-                                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                                        {member.score_breakdowns.exact_scores_knockout} pts
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-zinc-600 dark:text-zinc-400">
-                                        Avances de Ronda:
+                                        Equipos clasificados / avances:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.advances_points} pts
@@ -139,7 +131,15 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Campeón:
+                                        Marcador exacto eliminatorias:
+                                    </span>
+                                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                        {member.score_breakdowns.exact_scores_knockout} pts
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                        Campeón acertado:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.champion_points} pts
@@ -147,7 +147,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Tercer Puesto:
+                                        Tercer puesto acertado:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.third_place_points} pts
@@ -155,7 +155,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Goleador:
+                                        Goleador acertado:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.top_scorer_points} pts
@@ -163,7 +163,7 @@ export default function ScoreBreakdownDetails({ member, onClose }: ScoreBreakdow
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-zinc-600 dark:text-zinc-400">
-                                        Mejor arquero:
+                                        Mejor arquero acertado:
                                     </span>
                                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
                                         {member.score_breakdowns.best_goalkeeper_points} pts
