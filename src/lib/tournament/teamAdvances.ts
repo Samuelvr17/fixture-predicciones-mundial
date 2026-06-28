@@ -25,11 +25,16 @@ import type { BracketOutput } from './bracket';
  * - Winner of final reaches champion
  * - The third_place match does NOT modify team_advances
  * - The actual third place is handled separately with bracketOutput.thirdPlace
+ * 
+ * @param skipResolutionGuards - If true, skip guards that require groups to be resolved.
+ *   This should be set to true for predicted tournaments where we want to include
+ *   all advancing teams regardless of resolution status.
  */
 export function buildTeamAdvancesFromBracket(
   bracketOutput: BracketOutput,
   groupStandings: GroupStandingsOutput,
-  bestThirds: BestThirdsOutput
+  bestThirds: BestThirdsOutput,
+  skipResolutionGuards: boolean = false
 ): Record<string, TournamentRound> {
   const teamAdvances: Record<string, TournamentRound> = {};
 
@@ -67,9 +72,10 @@ export function buildTeamAdvancesFromBracket(
   // b. Mark first and second place teams as round_of_32 only when that
   // group's official standings are final. Partial standings must not award
   // advancement points because they can change as the admin enters results.
+  // Skip this guard for predicted tournaments where we want to include all advancing teams.
   for (const groupCode in groupStandings.standings) {
     const group = groupStandings.standings[groupCode];
-    if (isGroupResolved(group) && group.standings.length >= 2) {
+    if ((skipResolutionGuards || isGroupResolved(group)) && group.standings.length >= 2) {
       setMaxRound(group.standings[0].team_id, 'round_of_32');
       setMaxRound(group.standings[1].team_id, 'round_of_32');
     }
@@ -78,7 +84,8 @@ export function buildTeamAdvancesFromBracket(
   // c. Mark only the 8 best thirds as round_of_32 once every group is resolved
   // and the best-thirds cut is no longer pending. Before that point, these
   // places are not official and should not generate progressive points.
-  if (areAllGroupsResolved(groupStandings) && !bestThirds.pending && !bestThirds.requiresManualTiebreak) {
+  // Skip this guard for predicted tournaments where we want to include all advancing teams.
+  if (skipResolutionGuards || (areAllGroupsResolved(groupStandings) && !bestThirds.pending && !bestThirds.requiresManualTiebreak)) {
     for (const team of bestThirds.qualifiedThirds) {
       setMaxRound(team.team_id, 'round_of_32');
     }

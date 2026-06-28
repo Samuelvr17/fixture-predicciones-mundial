@@ -262,4 +262,45 @@ describe('buildTeamAdvancesFromBracket', () => {
     expect(result['team-a1']).toBe('quarter_final');
     expect(result['team-a1']).not.toBe('round_of_32');
   });
+
+  it('should skip resolution guards when skipResolutionGuards is true', () => {
+    const groupStandings = createMockGroupStandings();
+    // Make group A incomplete (played < 3)
+    groupStandings.standings.A.standings = groupStandings.standings.A.standings.map((team) => ({
+      ...team,
+      played: 1,
+    }));
+    const bestThirds = createMockBestThirds(['team-a3']);
+    const bracketOutput = createMockBracketOutput([]);
+
+    // Without skipResolutionGuards, incomplete groups should not award advances
+    const resultWithoutSkip = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds);
+    expect(resultWithoutSkip['team-a1']).toBe('no_clasifica');
+    expect(resultWithoutSkip['team-a2']).toBe('no_clasifica');
+    expect(resultWithoutSkip['team-a3']).toBe('no_clasifica');
+
+    // With skipResolutionGuards, incomplete groups should award advances
+    const resultWithSkip = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds, true);
+    expect(resultWithSkip['team-a1']).toBe('round_of_32');
+    expect(resultWithSkip['team-a2']).toBe('round_of_32');
+    expect(resultWithSkip['team-a3']).toBe('round_of_32');
+  });
+
+  it('should skip best thirds resolution guard when skipResolutionGuards is true', () => {
+    const groupStandings = createMockGroupStandings();
+    // Make best thirds pending
+    const bestThirds = {
+      ...createMockBestThirds(['team-a3']),
+      pending: true,
+    };
+    const bracketOutput = createMockBracketOutput([]);
+
+    // Without skipResolutionGuards, pending best thirds should not award advances
+    const resultWithoutSkip = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds);
+    expect(resultWithoutSkip['team-a3']).toBe('no_clasifica');
+
+    // With skipResolutionGuards, pending best thirds should award advances
+    const resultWithSkip = buildTeamAdvancesFromBracket(bracketOutput, groupStandings, bestThirds, true);
+    expect(resultWithSkip['team-a3']).toBe('round_of_32');
+  });
 });
