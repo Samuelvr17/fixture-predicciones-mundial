@@ -9,7 +9,28 @@ import {
   calculateScore,
   normalizeString,
   type CalculateScoreInput,
+  type KnockoutMatchup,
 } from './scoring';
+
+function createKnockoutMatchups(
+  entries: Array<{
+    match_id: string;
+    team1_id: string;
+    team2_id: string;
+    winner_team_id?: string | null;
+  }>,
+): Map<string, KnockoutMatchup> {
+  return new Map(
+    entries.map((entry) => [
+      entry.match_id,
+      {
+        team1_id: entry.team1_id,
+        team2_id: entry.team2_id,
+        winner_team_id: entry.winner_team_id,
+      },
+    ]),
+  );
+}
 
 describe('normalizeString', () => {
   it('should trim, lowercase, remove accents, and collapse spaces', () => {
@@ -111,8 +132,19 @@ describe('calculateScore', () => {
       { match_id: 'match-1', team1_score: 1, team2_score: 1, winner_team_id: 'team-1' },
     ];
     input.match_predictions = [
-      { match_id: 'match-1', predicted_team1_score: 1, predicted_team2_score: 1 },
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 1,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'team-1',
+      },
     ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-1', team2_id: 'team-2', winner_team_id: 'team-1' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-1', team2_id: 'team-2', winner_team_id: 'team-1' },
+    ]);
 
     const result = calculateScore(input);
 
@@ -316,8 +348,19 @@ describe('calculateScore', () => {
     input.match_predictions = [
       { match_id: 'match-1', predicted_team1_score: 2, predicted_team2_score: 1 }, // exact: 5
       { match_id: 'match-2', predicted_team1_score: 0, predicted_team2_score: 0 }, // draw: 2
-      { match_id: 'match-3', predicted_team1_score: 2, predicted_team2_score: 0 }, // exact: 10
+      {
+        match_id: 'match-3',
+        predicted_team1_score: 2,
+        predicted_team2_score: 0,
+        predicted_winner_team_id: 'team-1',
+      }, // exact: 10
     ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-3', team1_id: 'team-1', team2_id: 'team-3', winner_team_id: 'team-1' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-3', team1_id: 'team-1', team2_id: 'team-3', winner_team_id: 'team-1' },
+    ]);
 
     const result = calculateScore(input);
 
@@ -509,9 +552,24 @@ describe('calculateScore', () => {
       { match_id: 'match-2', team1_score: 1, team2_score: 1, winner_team_id: 'team-1' },
     ];
     input.match_predictions = [
-      { match_id: 'match-1', predicted_team1_score: 2, predicted_team2_score: 1 }, // exact: 5
-      { match_id: 'match-2', predicted_team1_score: 1, predicted_team2_score: 1 }, // exact: 10
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 2,
+        predicted_team2_score: 1,
+      }, // exact: 5
+      {
+        match_id: 'match-2',
+        predicted_team1_score: 1,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'team-1',
+      }, // exact: 10
     ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-2', team1_id: 'team-1', team2_id: 'team-3', winner_team_id: 'team-1' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-2', team1_id: 'team-1', team2_id: 'team-3', winner_team_id: 'team-1' },
+    ]);
     input.predictions_advances = [
       { team_id: 'team-1', predicted_round: 'champion' },
     ];
@@ -549,5 +607,147 @@ describe('calculateScore', () => {
     expect(result.topScorerPoints).toBe(60);
     expect(result.bestGoalkeeperPoints).toBe(60);
     expect(result.total).toBe(665);
+  });
+
+  it('should award 0 knockout exact points when score matches but predicted matchup differs', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'round_of_32', team1_id: 'south-africa', team2_id: 'canada' },
+    ];
+    input.match_results = [
+      {
+        match_id: 'match-1',
+        team1_score: 0,
+        team2_score: 1,
+        winner_team_id: 'canada',
+      },
+    ];
+    input.match_predictions = [
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 0,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'canada',
+      },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      {
+        match_id: 'match-1',
+        team1_id: 'south-africa',
+        team2_id: 'canada',
+        winner_team_id: 'canada',
+      },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      {
+        match_id: 'match-1',
+        team1_id: 'mexico',
+        team2_id: 'canada',
+        winner_team_id: 'canada',
+      },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.knockoutExactPoints).toBe(0);
+    expect(result.details?.knockoutExact).toEqual([]);
+  });
+
+  it('should award 10 knockout exact points when score and resolved matchup both match', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'round_of_32', team1_id: 'south-africa', team2_id: 'canada' },
+    ];
+    input.match_results = [
+      {
+        match_id: 'match-1',
+        team1_score: 0,
+        team2_score: 1,
+        winner_team_id: 'canada',
+      },
+    ];
+    input.match_predictions = [
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 0,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'canada',
+      },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      {
+        match_id: 'match-1',
+        team1_id: 'south-africa',
+        team2_id: 'canada',
+        winner_team_id: 'canada',
+      },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      {
+        match_id: 'match-1',
+        team1_id: 'south-africa',
+        team2_id: 'canada',
+        winner_team_id: 'canada',
+      },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.knockoutExactPoints).toBe(10);
+    expect(result.details?.knockoutExact).toEqual([{ match_id: 'match-1', points: 10 }]);
+  });
+
+  it('should award 0 knockout exact points when score and matchup match but winner differs on a draw', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'round_of_16', team1_id: 'team-1', team2_id: 'team-2' },
+    ];
+    input.match_results = [
+      { match_id: 'match-1', team1_score: 1, team2_score: 1, winner_team_id: 'team-1' },
+    ];
+    input.match_predictions = [
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 1,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'team-2',
+      },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-1', team2_id: 'team-2', winner_team_id: 'team-1' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-1', team2_id: 'team-2', winner_team_id: 'team-2' },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.knockoutExactPoints).toBe(0);
+    expect(result.details?.knockoutExact).toEqual([]);
+  });
+
+  it('should not change group stage scoring when knockout matchup validation is enabled', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'group', team1_id: 'team-1', team2_id: 'team-2' },
+    ];
+    input.match_results = [
+      { match_id: 'match-1', team1_score: 2, team2_score: 1, winner_team_id: 'team-1' },
+    ];
+    input.match_predictions = [
+      { match_id: 'match-1', predicted_team1_score: 2, predicted_team2_score: 1 },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-1', team2_id: 'team-2' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'team-3', team2_id: 'team-4' },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.groupStageExactPoints).toBe(5);
+    expect(result.knockoutExactPoints).toBe(0);
+    expect(result.total).toBe(5);
   });
 });

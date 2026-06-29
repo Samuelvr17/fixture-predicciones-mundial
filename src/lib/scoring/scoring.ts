@@ -72,6 +72,12 @@ export interface ResolvedBracket {
   team_advances: Record<string, TournamentRound>; // team_id -> actual round reached
 }
 
+export interface KnockoutMatchup {
+  team1_id: string;
+  team2_id: string;
+  winner_team_id?: string | null;
+}
+
 export interface ScoreBreakdown {
   groupStageExactPoints: number;
   groupStageOutcomePoints: number;
@@ -102,6 +108,8 @@ export interface CalculateScoreInput {
   matches: Match[];
   match_results: MatchResult[];
   resolvedBracket: ResolvedBracket;
+  official_knockout_matchups?: Map<string, KnockoutMatchup>;
+  predicted_knockout_matchups?: Map<string, KnockoutMatchup>;
 }
 
 // ============================================================================
@@ -215,21 +223,39 @@ function calculateGroupStageMatchScore(
 }
 
 /**
- * Calculate knockout match score (exact score only)
+ * Calculate knockout match score (exact score with resolved matchup validation)
  */
 function calculateKnockoutMatchScore(
   prediction: MatchPrediction,
-  result: MatchResult
+  result: MatchResult,
+  officialMatchup?: KnockoutMatchup,
+  predictedMatchup?: KnockoutMatchup,
 ): number {
   const { predicted_team1_score: p1, predicted_team2_score: p2 } = prediction;
   const { team1_score: r1, team2_score: r2 } = result;
 
-  // Exact score at 90 minutes
-  if (p1 === r1 && p2 === r2) {
-    return POINTS.KNOCKOUT_EXACT;
+  if (p1 !== r1 || p2 !== r2) {
+    return 0;
   }
 
-  return 0;
+  if (!officialMatchup || !predictedMatchup) {
+    return 0;
+  }
+
+  if (
+    officialMatchup.team1_id !== predictedMatchup.team1_id ||
+    officialMatchup.team2_id !== predictedMatchup.team2_id
+  ) {
+    return 0;
+  }
+
+  if (result.winner_team_id != null) {
+    if (prediction.predicted_winner_team_id !== result.winner_team_id) {
+      return 0;
+    }
+  }
+
+  return POINTS.KNOCKOUT_EXACT;
 }
 
 /**
@@ -367,6 +393,8 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
     matches,
     match_results,
     resolvedBracket,
+    official_knockout_matchups,
+    predicted_knockout_matchups,
   } = input;
 
   // Create lookup maps
@@ -414,7 +442,12 @@ export function calculateScore(input: CalculateScoreInput): ScoreBreakdown {
         breakdown.details!.groupStageOutcome.push({ match_id: matchId, points: outcome });
       }
     } else {
-      const points = calculateKnockoutMatchScore(prediction, result);
+      const points = calculateKnockoutMatchScore(
+        prediction,
+        result,
+        official_knockout_matchups?.get(matchId),
+        predicted_knockout_matchups?.get(matchId),
+      );
       breakdown.knockoutExactPoints += points;
       if (points > 0) {
         breakdown.details!.knockoutExact.push({ match_id: matchId, points });

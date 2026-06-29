@@ -10,7 +10,7 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { calculateScore, type MatchPrediction, type PredictionAdvance, type PredictionSpecial, type Match, type MatchResult, type ResolvedBracket, type TournamentRound } from '@/lib/scoring/scoring';
+import { calculateScore, type KnockoutMatchup, type MatchPrediction, type PredictionAdvance, type PredictionSpecial, type Match, type MatchResult, type ResolvedBracket, type TournamentRound } from '@/lib/scoring/scoring';
 import { calculateGroupStandings, type Team as TournamentTeam, type Match as TournamentMatch, type MatchResult as TournamentMatchResult, type ManualTiebreak as GroupTiebreak } from '@/lib/tournament/groupStandings';
 import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak, type BestThirdsOutput } from '@/lib/tournament/bestThirds';
 import { resolveBracket, type Match as BracketMatch, type MatchResult as BracketMatchResult, type ManualTiebreak as BracketTiebreak } from '@/lib/tournament/bracket';
@@ -159,6 +159,29 @@ function dbMatchResultToBracketMatchResult(dbResult: Database['public']['Tables'
   };
 }
 
+function buildKnockoutMatchupMap(
+  resolvedMatches: Array<{
+    match: { id: string };
+    team1_id?: string;
+    team2_id?: string;
+    winner_team_id?: string;
+  }>,
+): Map<string, KnockoutMatchup> {
+  const matchups = new Map<string, KnockoutMatchup>();
+
+  for (const resolvedMatch of resolvedMatches) {
+    if (resolvedMatch.team1_id && resolvedMatch.team2_id) {
+      matchups.set(resolvedMatch.match.id, {
+        team1_id: resolvedMatch.team1_id,
+        team2_id: resolvedMatch.team2_id,
+        winner_team_id: resolvedMatch.winner_team_id ?? null,
+      });
+    }
+  }
+
+  return matchups;
+}
+
 // ============================================================================
 // Main Recalculation Functions
 // ============================================================================
@@ -258,6 +281,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
     // Convert to scoring engine formats
     const scoringMatches = matchesData.data.map(dbMatchToScoringMatch);
     const scoringMatchResults = matchResultsData.data.map(dbMatchResultToScoringMatchResult);
+    const officialKnockoutMatchups = buildKnockoutMatchupMap(bracketOutput.matches);
 
     // Load group members
     const { data: membersData, error: membersError } = await supabase
@@ -364,6 +388,7 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
         matchPredictions,
         groupManualTiebreaks
       );
+      const predictedKnockoutMatchups = buildKnockoutMatchupMap(predictedTournament.bracket.matches);
 
       // Calculate score
       const scoreBreakdown = calculateScore({
@@ -378,6 +403,8 @@ export async function recalculateGroupScores(groupId: string): Promise<Recalcula
         matches: scoringMatches,
         match_results: scoringMatchResults,
         resolvedBracket,
+        official_knockout_matchups: officialKnockoutMatchups,
+        predicted_knockout_matchups: predictedKnockoutMatchups,
       });
 
       // Save to score_breakdowns (upsert by group_id, user_id)
