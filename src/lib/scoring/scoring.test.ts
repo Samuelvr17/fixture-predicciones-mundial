@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateScore,
+  evaluateKnockoutExactAward,
   normalizeString,
   type CalculateScoreInput,
   type KnockoutMatchup,
@@ -724,6 +725,99 @@ describe('calculateScore', () => {
 
     expect(result.knockoutExactPoints).toBe(0);
     expect(result.details?.knockoutExact).toEqual([]);
+  });
+
+  it('should award 10 knockout exact points when score and matchup match with inferred predicted winner', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'round_of_16', team1_id: 'brazil', team2_id: 'japan' },
+    ];
+    input.match_results = [
+      { match_id: 'match-1', team1_score: 2, team2_score: 1, winner_team_id: 'brazil' },
+    ];
+    input.match_predictions = [
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 2,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: null,
+      },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'brazil', team2_id: 'japan', winner_team_id: 'brazil' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'brazil', team2_id: 'japan' },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.knockoutExactPoints).toBe(10);
+    expect(result.details?.knockoutExact).toEqual([{ match_id: 'match-1', points: 10 }]);
+  });
+
+  it('should award 0 knockout exact points when score and matchup match but explicit predicted winner is wrong', () => {
+    const input = createBaseInput();
+    input.matches = [
+      { id: 'match-1', round: 'round_of_16', team1_id: 'brazil', team2_id: 'japan' },
+    ];
+    input.match_results = [
+      { match_id: 'match-1', team1_score: 2, team2_score: 1, winner_team_id: 'brazil' },
+    ];
+    input.match_predictions = [
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 2,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: 'japan',
+      },
+    ];
+    input.official_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'brazil', team2_id: 'japan', winner_team_id: 'brazil' },
+    ]);
+    input.predicted_knockout_matchups = createKnockoutMatchups([
+      { match_id: 'match-1', team1_id: 'brazil', team2_id: 'japan', winner_team_id: 'japan' },
+    ]);
+
+    const result = calculateScore(input);
+
+    expect(result.knockoutExactPoints).toBe(0);
+    expect(result.details?.knockoutExact).toEqual([]);
+  });
+
+  it('should detect false negatives when predicted winner is inferable but not stored', () => {
+    const evaluation = evaluateKnockoutExactAward(
+      {
+        match_id: 'match-1',
+        predicted_team1_score: 2,
+        predicted_team2_score: 1,
+        predicted_winner_team_id: null,
+      },
+      {
+        match_id: 'match-1',
+        team1_score: 2,
+        team2_score: 1,
+        winner_team_id: 'brazil',
+      },
+      { team1_id: 'brazil', team2_id: 'japan', winner_team_id: 'brazil' },
+      { team1_id: 'brazil', team2_id: 'japan' },
+    );
+
+    expect(evaluation.should_award).toBe(true);
+    expect(evaluation.points).toBe(10);
+    expect(evaluation.predicted_winner_raw).toBeNull();
+    expect(evaluation.predicted_winner_inferred).toBe('brazil');
+    expect(evaluation.winner_matches).toBe(true);
+
+    const currentlyAwarded = 0;
+    const issueType =
+      currentlyAwarded > 0 && !evaluation.should_award
+        ? 'false_positive'
+        : evaluation.should_award && currentlyAwarded === 0
+          ? 'false_negative'
+          : 'ok';
+
+    expect(issueType).toBe('false_negative');
   });
 
   it('should not change group stage scoring when knockout matchup validation is enabled', () => {

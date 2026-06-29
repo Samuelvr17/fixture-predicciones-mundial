@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Read-only audit: knockoutExact points vs predicted bracket matchups.
+ * Read-only audit: knockoutExact false positives and false negatives.
  *
  * Usage:
  *   npx tsx scripts/audit-knockout-exact-matchups.ts
@@ -13,6 +13,7 @@ import { buildPredictedTournamentFromScores } from '../src/lib/tournament/predic
 import { calculateGroupStandings } from '../src/lib/tournament/groupStandings';
 import { calculateBestThirds, type ManualTiebreak as BestThirdsTiebreak } from '../src/lib/tournament/bestThirds';
 import { resolveBracket } from '../src/lib/tournament/bracket';
+import { evaluateKnockoutExactAward, inferKnockoutWinner } from '../src/lib/scoring/scoring';
 import type { Database } from '../src/types/database.types';
 import { GLOBAL_GROUP_ID } from '../src/lib/groups/globalGroup';
 
@@ -57,20 +58,36 @@ interface ScoreBreakdownDetails {
   knockoutExact?: KnockoutExactDetail[];
 }
 
+type IssueType = 'false_positive' | 'false_negative' | 'ok';
+
 interface AuditRow {
   email: string;
   username: string;
   match_id: string;
   match_number: number | null;
   round: string;
-  real_score: string;
   real_teams: string;
-  predicted_score: string;
   predicted_teams: string;
-  matchup_matches: boolean;
+  real_score: string;
+  predicted_score: string;
+  real_winner: string;
+  predicted_winner_raw: string;
+  predicted_winner_inferred: string;
+  matchup_matches_same_order: boolean;
+  matchup_matches_swapped: boolean;
   score_matches: boolean;
-  points_awarded: number;
-  suspicious: boolean;
+  winner_matches: boolean;
+  currently_awarded: number;
+  should_award: boolean;
+  issue_type: IssueType;
+}
+
+function formatTeamLabel(teamId: string | null | undefined, teamById: Map<string, TeamRow>): string {
+  if (!teamId) {
+    return '?';
+  }
+  const team = teamById.get(teamId);
+  return team ? `${team.name} (${team.code})` : teamId;
 }
 
 function formatTeamPair(
@@ -78,11 +95,7 @@ function formatTeamPair(
   team2Id: string | null | undefined,
   teamById: Map<string, TeamRow>,
 ): string {
-  const team1 = team1Id ? teamById.get(team1Id) : undefined;
-  const team2 = team2Id ? teamById.get(team2Id) : undefined;
-  const label1 = team1 ? `${team1.name} (${team1.code})` : team1Id ?? '?';
-  const label2 = team2 ? `${team2.name} (${team2.code})` : team2Id ?? '?';
-  return `${label1} vs ${label2}`;
+  return `${formatTeamLabel(team1Id, teamById)} vs ${formatTeamLabel(team2Id, teamById)}`;
 }
 
 function formatScore(team1Score: number | null | undefined, team2Score: number | null | undefined): string {
@@ -92,17 +105,20 @@ function formatScore(team1Score: number | null | undefined, team2Score: number |
   return `${team1Score} - ${team2Score}`;
 }
 
-function matchupMatches(
-  realTeam1Id: string | null | undefined,
-  realTeam2Id: string | null | undefined,
-  predictedTeam1Id: string | null | undefined,
-  predictedTeam2Id: string | null | undefined,
-): boolean {
-  if (!realTeam1Id || !realTeam2Id || !predictedTeam1Id || !predictedTeam2Id) {
-    return false;
-  }
+function isKnockoutRound(round: string): boolean {
+  return round !== 'group';
+}
 
-  return realTeam1Id === predictedTeam1Id && realTeam2Id === predictedTeam2Id;
+function teamPairIncludesCodes(
+  team1Id: string | null | undefined,
+  team2Id: string | null | undefined,
+  teamById: Map<string, TeamRow>,
+  codes: string[],
+): boolean {
+  const wanted = new Set(codes.map((code) => code.toUpperCase()));
+  const team1Code = team1Id ? teamById.get(team1Id)?.code?.toUpperCase() : undefined;
+  const team2Code = team2Id ? teamById.get(team2Id)?.code?.toUpperCase() : undefined;
+  return wanted.has(team1Code ?? '') && wanted.has(team2Code ?? '');
 }
 
 async function loadUserEmails(userIds: string[]): Promise<Map<string, string>> {
@@ -139,29 +155,52 @@ async function loadUserEmails(userIds: string[]): Promise<Map<string, string>> {
   return emailByUserId;
 }
 
+function toAuditTableRow(row: AuditRow): Record<string, string | number | boolean> {
+  return {
+    email: row.email,
+    username: row.username,
+    match_number: row.match_number ?? '?',
+    round: row.round,
+    real_teams: row.real_teams,
+    predicted_teams: row.predicted_teams,
+    real_score: row.real_score,
+    predicted_score: row.predicted_score,
+    real_winner: row.real_winner,
+    predicted_winner_raw: row.predicted_winner_raw,
+    predicted_winner_inferred: row.predicted_winner_inferred,
+    matchup_matches_same_order: row.matchup_matches_same_order,
+    matchup_matches_swapped: row.matchup_matches_swapped,
+    score_matches: row.score_matches,
+    winner_matches: row.winner_matches,
+    currently_awarded: row.currently_awarded,
+    should_award: row.should_award,
+    issue_type: row.issue_type,
+  };
+}
+
 async function main() {
   console.log('Audit knockoutExact matchups (read-only)');
   console.log(`Group: ${GROUP_ID}\n`);
 
   const [teamsData, matchesData, matchResultsData, manualTiebreaksData, globalAdminsData, membersData] =
     await Promise.all([
-    supabase.from('teams').select('*'),
-    supabase.from('matches').select('*'),
-    supabase.from('match_results').select('*'),
-    supabase.from('manual_tiebreaks').select('*'),
-    supabase.from('global_admins').select('user_id'),
-    supabase
-      .from('group_members')
-      .select(`
-        user_id,
-        hidden_from_leaderboard,
-        profiles!group_members_user_id_fkey (
-          id,
-          username
-        )
-      `)
-      .eq('group_id', GROUP_ID),
-  ]);
+      supabase.from('teams').select('*'),
+      supabase.from('matches').select('*'),
+      supabase.from('match_results').select('*'),
+      supabase.from('manual_tiebreaks').select('*'),
+      supabase.from('global_admins').select('user_id'),
+      supabase
+        .from('group_members')
+        .select(`
+          user_id,
+          hidden_from_leaderboard,
+          profiles!group_members_user_id_fkey (
+            id,
+            username
+          )
+        `)
+        .eq('group_id', GROUP_ID),
+    ]);
 
   if (teamsData.error) throw teamsData.error;
   if (matchesData.error) throw matchesData.error;
@@ -178,6 +217,10 @@ async function main() {
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const matchById = new Map(matches.map((match) => [match.id, match]));
   const resultByMatchId = new Map(matchResults.map((result) => [result.match_id, result]));
+
+  const knockoutMatchesWithResults = matches.filter(
+    (match) => isKnockoutRound(match.round) && resultByMatchId.has(match.id),
+  );
 
   const groupTiebreaks = manualTiebreaksData.data
     .filter((tiebreak) => tiebreak.type === 'group_tiebreak')
@@ -303,7 +346,8 @@ async function main() {
   }));
 
   const allRows: AuditRow[] = [];
-  const suspiciousRows: AuditRow[] = [];
+  const falsePositiveRows: AuditRow[] = [];
+  const falseNegativeRows: AuditRow[] = [];
 
   for (const member of visibleMembers) {
     const profileRaw = member.profiles;
@@ -367,65 +411,165 @@ async function main() {
     const predictionByMatchId = new Map(predictionsScores.map((prediction) => [prediction.match_id, prediction]));
 
     const details = (scoreBreakdown?.details ?? {}) as ScoreBreakdownDetails;
-    const knockoutExactEntries = details.knockoutExact ?? [];
+    const awardedByMatchId = new Map(
+      (details.knockoutExact ?? []).map((entry) => [entry.match_id, entry.points]),
+    );
 
-    for (const entry of knockoutExactEntries) {
-      const match = matchById.get(entry.match_id);
-      const realResult = resultByMatchId.get(entry.match_id);
-      const predictedMatch = predictedMatchById.get(entry.match_id);
-      const prediction = predictionByMatchId.get(entry.match_id);
+    for (const match of knockoutMatchesWithResults) {
+      const realResult = resultByMatchId.get(match.id);
+      const prediction = predictionByMatchId.get(match.id);
+      const officialMatch = officialMatchById.get(match.id);
+      const predictedMatch = predictedMatchById.get(match.id);
 
-      const officialMatch = officialMatchById.get(entry.match_id);
-      const realTeam1Id = officialMatch?.team1_id ?? match?.team1_id;
-      const realTeam2Id = officialMatch?.team2_id ?? match?.team2_id;
+      if (!realResult) {
+        continue;
+      }
+
+      const realTeam1Id = officialMatch?.team1_id ?? match.team1_id;
+      const realTeam2Id = officialMatch?.team2_id ?? match.team2_id;
       const predictedTeam1Id = predictedMatch?.team1_id;
       const predictedTeam2Id = predictedMatch?.team2_id;
 
-      const scoreMatches =
-        prediction != null &&
-        realResult != null &&
-        prediction.predicted_team1_score === realResult.team1_score &&
-        prediction.predicted_team2_score === realResult.team2_score;
+      const officialMatchup =
+        realTeam1Id && realTeam2Id
+          ? {
+              team1_id: realTeam1Id,
+              team2_id: realTeam2Id,
+              winner_team_id: realResult.winner_team_id,
+            }
+          : undefined;
 
-      const teamsMatch = matchupMatches(realTeam1Id, realTeam2Id, predictedTeam1Id, predictedTeam2Id);
+      const predictedMatchup =
+        predictedTeam1Id && predictedTeam2Id
+          ? {
+              team1_id: predictedTeam1Id,
+              team2_id: predictedTeam2Id,
+              winner_team_id: prediction?.predicted_winner_team_id ?? null,
+            }
+          : undefined;
 
-      const suspicious = entry.points === 10 && scoreMatches && !teamsMatch;
+      // Regardless of prediction presence, compute real winner for display
+      const realWinnerForDisplay =
+        officialMatchup != null
+          ? inferKnockoutWinner(
+              realResult.winner_team_id,
+              realResult.team1_score,
+              realResult.team2_score,
+              officialMatchup.team1_id,
+              officialMatchup.team2_id,
+            )
+          : realResult.winner_team_id;
+
+      const evaluation = prediction
+        ? evaluateKnockoutExactAward(
+            {
+              match_id: match.id,
+              predicted_team1_score: prediction.predicted_team1_score,
+              predicted_team2_score: prediction.predicted_team2_score,
+              predicted_winner_team_id: prediction.predicted_winner_team_id,
+            },
+            {
+              match_id: match.id,
+              team1_score: realResult.team1_score,
+              team2_score: realResult.team2_score,
+              winner_team_id: realResult.winner_team_id,
+            },
+            officialMatchup,
+            predictedMatchup,
+          )
+        : {
+            score_matches: false,
+            matchup_matches_same_order: false,
+            matchup_matches_swapped: false,
+            real_winner: realWinnerForDisplay,
+            predicted_winner_raw: null,
+            predicted_winner_inferred: null,
+            winner_matches: false,
+            should_award: false,
+            points: 0,
+          };
+
+      const currentlyAwarded = awardedByMatchId.get(match.id) ?? 0;
+
+      let issueType: IssueType = 'ok';
+      if (currentlyAwarded > 0 && !evaluation.should_award) {
+        issueType = 'false_positive';
+      } else if (evaluation.should_award && currentlyAwarded === 0) {
+        issueType = 'false_negative';
+      }
 
       const row: AuditRow = {
         email,
         username,
-        match_id: entry.match_id,
-        match_number: match?.match_number ?? null,
-        round: match?.round ?? '?',
-        real_score: formatScore(realResult?.team1_score, realResult?.team2_score),
+        match_id: match.id,
+        match_number: match.match_number ?? null,
+        round: match.round,
         real_teams: formatTeamPair(realTeam1Id, realTeam2Id, teamById),
+        predicted_teams: formatTeamPair(predictedTeam1Id, predictedTeam2Id, teamById),
+        real_score: formatScore(realResult.team1_score, realResult.team2_score),
         predicted_score: formatScore(
           prediction?.predicted_team1_score,
           prediction?.predicted_team2_score,
         ),
-        predicted_teams: formatTeamPair(predictedTeam1Id, predictedTeam2Id, teamById),
-        matchup_matches: teamsMatch,
-        score_matches: scoreMatches,
-        points_awarded: entry.points,
-        suspicious,
+        real_winner: formatTeamLabel(evaluation.real_winner, teamById),
+        predicted_winner_raw: formatTeamLabel(evaluation.predicted_winner_raw, teamById),
+        predicted_winner_inferred: formatTeamLabel(evaluation.predicted_winner_inferred, teamById),
+        matchup_matches_same_order: evaluation.matchup_matches_same_order,
+        matchup_matches_swapped: evaluation.matchup_matches_swapped,
+        score_matches: evaluation.score_matches,
+        winner_matches: evaluation.winner_matches,
+        currently_awarded: currentlyAwarded,
+        should_award: evaluation.should_award,
+        issue_type: issueType,
       };
 
       allRows.push(row);
-      if (suspicious) {
-        suspiciousRows.push(row);
+      if (issueType === 'false_positive') {
+        falsePositiveRows.push(row);
+      } else if (issueType === 'false_negative') {
+        falseNegativeRows.push(row);
       }
     }
   }
 
-  console.log(`Visible users audited: ${visibleMembers.length}`);
-  console.log(`knockoutExact entries found: ${allRows.length}`);
-  console.log(`Suspicious entries: ${suspiciousRows.length}\n`);
+  const braJpnFalseNegatives = falseNegativeRows.filter((row) => {
+    const match = matchById.get(row.match_id);
+    const officialMatch = officialMatchById.get(row.match_id);
+    const realTeam1Id = officialMatch?.team1_id ?? match?.team1_id;
+    const realTeam2Id = officialMatch?.team2_id ?? match?.team2_id;
+    return teamPairIncludesCodes(realTeam1Id, realTeam2Id, teamById, ['BRA', 'JPN']);
+  });
 
-  if (suspiciousRows.length === 0) {
-    console.log('No suspicious knockoutExact awards found.');
+  console.log(`Visible users audited: ${visibleMembers.length}`);
+  console.log(`Knockout matches with real results: ${knockoutMatchesWithResults.length}`);
+  console.log(`Rows evaluated: ${allRows.length}`);
+  console.log(`False positives: ${falsePositiveRows.length}`);
+  console.log(`False negatives: ${falseNegativeRows.length}`);
+  console.log(`False negatives (Brasil vs Japón): ${braJpnFalseNegatives.length}\n`);
+
+  if (falsePositiveRows.length === 0) {
+    console.log('No false positive knockoutExact awards found.');
   } else {
-    console.log('Suspicious knockoutExact awards:');
-    console.table(suspiciousRows);
+    console.log('False positive knockoutExact awards:');
+    console.table(falsePositiveRows.map(toAuditTableRow));
+  }
+
+  console.log('');
+
+  if (falseNegativeRows.length === 0) {
+    console.log('No false negative knockoutExact awards found.');
+  } else {
+    console.log('False negative knockoutExact awards:');
+    console.table(falseNegativeRows.map(toAuditTableRow));
+  }
+
+  console.log('');
+
+  if (braJpnFalseNegatives.length === 0) {
+    console.log('No Brasil vs Japón false negatives found.');
+  } else {
+    console.log('Brasil vs Japón false negatives (should have knockoutExact but do not):');
+    console.table(braJpnFalseNegatives.map(toAuditTableRow));
   }
 }
 

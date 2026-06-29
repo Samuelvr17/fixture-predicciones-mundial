@@ -192,6 +192,113 @@ function isGroupStage(round: MatchRound): boolean {
   return round === 'group';
 }
 
+/**
+ * Infer knockout winner from score when winner_team_id is not set.
+ * Returns null on draws (penalty winner must be explicit).
+ */
+export function inferKnockoutWinner(
+  explicitWinner: string | null | undefined,
+  team1Score: number,
+  team2Score: number,
+  team1Id: string,
+  team2Id: string,
+): string | null {
+  if (explicitWinner != null) {
+    return explicitWinner;
+  }
+  if (team1Score > team2Score) {
+    return team1Id;
+  }
+  if (team2Score > team1Score) {
+    return team2Id;
+  }
+  return null;
+}
+
+export interface KnockoutExactEvaluation {
+  score_matches: boolean;
+  matchup_matches_same_order: boolean;
+  matchup_matches_swapped: boolean;
+  real_winner: string | null;
+  predicted_winner_raw: string | null;
+  predicted_winner_inferred: string | null;
+  winner_matches: boolean;
+  should_award: boolean;
+  points: number;
+}
+
+/**
+ * Evaluate whether knockout exact points should be awarded.
+ * Shared by scoring engine and audit scripts.
+ */
+export function evaluateKnockoutExactAward(
+  prediction: MatchPrediction,
+  result: MatchResult,
+  officialMatchup?: KnockoutMatchup,
+  predictedMatchup?: KnockoutMatchup,
+): KnockoutExactEvaluation {
+  const { predicted_team1_score: p1, predicted_team2_score: p2 } = prediction;
+  const { team1_score: r1, team2_score: r2 } = result;
+
+  const scoreMatches = p1 === r1 && p2 === r2;
+
+  const matchupMatchesSameOrder =
+    officialMatchup != null &&
+    predictedMatchup != null &&
+    officialMatchup.team1_id === predictedMatchup.team1_id &&
+    officialMatchup.team2_id === predictedMatchup.team2_id;
+
+  const matchupMatchesSwapped =
+    officialMatchup != null &&
+    predictedMatchup != null &&
+    officialMatchup.team1_id === predictedMatchup.team2_id &&
+    officialMatchup.team2_id === predictedMatchup.team1_id;
+
+  const predictedWinnerRaw = prediction.predicted_winner_team_id ?? null;
+
+  const realWinner =
+    officialMatchup != null
+      ? inferKnockoutWinner(
+          result.winner_team_id,
+          r1,
+          r2,
+          officialMatchup.team1_id,
+          officialMatchup.team2_id,
+        )
+      : null;
+
+  const predictedWinnerInferred =
+    predictedMatchup != null
+      ? inferKnockoutWinner(
+          prediction.predicted_winner_team_id,
+          p1,
+          p2,
+          predictedMatchup.team1_id,
+          predictedMatchup.team2_id,
+        )
+      : null;
+
+  const winnerMatches =
+    realWinner != null &&
+    predictedWinnerInferred != null &&
+    realWinner === predictedWinnerInferred;
+
+  const shouldAward =
+    scoreMatches && matchupMatchesSameOrder && winnerMatches;
+
+  return {
+    score_matches: scoreMatches,
+    matchup_matches_same_order: matchupMatchesSameOrder,
+    matchup_matches_swapped: matchupMatchesSwapped,
+    real_winner: realWinner,
+    predicted_winner_raw: predictedWinnerRaw,
+    predicted_winner_inferred: predictedWinnerInferred,
+    winner_matches: winnerMatches,
+    should_award: shouldAward,
+    points: shouldAward ? POINTS.KNOCKOUT_EXACT : 0,
+  };
+}
+
 // ============================================================================
 // Scoring Functions
 // ============================================================================
@@ -231,31 +338,12 @@ function calculateKnockoutMatchScore(
   officialMatchup?: KnockoutMatchup,
   predictedMatchup?: KnockoutMatchup,
 ): number {
-  const { predicted_team1_score: p1, predicted_team2_score: p2 } = prediction;
-  const { team1_score: r1, team2_score: r2 } = result;
-
-  if (p1 !== r1 || p2 !== r2) {
-    return 0;
-  }
-
-  if (!officialMatchup || !predictedMatchup) {
-    return 0;
-  }
-
-  if (
-    officialMatchup.team1_id !== predictedMatchup.team1_id ||
-    officialMatchup.team2_id !== predictedMatchup.team2_id
-  ) {
-    return 0;
-  }
-
-  if (result.winner_team_id != null) {
-    if (prediction.predicted_winner_team_id !== result.winner_team_id) {
-      return 0;
-    }
-  }
-
-  return POINTS.KNOCKOUT_EXACT;
+  return evaluateKnockoutExactAward(
+    prediction,
+    result,
+    officialMatchup,
+    predictedMatchup,
+  ).points;
 }
 
 /**
